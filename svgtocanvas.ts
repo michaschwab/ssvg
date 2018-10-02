@@ -260,13 +260,8 @@ export default class SvgToCanvas {
         return node[name];
     }
     
-    private c = 0;
     private getVisNode(element: HTMLElement): any|null {
         const selector = this.getElementSelector(element);
-        if(selector === 'g>g>g') {
-            console.log(element, selector);
-        }
-        this.c += 1;
         
         return this.getVisNodeFromSelector(selector);
     }
@@ -275,16 +270,14 @@ export default class SvgToCanvas {
     private getVisNodeFromSelector(selector: string): any|null {
         const lastSplitPos = selector.lastIndexOf('>');
         const selectorWithoutLast = selector.substr(0, lastSplitPos);
-        const lastPart = selector.substr(lastSplitPos+1);
+        const lastPart = selector.substr(lastSplitPos + 1);
         const parentSel = selectorWithoutLast ? this.cachedListSelections[selectorWithoutLast] : null;
         let index = -1;
-        if(selectorWithoutLast) {
-            if(lastPart.indexOf(':nth-child(')) {
-                const numberPart = lastPart.substr(lastPart.indexOf(':nth-child(')+':nth-child('.length);
-                index = parseInt(numberPart);
-                if(parentSel && parentSel[index]) {
-                    return parentSel[index];
-                }
+        const nthChildPosition = lastPart.indexOf(':nth-child(');
+        if(nthChildPosition !== -1) {
+            index = parseInt(lastPart.substr(nthChildPosition + 11)); // length of ':nth-child('
+            if(parentSel && parentSel[index]) {
+                return parentSel[index];
             }
         }
         
@@ -449,7 +442,7 @@ export default class SvgToCanvas {
     }
     
     private getElementSelector(element: HTMLElement): string {
-        let sel = element['selector'];
+        let sel = (element as any)['selector'];
     
         if(sel)
         {
@@ -458,11 +451,16 @@ export default class SvgToCanvas {
         else
         {
             sel = this.getElementSelectorByTraversing(element, this.svg);
-            element['selector'] = sel;
+            (element as any)['selector'] = sel;
         
             return sel;
         }
     }
+    
+    //TODO
+    /*private getElementParentSelectorAndIndex(element: HTMLElement): [string, number] {
+    
+    }*/
     
     private getElementSelectorByTraversing(element: HTMLElement, parentToStopAt: HTMLElement|SVGElement): string {
         let path = '', node = element;
@@ -472,9 +470,10 @@ export default class SvgToCanvas {
             if (!name) break;
             name = name.toLowerCase();
         
-            let parent = node.parentElement;
-        
-            let siblings = parent.children;
+            const parent = node.parentElement;
+            if(!parent) break;
+            
+            const siblings = parent.children;
             if (siblings.length > 1) {
                 name += ':nth-child(' + (this.indexOfChild(node)) + ')';
             }
@@ -493,8 +492,7 @@ export default class SvgToCanvas {
         elements: [],
         indeces: []
     };
-    private indexOfChild(child: Element): number {
-        
+    private indexOfChild(child: Element|null): number {
         let cacheIndex = this.childIndexCache.elements.indexOf(child);
         if(cacheIndex !== -1) {
             return this.childIndexCache.indeces[cacheIndex];
