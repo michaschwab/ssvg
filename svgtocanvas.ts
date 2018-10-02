@@ -32,13 +32,9 @@ export default class SvgToCanvas {
             canvas.addEventListener('wheel', e => this.propagateEvent(e));
     
             this.replaceNativeAttribute();
-    
-    
-            let i = 0;
+            
             const recursiveRaf = () => {
                 this.drawCanvas();
-                i++;
-                if(i < 3)
                 requestAnimationFrame(recursiveRaf);
             };
             requestAnimationFrame(recursiveRaf);
@@ -201,15 +197,16 @@ export default class SvgToCanvas {
     }
     
     private captureD3On() {
-        let originalOn = d3.selection.prototype.on;
+        const originalOn = d3.selection.prototype.on;
+        const me = this;
     
         d3.selection.prototype.on = function()
         {
             const el = this.node() ? this.node().parentNode : null;
         
-            if(el && this.interactionSelections.indexOf(el) === -1)
+            if(el && me.interactionSelections.indexOf(el) === -1)
             {
-                this.interactionSelections.push(el); // This one works for native get/setAttribute
+                me.interactionSelections.push(el); // This one works for native get/setAttribute
                 //interactionSelections.push(this); // This one works for d3 .attr.
             }
         
@@ -229,13 +226,11 @@ export default class SvgToCanvas {
                 return;
             }
             
-            let selector = me.getElementSelector(this);
-    
             me.updateDataFromElementAttr(this, name, value);
         };
     
         Element.prototype.getAttribute = function(name) {
-            let selector = '';//me.getElementSelector(this);
+            let selector = me.getElementSelector(this);
         
             if(!selector) {
                 return origGetAttr.apply(this, arguments);
@@ -283,12 +278,11 @@ export default class SvgToCanvas {
         const lastPart = selector.substr(lastSplitPos+1);
         const parentSel = selectorWithoutLast ? this.cachedListSelections[selectorWithoutLast] : null;
         let index = -1;
-        
-        if(selectorWithoutLast && parentSel) {
+        if(selectorWithoutLast) {
             if(lastPart.indexOf(':nth-child(')) {
-                index = parseInt(lastPart.substr(lastPart.indexOf(':nth-child(')));
-                
-                if(parentSel[index]) {
+                const numberPart = lastPart.substr(lastPart.indexOf(':nth-child(')+':nth-child('.length);
+                index = parseInt(numberPart);
+                if(parentSel && parentSel[index]) {
                     return parentSel[index];
                 }
             }
@@ -296,12 +290,10 @@ export default class SvgToCanvas {
         
         const selectedNodes: HTMLElement[] = [];
         this.findMatchingChildren(this.visData, selector, 0, selectedNodes);
-        if(selector == 'g>g>g')
-            console.log(selectedNodes);
         
         if(selectedNodes && selectedNodes.length === 1) {
             const el = selectedNodes[0];
-            if(el.parentElement.children.length > 5 && index !== -1) {
+            if(index !== -1) {
                 if(!this.cachedListSelections[selectorWithoutLast]) {
                     this.cachedListSelections[selectorWithoutLast] = {};
                 }
