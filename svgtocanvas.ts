@@ -1,36 +1,48 @@
-class SvgToCanvas {
-    
-    private visData;
+//import * as d3 from 'd3';
+
+export default class SvgToCanvas {
+    private visData: any;
     private ctx: CanvasRenderingContext2D;
+    private interactionSelections: HTMLElement[] = [];
     
     constructor(private canvas: HTMLCanvasElement, private svg: SVGElement) {
-        this.ctx = canvas.getContext('2d');
+    
+        this.captureD3On();
+        const ctx = canvas.getContext('2d');
+        if(!ctx) throw new Error('could not create canvas context');
+        
+        this.ctx = ctx;
         this.visData = {
             width: 0,
             height: 0,
             children: []
         };
-    
-        this.visData.width = this.svg.getAttribute('width');
-        this.visData.height = this.svg.getAttribute('height');
-        this.addChildNodesToVisData(this.svg.childNodes, this.visData.children);
-    
-        this.drawCanvas();
-        this.svg.style.display = 'none';
         
-        canvas.addEventListener('mousedown', e => this.propagateEvent(e));
-        canvas.addEventListener('mousemove', e => this.propagateEvent(e));
-        canvas.addEventListener('mouseup', e => this.propagateEvent(e));
-        canvas.addEventListener('wheel', e => this.propagateEvent(e));
-        
+        window.setTimeout(() => {
+            this.visData.width = this.svg.getAttribute('width');
+            this.visData.height = this.svg.getAttribute('height');
+            this.addChildNodesToVisData(this.svg.childNodes, this.visData.children);
     
-        this.replaceNativeAttribute();
-    
-        const recursiveRaf = () => {
             this.drawCanvas();
+            this.svg.style.display = 'none';
+    
+            canvas.addEventListener('mousedown', e => this.propagateEvent(e));
+            canvas.addEventListener('mousemove', e => this.propagateEvent(e));
+            canvas.addEventListener('mouseup', e => this.propagateEvent(e));
+            canvas.addEventListener('wheel', e => this.propagateEvent(e));
+    
+            this.replaceNativeAttribute();
+    
+    
+            let i = 0;
+            const recursiveRaf = () => {
+                this.drawCanvas();
+                i++;
+                if(i < 3)
+                requestAnimationFrame(recursiveRaf);
+            };
             requestAnimationFrame(recursiveRaf);
-        };
-        requestAnimationFrame(recursiveRaf);
+        }, 500);
     }
     
     private lastDrawn = null;
@@ -41,8 +53,8 @@ class SvgToCanvas {
     private setSize = false;
     
     drawCanvas() {
-        let canvas = document.getElementsByTagName('canvas')[0];
-        let ctx = canvas.getContext('2d');
+        const canvas = this.canvas;
+        const ctx = this.ctx;
         //console.log(ctx.getTransform());
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         //let offscreenCanvas = document.createElement('canvas');
@@ -77,7 +89,7 @@ class SvgToCanvas {
         this.finishDrawingChildren();
     }
     
-    private drawChildren(elData) {
+    private drawChildren(elData: any) {
         const ctx = this.ctx;
         
         //if(elData.type !== 'line')
@@ -99,7 +111,7 @@ class SvgToCanvas {
                     //let path = new Path2D(currentD);
                     ctx.closePath();
                     ctx.stroke();
-                    ctx.restore();
+                    ctx.restore(); //test
                     ctx.restore();
                 } else if(this.lastDrawn.type === 'circle') {
                     ctx.fill();
@@ -114,25 +126,10 @@ class SvgToCanvas {
                     this.queues.circles[fill] = [];
                 }
                 this.queues.circles[fill].push(elData);
-                
-                
-                //if(!this.lastDrawn || this.lastDrawn.type !== 'circle')
-                {
-                    /*ctx.fillStyle = fill;
-                    ctx.lineWidth = strokeWidth;
-                    ctx.strokeStyle = stroke;
-                    ctx.beginPath();*/
-                    //console.log('circle begin', this.lastDrawn.type);
-                }
-                
-                //ctx.moveTo(elData.cx + elData.r, elData.cy);
-                //ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
-                //ctx.fill();
-                //ctx.stroke();
             } else if(elData.type === 'line') {
                 if(!this.lastDrawn || this.lastDrawn.type !== 'line') {
                     ctx.save();
-                    this.applyTransform(ctx, elData.transform);
+                    this.applyTransform(elData.transform);
                     
                     ctx.beginPath();
                     ctx.strokeStyle = stroke;
@@ -203,9 +200,27 @@ class SvgToCanvas {
         this.lastDrawn = null;
     }
     
+    private captureD3On() {
+        let originalOn = d3.selection.prototype.on;
+    
+        d3.selection.prototype.on = function()
+        {
+            const el = this.node() ? this.node().parentNode : null;
+        
+            if(el && this.interactionSelections.indexOf(el) === -1)
+            {
+                this.interactionSelections.push(el); // This one works for native get/setAttribute
+                //interactionSelections.push(this); // This one works for d3 .attr.
+            }
+        
+            return originalOn.apply(this, arguments);
+        };
+    }
+    
     private replaceNativeAttribute() {
         let origSetAttr = Element.prototype.setAttribute;
         let origGetAttr = Element.prototype.getAttribute;
+        const me = this;
     
         Element.prototype.setAttribute = function(name: string, value: any) {
             if(name === 'easypz') {
@@ -214,18 +229,18 @@ class SvgToCanvas {
                 return;
             }
             
-            let selector = this.getElementSelector(this);
+            let selector = me.getElementSelector(this);
     
-            this.updateDataFromElementAttr(this, this, name, value, selector);
+            me.updateDataFromElementAttr(this, name, value);
         };
     
         Element.prototype.getAttribute = function(name) {
-            let selector = this.getElementSelector(this);
+            let selector = '';//me.getElementSelector(this);
         
             if(!selector) {
                 return origGetAttr.apply(this, arguments);
             } else {
-                return this.getAttributeFromSelector(this, name);
+                return me.getAttributeFromSelector(this, name);
             }
         };
     }
@@ -250,21 +265,54 @@ class SvgToCanvas {
         return node[name];
     }
     
-    private getVisNode(element: HTMLElement): {}|null {
+    private c = 0;
+    private getVisNode(element: HTMLElement): any|null {
         const selector = this.getElementSelector(element);
+        if(selector === 'g>g>g') {
+            console.log(element, selector);
+        }
+        this.c += 1;
         
         return this.getVisNodeFromSelector(selector);
     }
     
-    private getVisNodeFromSelector(selector: string): {}|null {
+    private cachedListSelections: {[selector: string]: {[index: number]: HTMLElement}} = {};
+    private getVisNodeFromSelector(selector: string): any|null {
+        const lastSplitPos = selector.lastIndexOf('>');
+        const selectorWithoutLast = selector.substr(0, lastSplitPos);
+        const lastPart = selector.substr(lastSplitPos+1);
+        const parentSel = selectorWithoutLast ? this.cachedListSelections[selectorWithoutLast] : null;
+        let index = -1;
         
-        const selectedNodes = [];
+        if(selectorWithoutLast && parentSel) {
+            if(lastPart.indexOf(':nth-child(')) {
+                index = parseInt(lastPart.substr(lastPart.indexOf(':nth-child(')));
+                
+                if(parentSel[index]) {
+                    return parentSel[index];
+                }
+            }
+        }
+        
+        const selectedNodes: HTMLElement[] = [];
         this.findMatchingChildren(this.visData, selector, 0, selectedNodes);
+        if(selector == 'g>g>g')
+            console.log(selectedNodes);
         
-        return selectedNodes;
+        if(selectedNodes && selectedNodes.length === 1) {
+            const el = selectedNodes[0];
+            if(el.parentElement.children.length > 5 && index !== -1) {
+                if(!this.cachedListSelections[selectorWithoutLast]) {
+                    this.cachedListSelections[selectorWithoutLast] = {};
+                }
+                this.cachedListSelections[selectorWithoutLast][index] = el;
+            }
+            return el;
+        }
+        return null;
     }
     
-    private findMatchingChildren(visNode, selector, matchIndex, selectedNodes, selectedNodeSelectors = []) {
+    private findMatchingChildren(visNode: any, selector: string, matchIndex: number, selectedNodes: any[], selectedNodeSelectors: string[] = []) {
         if(!selector && selector !== '') {
             console.error(visNode, selector, matchIndex, selectedNodes, selectedNodeSelectors);
             throw Error('undefined selector');
@@ -291,10 +339,12 @@ class SvgToCanvas {
         {
             let node = visNode.children[i];
             let matching = false;
+    
+            if(selector === 'g>g>g')
+                console.log(node, node.class, selPart, checker(node, i));
             
             if(checker(node, i))
             {
-                //console.log(el);
                 if(matchIndex === selParts.length - 1)
                 {
                     selectedNodes.push(node);
@@ -334,8 +384,11 @@ class SvgToCanvas {
         
             return (node, i) => (i === targetIndex - 1 && (type === 'any' || node.type === type));
         }
-        else {
+        else if(selPart === '') {
             return node => (node.class === 'svg');
+        }
+        else {
+            return node => node.type === selPart;
         }
     }
     
@@ -412,7 +465,7 @@ class SvgToCanvas {
         }
         else
         {
-            sel = this.getElementSelectorByTraversing(element.parentElement, this.svg);
+            sel = this.getElementSelectorByTraversing(element, this.svg);
             element['selector'] = sel;
         
             return sel;
@@ -467,7 +520,7 @@ class SvgToCanvas {
         return i;
     }
     
-    private propagateEvent(evt): void {
+    private propagateEvent(evt: MouseEvent): void {
         let new_event = new MouseEvent(evt.type, evt);
     
         this.svg.dispatchEvent(new_event); // for EasyPZ
@@ -476,23 +529,25 @@ class SvgToCanvas {
     
         for(let interactionSel of this.interactionSelections)
         {
-            let selector = this.getElementSelector(interactionSel);
+            /*let selector = this.getElementSelector(interactionSel);
             let selectedNodes = [];
-            let selectedNodeSelectors = [];
+            let selectedNodeSelectors = [];*/
         
-            findMatchingChildren(vis, selector, 0, selectedNodes, selectedNodeSelectors);
+            //findMatchingChildren(vis, selector, 0, selectedNodes, selectedNodeSelectors);
             //const node = this.getVisNode(interactionSel);
         
-            for(let i = 0; i < selectedNodes.length; i++)
+            //for(let i = 0; i < selectedNodes.length; i++)
             {
-                let matchingVisParent = selectedNodes[i];
+                let parentSelector = this.getElementSelector(interactionSel);
+                let parentNode = this.getVisNodeFromSelector(parentSelector);
+                //let matchingVisParent = selectedNodes[i];
                 let j = 1;
             
-                for(let el of matchingVisParent.children)
+                for(let el of parentNode.children)
                 {
                     if(this.elementAtPosition(el, evt.clientX-10, evt.clientY-10))
                     {
-                        let selector = selectedNodeSelectors[i] + ' > :nth-child(' + j + ')';
+                        let selector = parentSelector + ' > :nth-child(' + j + ')';
                         let svgEl = this.svg.querySelector(selector);
                         svgEl.dispatchEvent(new_event);
                         /*console.log(el, svgEl);
