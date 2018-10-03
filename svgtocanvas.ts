@@ -198,21 +198,24 @@ export default class SvgToCanvas {
     }
     
     private captureD3On() {
-        const originalOn = d3.selection.prototype.on;
-        const me = this;
+        if(window['d3']) {
+            const d3 = window['d3'];
+            const originalOn = d3.selection.prototype.on;
+            const me = this;
     
-        d3.selection.prototype.on = function()
-        {
-            const el = this.node() ? this.node().parentNode : null;
-        
-            if(el && me.interactionSelections.indexOf(el) === -1)
+            d3.selection.prototype.on = function()
             {
-                me.interactionSelections.push(el); // This one works for native get/setAttribute
-                //interactionSelections.push(this); // This one works for d3 .attr.
-            }
+                const el = this.node() ? this.node().parentNode : null;
         
-            return originalOn.apply(this, arguments);
-        };
+                if(el && me.interactionSelections.indexOf(el) === -1)
+                {
+                    me.interactionSelections.push(el); // This one works for native get/setAttribute
+                    //interactionSelections.push(this); // This one works for d3 .attr.
+                }
+        
+                return originalOn.apply(this, arguments);
+            };
+        }
     }
     
     private replaceNativeAttribute() {
