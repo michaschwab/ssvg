@@ -78,6 +78,7 @@ export default class SvgToCanvas {
             //offscreenCtx.scale(scale, scale);
         }
         
+        this.executeSetAttributeQueue();
         //ctx.save();
         this.drawChildren(this.visData);
         //ctx.restore();
@@ -226,7 +227,8 @@ export default class SvgToCanvas {
                 return;
             }
             
-            me.updateDataFromElementAttr(this, name, value);
+            //me.updateDataFromElementAttr(this, name, value);
+            me.queueSetAttribute(this, name, value);
         };
     
         Element.prototype.getAttribute = function(name) {
@@ -248,6 +250,48 @@ export default class SvgToCanvas {
             console.log(e);
             return;
         }
+    }
+    
+    private setAttrParentElements: Element[] = [];
+    private setAttrQueue: {[parentIndex: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
+    
+    private queueSetAttribute(element: Element, attrName: string, value: any) {
+        const parent = element.parentElement;
+        if(!parent) {
+            throw Error('element parent not found');
+        }
+        let parentIndex = this.setAttrParentElements.indexOf(parent);
+        if(parentIndex === -1) {
+            parentIndex = this.setAttrParentElements.length;
+            this.setAttrParentElements.push(parent);
+        }
+        if(!this.setAttrQueue[parentIndex]) {
+            this.setAttrQueue[parentIndex] = {};
+        }
+        if(!this.setAttrQueue[parentIndex][attrName]) {
+            this.setAttrQueue[parentIndex][attrName] = {};
+        }
+        const childIndex = this.indexOfChild(element) - 1;
+        this.setAttrQueue[parentIndex][attrName][childIndex] = value;
+    }
+    
+    private executeSetAttributeQueue() {
+        for(let parentIndex in this.setAttrQueue) {
+            const parentEl = this.setAttrParentElements[parentIndex];
+            const parentNode = this.getVisNode(parentEl);
+            
+            for(let attrName in this.setAttrQueue[parentIndex]) {
+                if(this.setAttrQueue[parentIndex].hasOwnProperty(attrName)) {
+                    for(let childIndex in this.setAttrQueue[parentIndex][attrName]) {
+                        const childNode = parentNode.children[childIndex];
+                        //console.log(parentNode, childIndex);
+                        childNode[attrName] = this.setAttrQueue[parentIndex][attrName][childIndex];
+                    }
+                }
+            }
+        }
+        
+        this.setAttrQueue = {};
     }
     
     private getAttributeFromSelector(element: Element, name: string) {
