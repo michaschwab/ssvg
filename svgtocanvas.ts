@@ -619,14 +619,14 @@ export default class SvgToCanvas {
                 //console.log(transform.rotate);
             }
             //console.log(transform);
-            this.ctx.transform(transform.scale, 0, 0, transform.scale, transform.translateX, transform.translateY);
+            this.ctx.transform(transform.scaleX, 0, 0, transform.scaleY, transform.translateX, transform.translateY);
             //ctx.rotate(transform.rotate / 2 / Math.PI);
             this.ctx.rotate(transform.rotate * Math.PI / 180);
         }
     }
     
     private static parseTransform(transform: string) {
-        const transformObject = {translateX: 0, translateY: 0, scale: 1, rotate: 0, translateBeforeScale: false};
+        const transformObject = {translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotate: 0, translateBeforeScale: false};
     
         if (transform) {
             transform = transform.replace(/ /g, '');
@@ -643,7 +643,8 @@ export default class SvgToCanvas {
         
             const scale = /\s*scale\(([-0-9.]+)\)/.exec(transform);
             if (scale) {
-                transformObject.scale = parseFloat(scale[1]);
+                transformObject.scaleX = parseFloat(scale[1]);
+                transformObject.scaleY = parseFloat(scale[1]);
             }
             else {
                 //console.error('no scale found', transform);
@@ -660,6 +661,16 @@ export default class SvgToCanvas {
             const translateScale = /\s*translate\(([-0-9.]+),([-0-9.]+)\)scale\(([-0-9.]+)\)/.exec(transform);
             if (translateScale) {
                 transformObject.translateBeforeScale = true;
+            }
+            
+            const matrix = /\s*matrix\(([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+)\)/.exec(transform);
+            if(matrix) {
+                transformObject.scaleX = matrix[1];
+                // 2 is horizontal skewing
+                // 3 is vertical skewing
+                transformObject.scaleY = matrix[4];
+                transformObject.translateX = matrix[5];
+                transformObject.translateY = matrix[6];
             }
         }
     
