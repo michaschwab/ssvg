@@ -41,8 +41,8 @@ export default class SvgToCanvas {
         }, 500);
     }
     
-    private lastDrawn = null;
-    private queues = {
+    private lastDrawn: any = null;
+    private queues: { circles: any } = {
         circles: {}
     };
     
@@ -177,13 +177,13 @@ export default class SvgToCanvas {
         for(let fill in this.queues.circles) {
             if(this.queues.circles.hasOwnProperty(fill)) {
                 this.ctx.fillStyle = fill;
-                let sampleData = this.queues.circles[fill][0];
+                let sampleData = (this.queues.circles as any)[fill][0];
                 let stroke = sampleData.style.stroke ? sampleData.style.stroke : sampleData.stroke;
                 this.ctx.lineWidth = sampleData.strokeWidth;
                 this.ctx.strokeStyle = stroke;
                 //console.log(queues.circles[fill][0].stroke);
                 this.ctx.beginPath();
-                for(let elData of this.queues.circles[fill]) {
+                for(let elData of (this.queues.circles as any)[fill]) {
                     this.ctx.moveTo(elData.cx + Math.round(elData.r), elData.cy);
                     this.ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
                 }
@@ -240,7 +240,7 @@ export default class SvgToCanvas {
         };
     }
     
-    private updateDataFromElementAttr(element: HTMLElement, attrName: string, value: any) {
+    private updateDataFromElementAttr(element: Element, attrName: string, value: any) {
         try {
             let visNode = this.getVisNode(element);
             visNode[attrName] = value;
@@ -250,7 +250,7 @@ export default class SvgToCanvas {
         }
     }
     
-    private getAttributeFromSelector(element, name) {
+    private getAttributeFromSelector(element: Element, name: string) {
         const node = this.getVisNode(element);
     
         if(!node) {
@@ -260,7 +260,7 @@ export default class SvgToCanvas {
         return node[name];
     }
     
-    private getVisNode(element: HTMLElement): any|null {
+    private getVisNode(element: Element): any|null {
         const selector = this.getElementSelector(element);
         
         return this.getVisNodeFromSelector(selector);
@@ -324,9 +324,6 @@ export default class SvgToCanvas {
         {
             let node = visNode.children[i];
             let matching = false;
-    
-            if(selector === 'g>g>g')
-                console.log(node, node.class, selPart, checker(node, i));
             
             if(checker(node, i))
             {
@@ -377,9 +374,12 @@ export default class SvgToCanvas {
         }
     }
     
-    private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, childrenData): void {
-        for(let i  = 0; i < childEls.length; i++)
-        {
+    private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, childrenData: any): void {
+        const getRoundedAttr = (el: Element, attrName: string) => {
+            const val = el.getAttribute(attrName);
+            return val ? Math.round(parseFloat(val)) : null;
+        };
+        for(let i  = 0; i < childEls.length; i++) {
             let el = childEls[i] as HTMLElement;
             
             try
@@ -394,15 +394,15 @@ export default class SvgToCanvas {
                     class: el.getAttribute('class'),
                     r: el.getAttribute('r'),
                     fill: el.getAttribute('fill'),
-                    cx: Math.round(parseFloat(el.getAttribute('cx'))),
-                    cy: Math.round(parseFloat(el.getAttribute('cy'))),
-                    x: Math.round(parseFloat(el.getAttribute('x'))),
-                    y: Math.round(parseFloat(el.getAttribute('y'))),
-                    x1: Math.round(parseFloat(el.getAttribute('x1'))),
-                    x2: Math.round(parseFloat(el.getAttribute('x2'))),
-                    y1: Math.round(parseFloat(el.getAttribute('y1'))),
-                    y2: Math.round(parseFloat(el.getAttribute('y2'))),
-                    "stroke-width": Math.round(parseFloat(el.getAttribute('stroke-width'))),
+                    cx: getRoundedAttr(el, 'cx'),
+                    cy: getRoundedAttr(el, 'cy'),
+                    x: getRoundedAttr(el, 'x'),
+                    y: getRoundedAttr(el, 'y'),
+                    x1: getRoundedAttr(el, 'x1'),
+                    x2: getRoundedAttr(el, 'x2'),
+                    y1: getRoundedAttr(el, 'y1'),
+                    y2: getRoundedAttr(el, 'y2'),
+                    "stroke-width": getRoundedAttr(el, 'stroke-width'),
                     text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : '',
                     style: {
                         stroke: style.getPropertyValue('stroke'),
@@ -441,7 +441,7 @@ export default class SvgToCanvas {
         }
     }
     
-    private getElementSelector(element: HTMLElement): string {
+    private getElementSelector(element: Element): string {
         let sel = (element as any)['selector'];
     
         if(sel)
@@ -462,7 +462,7 @@ export default class SvgToCanvas {
     
     }*/
     
-    private getElementSelectorByTraversing(element: HTMLElement, parentToStopAt: HTMLElement|SVGElement): string {
+    private getElementSelectorByTraversing(element: Element, parentToStopAt: Element|SVGElement): string {
         let path = '', node = element;
         while (node && node !== parentToStopAt) {
             let name = node.localName;
@@ -492,17 +492,18 @@ export default class SvgToCanvas {
         elements: [],
         indeces: []
     };
-    private indexOfChild(child: Element|null): number {
+    private indexOfChild(child: Element): number {
         let cacheIndex = this.childIndexCache.elements.indexOf(child);
         if(cacheIndex !== -1) {
             return this.childIndexCache.indeces[cacheIndex];
         }
         
         let i = 0;
+        let siblingOrNull: Element|null = child;
         
-        while(child)
+        while(siblingOrNull)
         {
-            child = child.previousElementSibling;
+            siblingOrNull = siblingOrNull.previousElementSibling;
             i++;
         }
         this.childIndexCache.elements.push(child);
@@ -535,11 +536,14 @@ export default class SvgToCanvas {
             
                 for(let el of parentNode.children)
                 {
-                    if(this.elementAtPosition(el, evt.clientX-10, evt.clientY-10))
+                    if(this.nodeAtPosition(el, evt.clientX-10, evt.clientY-10))
                     {
                         let selector = parentSelector + ' > :nth-child(' + j + ')';
                         let svgEl = this.svg.querySelector(selector);
-                        svgEl.dispatchEvent(new_event);
+                        
+                        if(svgEl) {
+                            svgEl.dispatchEvent(new_event);
+                        }
                         /*console.log(el, svgEl);
                         console.log(selector);
                         console.log(vis);
@@ -551,12 +555,12 @@ export default class SvgToCanvas {
         }
     }
     
-    private elementAtPosition(element, x, y): boolean
+    private nodeAtPosition(visNode: any, x: number, y: number): boolean
     {
-        if(element.type === 'circle')
+        if(visNode.type === 'circle')
         {
-            let distance = Math.sqrt(Math.pow(element.cx - x, 2) + Math.pow(element.cy - y, 2));
-            return distance < element.r;
+            let distance = Math.sqrt(Math.pow(visNode.cx - x, 2) + Math.pow(visNode.cy - y, 2));
+            return distance < visNode.r;
         }
         return false;
     }
