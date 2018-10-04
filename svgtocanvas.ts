@@ -80,6 +80,7 @@ export default class SvgToCanvas {
         
         this.executeSetAttributeQueue();
         //ctx.save();
+        //console.log(this.visData);
         this.drawChildren(this.visData);
         //ctx.restore();
         //ctx.drawImage(offscreenCanvas, 0, 0);
@@ -144,8 +145,9 @@ export default class SvgToCanvas {
                 //ctx.stroke(p);
                 ctx.fillStyle = fill;
                 //console.log(elData);
-                ctx.fill(p);
+                //ctx.fill(p);
                 if(stroke !== 'none') {
+                    ctx.lineWidth = strokeWidth;
                     ctx.strokeStyle = strokeWidth + ' ' + stroke;
                     ctx.stroke(p);
                 }
@@ -425,7 +427,7 @@ export default class SvgToCanvas {
     private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, childrenData: any): void {
         const getRoundedAttr = (el: Element, attrName: string) => {
             const val = el.getAttribute(attrName);
-            return val ? Math.round(parseFloat(val)) : null;
+            return val ? parseFloat(val) : null;
         };
         for(let i  = 0; i < childEls.length; i++) {
             let el = childEls[i] as HTMLElement;
@@ -454,8 +456,8 @@ export default class SvgToCanvas {
                     text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : '',
                     style: {
                         stroke: style.getPropertyValue('stroke'),
-                        "stroke-opacity": style.getPropertyValue('stroke-opacity'),
-                        "stroke-width": style.getPropertyValue('stroke-width'),
+                        "stroke-opacity": parseFloat(style.getPropertyValue('stroke-opacity')),
+                        "stroke-width": parseFloat(style.getPropertyValue('stroke-width')),
                         fill: style.getPropertyValue('fill'),
                         textAnchor: style.textAnchor
                     },
