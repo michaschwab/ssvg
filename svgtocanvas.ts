@@ -26,10 +26,10 @@ export default class SvgToCanvas {
             this.drawCanvas();
             this.svg.style.display = 'none';
     
-            canvas.addEventListener('mousedown', e => this.propagateEvent(e));
-            canvas.addEventListener('mousemove', e => this.propagateEvent(e));
-            canvas.addEventListener('mouseup', e => this.propagateEvent(e));
-            canvas.addEventListener('wheel', e => this.propagateEvent(e));
+            canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
+            canvas.addEventListener('mousemove', e => this.propagateMouseEvent(e));
+            canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
+            canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
     
             this.replaceNativeAttribute();
             
@@ -284,7 +284,15 @@ export default class SvgToCanvas {
         for(let parentIndex in this.setAttrQueue) {
             const pIndex = parseInt(parentIndex);
             const parentEl = this.setAttrParentElements[pIndex];
-            const parentNode = this.getVisNode(parentEl);
+            let parentNode = this.getVisNode(parentEl);
+            if(!parentNode) {
+                if(parentEl === this.svg) {
+                    parentNode = this.visData;
+                    //console.log(this.setAttrQueue[parentIndex]);
+                } else {
+                    console.error(parentEl, parentNode, pIndex, parentIndex);
+                }
+            }
             
             for(let attrName in this.setAttrQueue[parentIndex]) {
                 if(this.setAttrQueue[parentIndex].hasOwnProperty(attrName)) {
@@ -561,46 +569,36 @@ export default class SvgToCanvas {
         return i;
     }
     
-    private propagateEvent(evt: MouseEvent): void {
-        let new_event = new MouseEvent(evt.type, evt);
+    private propagateMouseEvent(evt: MouseEvent) {
+        return this.propagateEvent(new MouseEvent(evt.type, evt));
+    }
     
+    private propagateWheelEvent(evt: WheelEvent) {
+        return this.propagateEvent(new WheelEvent(evt.type, evt));
+    }
+    
+    private propagateEvent(new_event: MouseEvent|WheelEvent): void {
         this.svg.dispatchEvent(new_event); // for EasyPZ
-    
-        //console.log(vis, interactionSelections);
     
         for(let interactionSel of this.interactionSelections)
         {
-            /*let selector = this.getElementSelector(interactionSel);
-            let selectedNodes = [];
-            let selectedNodeSelectors = [];*/
+            let parentSelector = this.getElementSelector(interactionSel);
+            let parentNode = this.getVisNodeFromSelector(parentSelector);
+            //let matchingVisParent = selectedNodes[i];
+            let j = 1;
         
-            //findMatchingChildren(vis, selector, 0, selectedNodes, selectedNodeSelectors);
-            //const node = this.getVisNode(interactionSel);
-        
-            //for(let i = 0; i < selectedNodes.length; i++)
+            for(let el of parentNode.children)
             {
-                let parentSelector = this.getElementSelector(interactionSel);
-                let parentNode = this.getVisNodeFromSelector(parentSelector);
-                //let matchingVisParent = selectedNodes[i];
-                let j = 1;
-            
-                for(let el of parentNode.children)
+                if(this.nodeAtPosition(el, new_event.clientX-10, new_event.clientY-10))
                 {
-                    if(this.nodeAtPosition(el, evt.clientX-10, evt.clientY-10))
-                    {
-                        let selector = parentSelector + ' > :nth-child(' + j + ')';
-                        let svgEl = this.svg.querySelector(selector);
-                        
-                        if(svgEl) {
-                            svgEl.dispatchEvent(new_event);
-                        }
-                        /*console.log(el, svgEl);
-                        console.log(selector);
-                        console.log(vis);
-                        console.log(evt);*/
+                    let selector = parentSelector + ' > :nth-child(' + j + ')';
+                    let svgEl = this.svg.querySelector(selector);
+                    
+                    if(svgEl) {
+                        svgEl.dispatchEvent(new_event);
                     }
-                    j++;
                 }
+                j++;
             }
         }
     }
