@@ -198,8 +198,8 @@ export default class SvgToCanvas {
     }
     
     private captureD3On() {
-        if(window['d3']) {
-            const d3 = window['d3'];
+        if((window as any)['d3']) {
+            const d3 = (window as any)['d3'];
             const originalOn = d3.selection.prototype.on;
             const me = this;
     
@@ -280,7 +280,8 @@ export default class SvgToCanvas {
     
     private executeSetAttributeQueue() {
         for(let parentIndex in this.setAttrQueue) {
-            const parentEl = this.setAttrParentElements[parentIndex];
+            const pIndex = parseInt(parentIndex);
+            const parentEl = this.setAttrParentElements[pIndex];
             const parentNode = this.getVisNode(parentEl);
             
             for(let attrName in this.setAttrQueue[parentIndex]) {
@@ -665,12 +666,12 @@ export default class SvgToCanvas {
             
             const matrix = /\s*matrix\(([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+)\)/.exec(transform);
             if(matrix) {
-                transformObject.scaleX = matrix[1];
+                transformObject.scaleX = parseFloat(matrix[1]);
                 // 2 is horizontal skewing
                 // 3 is vertical skewing
-                transformObject.scaleY = matrix[4];
-                transformObject.translateX = matrix[5];
-                transformObject.translateY = matrix[6];
+                transformObject.scaleY = parseFloat(matrix[4]);
+                transformObject.translateX = parseFloat(matrix[5]);
+                transformObject.translateY = parseFloat(matrix[6]);
             }
         }
     
