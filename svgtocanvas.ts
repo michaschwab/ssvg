@@ -502,57 +502,6 @@ export default class SvgToCanvas {
         return false;
     }
     
-    private static parseTransform(transform: string) {
-        const transformObject = {translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotate: 0, translateBeforeScale: false};
-    
-        if (transform) {
-            transform = transform.replace(/ /g, '');
-        
-            //let translate  = /translate\((\d+),(\d+)\)/.exec(transform);
-            const translate = /\s*translate\(([-0-9.]+),([-0-9.]+)\)/.exec(transform);
-            if (translate) {
-                transformObject.translateX = parseFloat(translate[1]);
-                transformObject.translateY = parseFloat(translate[2]);
-            }
-            else {
-                //console.error('no translate found', transform);
-            }
-        
-            const scale = /\s*scale\(([-0-9.]+)\)/.exec(transform);
-            if (scale) {
-                transformObject.scaleX = parseFloat(scale[1]);
-                transformObject.scaleY = parseFloat(scale[1]);
-            }
-            else {
-                //console.error('no scale found', transform);
-            }
-        
-            const rotate = /\s*rotate\(([-0-9.]+)\)/.exec(transform);
-            if (rotate) {
-                transformObject.rotate = parseFloat(rotate[1]);
-            }
-            else {
-                //console.error('no rotate found', transform);
-            }
-        
-            const translateScale = /\s*translate\(([-0-9.]+),([-0-9.]+)\)scale\(([-0-9.]+)\)/.exec(transform);
-            if (translateScale) {
-                transformObject.translateBeforeScale = true;
-            }
-            
-            const matrix = /\s*matrix\(([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+)\)/.exec(transform);
-            if(matrix) {
-                transformObject.scaleX = parseFloat(matrix[1]);
-                // 2 is horizontal skewing
-                // 3 is vertical skewing
-                transformObject.scaleY = parseFloat(matrix[4]);
-                transformObject.translateX = parseFloat(matrix[5]);
-                transformObject.translateY = parseFloat(matrix[6]);
-            }
-        }
-    
-        return transformObject;
-    }
     
     
     private sendToWorker(msg: CanvasWorkerMessage, data?: any) {
