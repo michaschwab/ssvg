@@ -10,7 +10,7 @@ self.onmessage = function(e) {
                 break;
             case 'UPDATE_NODES':
                 worker.updatePropertiesFromQueue(data.queue, data.parentNodes);
-                worker.drawCanvas();
+                //worker.drawCanvas();
                 break;
             default:
                 console.error('did not find command ', e.data.cmd);
@@ -39,6 +39,12 @@ class SvgToCanvasWorker {
     
         this.ctx = ctx;
         this.ctx.scale(this.visData.scale, this.visData.scale);
+        
+        const raf = () => {
+            this.drawCanvas();
+            requestAnimationFrame(raf);
+        };
+        requestAnimationFrame(raf);
     }
     
     private lastDrawn: any = null;
