@@ -144,7 +144,7 @@ export default class SvgToCanvas {
             cmd: 'UPDATE_NODES',
             data: {
                 queue: this.setAttrQueue,
-                parentNodes:  this.setAttrParentElementsToNodes()
+                parentNodes:  this.setAttrParentElementsToSelectors()
             },
         });
     
@@ -175,26 +175,17 @@ export default class SvgToCanvas {
         this.setAttrQueue = {};
     }
     
-    private setAttrParentElementsToNodes() {
-        let setAttrParentNodes: any[] = [];
+    private setAttrParentElementsToSelectors() {
+        let setAttrParentSelectors: any[] = [];
         
         for(let parentIndex in this.setAttrQueue) {
             const pIndex = parseInt(parentIndex);
             const parentEl = this.setAttrParentElements[pIndex];
-            let parentNode = this.getVisNode(parentEl);
-            if(!parentNode) {
-                if(parentEl === this.svg) {
-                    parentNode = this.visData;
-                    //console.log(this.setAttrQueue[parentIndex]);
-                    
-                } else {
-                    console.error(parentEl, parentNode, pIndex, parentIndex);
-                }
-            }
-            setAttrParentNodes.push(parentNode);
+            let selector = this.getElementSelector(parentEl);
+            setAttrParentSelectors.push(selector);
         }
         
-        return setAttrParentNodes;
+        return setAttrParentSelectors;
     }
     
     private getAttributeFromSelector(element: Element, name: string) {
@@ -501,8 +492,6 @@ export default class SvgToCanvas {
         }
         return false;
     }
-    
-    
     
     private sendToWorker(msg: CanvasWorkerMessage, data?: any) {
         this.worker.postMessage(msg, data);

@@ -61,17 +61,12 @@ class SvgToCanvasWorker {
         this.finishDrawingChildren();
     }
     
-    private count2 = 0;
-    updatePropertiesFromQueue(setAttrQueue: any, setAttrParentNodes: any) {
-        this.count2++;
-        if(this.count2 < 10) {
-            console.log(setAttrQueue, setAttrParentNodes);
-        }
-        //console.log(setAttrQueue, setAttrParentNodes);
+    updatePropertiesFromQueue(setAttrQueue: any, setAttrParentSelectors: any) {
         for(let parentIndex in setAttrQueue) {
             if(setAttrQueue.hasOwnProperty(parentIndex)) {
                 const pIndex = parseInt(parentIndex);
-                let parentNode = setAttrParentNodes[pIndex];
+                let parentNodeSelector = setAttrParentSelectors[pIndex];
+                let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
                 if(!parentNode) {
                     console.error(parentNode, pIndex, parentIndex);
                 }
@@ -94,7 +89,6 @@ class SvgToCanvasWorker {
         
         this.count++;
         if(this.count < 4) {
-            console.log('drawing offscreen');
             console.log(this.visData);
         }
         
@@ -318,13 +312,15 @@ class SvgToCanvasWorker {
     private applyTransform(transformString: string) {
         const transform = transformString ? SvgToCanvasWorker.parseTransform(transformString) : null;
         if(transform) {
+            
             if(transform.rotate) {
                 //console.log(transform.rotate);
             }
-            //console.log(transform);
+            //console.log(transformString);
             this.ctx.transform(transform.scaleX, 0, 0, transform.scaleY, transform.translateX, transform.translateY);
             //ctx.rotate(transform.rotate / 2 / Math.PI);
             this.ctx.rotate(transform.rotate * Math.PI / 180);
+            //console.log(transform.rotate);
         }
     }
     
