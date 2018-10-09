@@ -139,7 +139,7 @@ class SvgToCanvasWorker {
                     
                     ctx.beginPath();
                     ctx.strokeStyle = stroke;
-                    ctx.lineWidth = strokeWidth;
+                    //ctx.lineWidth = strokeWidth;
                     //currentD = '';
                 }
                 
