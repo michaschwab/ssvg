@@ -1,27 +1,39 @@
 //import * as d3 from 'd3';
 
+interface CanvasWorkerMessage {
+    cmd: 'INIT'|'UPDATE_NODES'|'UPDATE_SIZE';
+    data?: any;
+}
+
 export default class SvgToCanvas {
-    private visData: any;
-    private ctx: CanvasRenderingContext2D;
+    private visData: any = {
+        width: 0,
+        height: 0,
+        scale: 1,
+        children: []
+    };
     private interactionSelections: HTMLElement[] = [];
+    private worker: Worker = new Worker('canvasworker.js');
+    private setSize = false;
     
     constructor(private canvas: HTMLCanvasElement, private svg: SVGElement) {
-    
         this.captureD3On();
-        const ctx = canvas.getContext('2d');
-        if(!ctx) throw new Error('could not create canvas context');
         
-        this.ctx = ctx;
-        this.visData = {
-            width: 0,
-            height: 0,
-            children: []
-        };
         
         window.setTimeout(() => {
             this.visData.width = this.svg.getAttribute('width');
             this.visData.height = this.svg.getAttribute('height');
+            
+            this.setCanvasSize();
+            
             this.addChildNodesToVisData(this.svg.childNodes, this.visData.children);
+    
+            const offscreen = (this.canvas as any).transferControlToOffscreen();
+            this.sendToWorker({cmd: 'INIT', data: {
+                    canvas: offscreen,
+                    visData: this.visData
+                }
+            }, [offscreen]);
     
             this.drawCanvas();
             this.svg.style.display = 'none';
@@ -38,165 +50,22 @@ export default class SvgToCanvas {
                 requestAnimationFrame(recursiveRaf);
             };
             requestAnimationFrame(recursiveRaf);
-        }, 500);
+        }, 200);
     }
     
-    private lastDrawn: any = null;
-    private queues: { circles: any } = {
-        circles: {}
-    };
+    private setCanvasSize() {
+        this.visData.scale = window.devicePixelRatio;
     
-    private setSize = false;
+        this.canvas.style.width = this.visData.width + 'px';
+        this.canvas.style.height = this.visData.height + 'px';
+        this.canvas.width = this.visData.width * this.visData.scale;
+        this.canvas.height = this.visData.height * this.visData.scale;
     
-    drawCanvas() {
-        const canvas = this.canvas;
-        const ctx = this.ctx;
-        //console.log(ctx.getTransform());
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        //let offscreenCanvas = document.createElement('canvas');
-        //let offscreenCtx = offscreenCanvas.getContext('2d');
-        let scale = window.devicePixelRatio;
-        
-        if(!this.setSize) {
-            canvas.style.width = this.visData.width + 'px';
-            canvas.style.height = this.visData.height + 'px';
-            canvas.width = this.visData.width * scale;
-            canvas.height = this.visData.height * scale;
-            
-            ctx.scale(scale, scale);
-    
-            this.setSize = true;
-        } else {
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, this.visData.width * scale, this.visData.height * scale);
-            
-            //offscreenCanvas.style.width = vis.width + 'px';
-            //offscreenCanvas.style.height = vis.height + 'px';
-            //offscreenCanvas.width = vis.width * scale;
-            //offscreenCanvas.height = vis.height * scale;
-            
-            //offscreenCtx.scale(scale, scale);
-        }
-        
-        this.executeSetAttributeQueue();
-        //ctx.save();
-        //console.log(this.visData);
-        this.drawChildren(this.visData);
-        //ctx.restore();
-        //ctx.drawImage(offscreenCanvas, 0, 0);
-        this.finishDrawingChildren();
+        this.setSize = true;
     }
     
-    private drawChildren(elData: any) {
-        const ctx = this.ctx;
-        
-        //if(elData.type !== 'line')
-        {
-            ctx.save();
-            this.applyTransform(elData.transform);
-        }
-        
-        if(elData.type && elData.type !== 'g') {
-            if(elData.type === 'title') {
-                return;
-            }
-            let fill = elData.style.fill ? elData.style.fill : elData.fill;
-            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-            let strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
-            
-            if(this.lastDrawn && this.lastDrawn.type !== elData.type) {
-                if(this.lastDrawn.type === 'line') {
-                    //let path = new Path2D(currentD);
-                    ctx.closePath();
-                    ctx.stroke();
-                    ctx.restore(); //test
-                    ctx.restore();
-                } else if(this.lastDrawn.type === 'circle') {
-                    ctx.fill();
-                    ctx.stroke();
-                    console.log('circle end kind of?!');
-                }
-                ctx.closePath();
-            }
-            
-            if(elData.type === 'circle') {
-                if(!this.queues.circles[fill]) {
-                    this.queues.circles[fill] = [];
-                }
-                this.queues.circles[fill].push(elData);
-            } else if(elData.type === 'line') {
-                if(!this.lastDrawn || this.lastDrawn.type !== 'line') {
-                    ctx.save();
-                    this.applyTransform(elData.transform);
-                    
-                    ctx.beginPath();
-                    ctx.strokeStyle = stroke;
-                    ctx.lineWidth = strokeWidth;
-                    //currentD = '';
-                }
-                
-                //ctx.beginPath();
-                ctx.moveTo(elData.x1, elData.y1);
-                ctx.lineTo(elData.x2, elData.y2);
-                //ctx.stroke();
-                //currentD += 'M ' + elData.x1 +',' + elData.y1 + 'L ' + elData.x2 + ',' + elData.y2;
-            } else if(elData.type === 'path') {
-                let p = new Path2D(elData.d);
-                //ctx.stroke(p);
-                ctx.fillStyle = fill;
-                //console.log(elData);
-                //ctx.fill(p);
-                if(stroke !== 'none') {
-                    ctx.lineWidth = strokeWidth;
-                    ctx.strokeStyle = strokeWidth + ' ' + stroke;
-                    ctx.stroke(p);
-                }
-            } else if(elData.type === 'tspan') {
-                ctx.font = "10px Arial";
-                ctx.fillStyle = "#000000";
-                ctx.textAlign = elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor;
-                ctx.fillText(elData.text, elData.x, elData.y);
-            }
-            this.lastDrawn = elData;
-        }
-        
-        if(elData.children) {
-            for(let i = 0; i < elData.children.length; i++) {
-                this.drawChildren(elData.children[i]);
-            }
-        }
-        if(elData.type !== 'line') {
-            //console.log(elData.type);
-            ctx.restore();
-        }
-    }
-    
-    private finishDrawingChildren() {
-        //console.log('finishing children');
-        //ctx.closePath();
-        //ctx.fill();
-        //ctx.stroke();
-        
-        for(let fill in this.queues.circles) {
-            if(this.queues.circles.hasOwnProperty(fill)) {
-                this.ctx.fillStyle = fill;
-                let sampleData = (this.queues.circles as any)[fill][0];
-                let stroke = sampleData.style.stroke ? sampleData.style.stroke : sampleData.stroke;
-                this.ctx.lineWidth = sampleData.strokeWidth;
-                this.ctx.strokeStyle = stroke;
-                //console.log(queues.circles[fill][0].stroke);
-                this.ctx.beginPath();
-                for(let elData of (this.queues.circles as any)[fill]) {
-                    this.ctx.moveTo(elData.cx + Math.round(elData.r), elData.cy);
-                    this.ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
-                }
-                this.ctx.fill();
-                this.ctx.stroke();
-            }
-        }
-    
-        this.queues.circles = {};
-        this.lastDrawn = null;
+    private drawCanvas() {
+        this.useSetAttributeQueue();
     }
     
     private captureD3On() {
@@ -247,16 +116,6 @@ export default class SvgToCanvas {
         };
     }
     
-    private updateDataFromElementAttr(element: Element, attrName: string, value: any) {
-        try {
-            let visNode = this.getVisNode(element);
-            visNode[attrName] = value;
-        } catch(e) {
-            console.log(e);
-            return;
-        }
-    }
-    
     private setAttrParentElements: Element[] = [];
     private setAttrQueue: {[parentIndex: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
     
@@ -280,7 +139,15 @@ export default class SvgToCanvas {
         this.setAttrQueue[parentIndex][attrName][childIndex] = value;
     }
     
-    private executeSetAttributeQueue() {
+    private useSetAttributeQueue() {
+        this.sendToWorker({
+            cmd: 'UPDATE_NODES',
+            data: {
+                queue: this.setAttrQueue,
+                parentNodes:  this.setAttrParentElementsToNodes()
+            },
+        });
+    
         for(let parentIndex in this.setAttrQueue) {
             const pIndex = parseInt(parentIndex);
             const parentEl = this.setAttrParentElements[pIndex];
@@ -293,7 +160,7 @@ export default class SvgToCanvas {
                     console.error(parentEl, parentNode, pIndex, parentIndex);
                 }
             }
-            
+        
             for(let attrName in this.setAttrQueue[parentIndex]) {
                 if(this.setAttrQueue[parentIndex].hasOwnProperty(attrName)) {
                     for(let childIndex in this.setAttrQueue[parentIndex][attrName]) {
@@ -304,8 +171,30 @@ export default class SvgToCanvas {
                 }
             }
         }
-        
+    
         this.setAttrQueue = {};
+    }
+    
+    private setAttrParentElementsToNodes() {
+        let setAttrParentNodes: any[] = [];
+        
+        for(let parentIndex in this.setAttrQueue) {
+            const pIndex = parseInt(parentIndex);
+            const parentEl = this.setAttrParentElements[pIndex];
+            let parentNode = this.getVisNode(parentEl);
+            if(!parentNode) {
+                if(parentEl === this.svg) {
+                    parentNode = this.visData;
+                    //console.log(this.setAttrQueue[parentIndex]);
+                    
+                } else {
+                    console.error(parentEl, parentNode, pIndex, parentIndex);
+                }
+            }
+            setAttrParentNodes.push(parentNode);
+        }
+        
+        return setAttrParentNodes;
     }
     
     private getAttributeFromSelector(element: Element, name: string) {
@@ -413,15 +302,15 @@ export default class SvgToCanvas {
         {
             let type = 'any';
             let indexPart = selPart;
-        
+            
             if(selPart[0] !== ':')
             {
                 type = selPart.substr(0, selPart.indexOf(':'));
                 indexPart = selPart.substr(selPart.indexOf(':'));
             }
-        
+            
             let targetIndex = parseInt(indexPart.substr(':nth-child('.length));
-        
+            
             return (node, i) => (i === targetIndex - 1 && (type === 'any' || node.type === type));
         }
         else if(selPart === '') {
@@ -613,19 +502,6 @@ export default class SvgToCanvas {
         return false;
     }
     
-    private applyTransform(transformString: string) {
-        const transform = transformString ? SvgToCanvas.parseTransform(transformString) : null;
-        if(transform) {
-            if(transform.rotate) {
-                //console.log(transform.rotate);
-            }
-            //console.log(transform);
-            this.ctx.transform(transform.scaleX, 0, 0, transform.scaleY, transform.translateX, transform.translateY);
-            //ctx.rotate(transform.rotate / 2 / Math.PI);
-            this.ctx.rotate(transform.rotate * Math.PI / 180);
-        }
-    }
-    
     private static parseTransform(transform: string) {
         const transformObject = {translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotate: 0, translateBeforeScale: false};
     
@@ -676,5 +552,10 @@ export default class SvgToCanvas {
         }
     
         return transformObject;
+    }
+    
+    
+    private sendToWorker(msg: CanvasWorkerMessage, data?: any) {
+        this.worker.postMessage(msg, data);
     }
 }
