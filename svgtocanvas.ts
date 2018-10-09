@@ -457,17 +457,10 @@ export default class SvgToCanvas {
         return node !== parentToStopAt ? '' : path;
     }
     
-    private childIndexCache: {
-        elements: Element[],
-        indeces: number[]
-    } = {
-        elements: [],
-        indeces: []
-    };
     private indexOfChild(child: Element): number {
-        let cacheIndex = this.childIndexCache.elements.indexOf(child);
-        if(cacheIndex !== -1) {
-            return this.childIndexCache.indeces[cacheIndex];
+        let cacheIndex = (child as any)['childIndex'];
+        if(cacheIndex !== undefined) {
+            return cacheIndex;
         }
         
         let i = 0;
@@ -478,8 +471,7 @@ export default class SvgToCanvas {
             siblingOrNull = siblingOrNull.previousElementSibling;
             i++;
         }
-        this.childIndexCache.elements.push(child);
-        this.childIndexCache.indeces.push(i);
+        (child as any)['childIndex'] = i;
         return i;
     }
     
