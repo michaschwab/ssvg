@@ -1,7 +1,7 @@
 //import * as d3 from 'd3';
 
 interface CanvasWorkerMessage {
-    cmd: 'INIT'|'UPDATE_NODES'|'UPDATE_SIZE';
+    cmd: 'INIT'|'UPDATE_NODES'|'UPDATE_SIZE'|'ADD_NODE';
     data?: any;
 }
 
@@ -52,22 +52,23 @@ export default class SvgToCanvas {
     
     constructor(private canvas: HTMLCanvasElement, private svg: SVGElement) {
         this.captureD3On();
+    
+        this.visData.width = this.svg.getAttribute('width');
+        this.visData.height = this.svg.getAttribute('height');
+    
+        this.setCanvasSize();
+        
+        const offscreen = (this.canvas as any).transferControlToOffscreen();
+        this.sendToWorker({cmd: 'INIT', data: {
+                canvas: offscreen,
+                visData: this.visData
+            }
+        }, [offscreen]);
         
         
         window.setTimeout(() => {
-            this.visData.width = this.svg.getAttribute('width');
-            this.visData.height = this.svg.getAttribute('height');
-            
-            this.setCanvasSize();
             
             this.addChildNodesToVisData(this.svg.childNodes, this.visData.children);
-    
-            const offscreen = (this.canvas as any).transferControlToOffscreen();
-            this.sendToWorker({cmd: 'INIT', data: {
-                    canvas: offscreen,
-                    visData: this.visData
-                }
-            }, [offscreen]);
     
             this.drawCanvas();
             this.svg.style.display = 'none';
@@ -85,6 +86,8 @@ export default class SvgToCanvas {
             };
             requestAnimationFrame(recursiveRaf);
         }, 200);
+    
+        this.replaceNativeAppend();
     }
     
     private setCanvasSize() {
@@ -123,9 +126,45 @@ export default class SvgToCanvas {
         }
     }
     
+    private replaceNativeAppend() {
+        const origAppendChild = Element.prototype.appendChild;
+        const me = this;
+    
+        Element.prototype.appendChild = function<T extends Node>(el: T) {
+            console.log(arguments);
+            console.log(this);
+    
+            //origAppendChild.apply(this, arguments);
+            
+            el['appendChild'] = <T extends Node>(el2: T) => {
+                console.log('nested add', el2);
+                return el2;
+            };
+    
+            //setTimeout(() => {
+                me.sendToWorker({
+                    cmd: 'ADD_NODE',
+                    data: {
+                        node: me.getNodeDataFromEl(<HTMLElement><any> el),
+                        parentNodeSelector:  me.getElementSelector(this)
+                    },
+                });
+            //}, 300);
+            
+            /*const parent = this;
+            
+            const returnData: T = <T> { };
+            (returnData as any)['setAttribute'] = () => {};
+            (returnData as any)['querySelectorAll'] = () => {};
+            
+            return returnData;*/
+            return el;
+        };
+    }
+    
     private replaceNativeAttribute() {
-        let origSetAttr = Element.prototype.setAttribute;
-        let origGetAttr = Element.prototype.getAttribute;
+        const origSetAttr = Element.prototype.setAttribute;
+        const origGetAttr = Element.prototype.getAttribute;
         const me = this;
     
         Element.prototype.setAttribute = function(name: string, value: any) {
@@ -178,7 +217,7 @@ export default class SvgToCanvas {
             cmd: 'UPDATE_NODES',
             data: {
                 queue: this.setAttrQueue,
-                parentNodes:  this.setAttrParentElementsToSelectors()
+                parentNodeSelectors:  this.setAttrParentElementsToSelectors()
             },
         });
     
@@ -346,45 +385,52 @@ export default class SvgToCanvas {
         }
     }
     
-    private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, childrenData: any): void {
+    private getNodeDataFromEl(el: HTMLElement) {
         const getRoundedAttr = (el: Element, attrName: string) => {
             const val = el.getAttribute(attrName);
             return val ? parseFloat(val) : null;
         };
+        const win = document.defaultView || window;
+        const style = win.getComputedStyle(el, '');
+    
+        const node = {
+            type: el.tagName.toLowerCase(),
+            transform: el.getAttribute('transform'),
+            d: el.getAttribute('d'),
+            class: el.getAttribute('class'),
+            r: el.getAttribute('r'),
+            fill: el.getAttribute('fill'),
+            cx: getRoundedAttr(el, 'cx'),
+            cy: getRoundedAttr(el, 'cy'),
+            x: getRoundedAttr(el, 'x'),
+            y: getRoundedAttr(el, 'y'),
+            x1: getRoundedAttr(el, 'x1'),
+            x2: getRoundedAttr(el, 'x2'),
+            y1: getRoundedAttr(el, 'y1'),
+            y2: getRoundedAttr(el, 'y2'),
+            "stroke-width": getRoundedAttr(el, 'stroke-width'),
+            text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : '',
+            style: {
+                stroke: style.getPropertyValue('stroke'),
+                "stroke-opacity": parseFloat(style.getPropertyValue('stroke-opacity')),
+                "stroke-width": parseFloat(style.getPropertyValue('stroke-width')),
+                fill: style.getPropertyValue('fill'),
+                textAnchor: style.textAnchor
+            },
+            children: []
+        };
+        
+        return node;
+    }
+    
+    private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, childrenData: any): void {
+        
         for(let i  = 0; i < childEls.length; i++) {
             let el = childEls[i] as HTMLElement;
             
             try
             {
-                let win = document.defaultView || window;
-                let style = win.getComputedStyle(el, '');
-                
-                let node = {
-                    type: el.tagName.toLowerCase(),
-                    transform: el.getAttribute('transform'),
-                    d: el.getAttribute('d'),
-                    class: el.getAttribute('class'),
-                    r: el.getAttribute('r'),
-                    fill: el.getAttribute('fill'),
-                    cx: getRoundedAttr(el, 'cx'),
-                    cy: getRoundedAttr(el, 'cy'),
-                    x: getRoundedAttr(el, 'x'),
-                    y: getRoundedAttr(el, 'y'),
-                    x1: getRoundedAttr(el, 'x1'),
-                    x2: getRoundedAttr(el, 'x2'),
-                    y1: getRoundedAttr(el, 'y1'),
-                    y2: getRoundedAttr(el, 'y2'),
-                    "stroke-width": getRoundedAttr(el, 'stroke-width'),
-                    text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : '',
-                    style: {
-                        stroke: style.getPropertyValue('stroke'),
-                        "stroke-opacity": parseFloat(style.getPropertyValue('stroke-opacity')),
-                        "stroke-width": parseFloat(style.getPropertyValue('stroke-width')),
-                        fill: style.getPropertyValue('fill'),
-                        textAnchor: style.textAnchor
-                    },
-                    children: []
-                };
+                const node = this.getNodeDataFromEl(el);
                 //console.log(node);
                 
                 childrenData.push(node);

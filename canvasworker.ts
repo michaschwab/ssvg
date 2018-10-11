@@ -4,13 +4,19 @@ let worker: SvgToCanvasWorker;
 self.onmessage = function(e) {
     if(e.data && e.data.cmd) {
         const data = e.data.data;
+        //console.log(e.data.cmd);
         switch(e.data.cmd) {
             case 'INIT':
                 worker = new SvgToCanvasWorker(data.visData, data.canvas);
                 break;
             case 'UPDATE_NODES':
-                worker.updatePropertiesFromQueue(data.queue, data.parentNodes);
+                console.log('UPDATE', data.queue, data.parentNodeSelectors);
+                worker.updatePropertiesFromQueue(data.queue, data.parentNodeSelectors);
                 //worker.drawCanvas();
+                break;
+            case 'ADD_NODE':
+                console.log('ADD', data.node, data.parentNodeSelector);
+                worker.addNode(data.node, data.parentNodeSelector);
                 break;
             default:
                 console.error('did not find command ', e.data.cmd);
@@ -32,7 +38,7 @@ class SvgToCanvasWorker {
     private setSize = false;
     
     constructor(private visData: any, private canvas: HTMLCanvasElement) {
-        console.log(canvas);
+        //console.log(canvas);
     
         const ctx = canvas.getContext('2d');
         if(!ctx) throw new Error('could not create canvas context');
@@ -65,6 +71,21 @@ class SvgToCanvasWorker {
         //ctx.restore();
         //ctx.drawImage(offscreenCanvas, 0, 0);
         this.finishDrawingChildren();
+    }
+    
+    addNode(nodeData: any, parentNodeSelector: string) {
+        let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
+        if(!parentNode) {
+            if(parentNodeSelector === "") {
+                parentNode = this.visData;
+            } else {
+                console.error(parentNode, parentNodeSelector);
+            }
+        }
+        
+        parentNode.children.push(nodeData);
+        
+        console.log(this.visData);
     }
     
     updatePropertiesFromQueue(setAttrQueue: any, setAttrParentSelectors: any) {
