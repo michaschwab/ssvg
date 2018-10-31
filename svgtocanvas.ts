@@ -46,9 +46,11 @@ export default class SvgToCanvas {
         scale: 1,
         children: []
     };
+    private unassignedNodes: Node[] = [];
     private interactionSelections: HTMLElement[] = [];
     private worker: Worker = new Worker('canvasworker.js');
     private setSize = false;
+    private nodesToElements = { nodes: [], elements: []};
     
     constructor(private canvas: HTMLCanvasElement, private svg: SVGElement) {
         this.captureD3On();
@@ -85,8 +87,16 @@ export default class SvgToCanvas {
                 requestAnimationFrame(recursiveRaf);
             };
             requestAnimationFrame(recursiveRaf);
+    
+            setTimeout(() => {
+                console.log(this.visData);
+            }, 1000);
+            setTimeout(() => {
+                this.applyStyles();
+            }, 200);
         }, 200);
     
+        this.replaceNativeCreateElement();
         this.replaceNativeAppend();
     }
     
@@ -106,6 +116,7 @@ export default class SvgToCanvas {
     }
     
     private captureD3On() {
+        console.log('trying to capture "on"');
         if((window as any)['d3']) {
             const d3 = (window as any)['d3'];
             const originalOn = d3.selection.prototype.on;
@@ -113,8 +124,8 @@ export default class SvgToCanvas {
     
             d3.selection.prototype.on = function()
             {
-                const el = this.node() ? this.node().parentNode : null;
-        
+                const el = this._parents && this._parents.length ? this._parents[0] : null;
+                
                 if(el && me.interactionSelections.indexOf(el) === -1)
                 {
                     me.interactionSelections.push(el); // This one works for native get/setAttribute
@@ -126,31 +137,82 @@ export default class SvgToCanvas {
         }
     }
     
+    private replaceNativeCreateElement() {
+        const origCreate = document.createElementNS;
+        const me = this;
+        
+        document.createElementNS = function() {
+            const el = origCreate.apply(this, arguments);
+            
+            el.appendChild = () => {
+                console.log('hi!!', el, arguments);
+            };
+            
+            me.unassignedNodes.push(el);
+    
+            //console.log(me.unassignedNodes);
+            
+            return el;
+        }
+    }
+    
     private replaceNativeAppend() {
         const origAppendChild = Element.prototype.appendChild;
         const me = this;
-    
-        Element.prototype.appendChild = function<T extends Node>(el: T) {
-            console.log(arguments);
-            console.log(this);
+        
+        const newAppend = function<T extends Node>(el: T) {
+            //console.log(arguments);
+            //console.log(this, el);
     
             //origAppendChild.apply(this, arguments);
-            
+    
             el['appendChild'] = <T extends Node>(el2: T) => {
                 console.log('nested add', el2);
                 return el2;
             };
+            const parentSelector = me.getElementSelectorNew(this);
+            (el as any)['parentSelector'] = parentSelector;
+            
+            const selector = me.getElementSelectorNew(el);
+            const parentNode = me.getVisNodeFromSelector(parentSelector);
+            //console.log(this, parentSelector);
+            (el as any)['selector'] = selector;
+            (el as any)['childIndex'] = parentNode.children.length;
+            
+            //el.parentNode = this.svg;
+            
+            Object.defineProperty(el, 'parentNode', {
+                writable: true,
+                value: me.svg
+            });
+            //(el as any)['parentNode'] = me.svg;
+            
+            const node = me.getNodeDataFromEl(<HTMLElement><any> el);
+            me.nodesToElements.nodes.push(node);
+            me.nodesToElements.elements.push(el);
+            /*if(el.localName.toLowerCase() === 'circle') {
+                console.log(node['r']);
+                console.log(JSON.stringify(node));
+                
+            }*/
+            parentNode.children.push(node);
+            
     
             //setTimeout(() => {
-                me.sendToWorker({
-                    cmd: 'ADD_NODE',
-                    data: {
-                        node: me.getNodeDataFromEl(<HTMLElement><any> el),
-                        parentNodeSelector:  me.getElementSelector(this)
-                    },
-                });
+            me.sendToWorker({
+                cmd: 'ADD_NODE',
+                data: {
+                    node: node,
+                    parentNodeSelector: parentSelector
+                },
+            });
             //}, 300);
-            
+    
+            if(me.unassignedNodes.indexOf(el) !== -1) {
+                const index = me.unassignedNodes.indexOf(el);
+                me.unassignedNodes.splice(index, 1);
+            }
+    
             /*const parent = this;
             
             const returnData: T = <T> { };
@@ -160,15 +222,24 @@ export default class SvgToCanvas {
             return returnData;*/
             return el;
         };
+    
+        Element.prototype.appendChild = newAppend;
+        Element.prototype.insertBefore = function<T extends Node>(newChild: T, refChild: Node|null) {
+    
+            newAppend.call(this, newChild);
+            
+            return newChild;
+        };
     }
     
     private replaceNativeAttribute() {
         const origSetAttr = Element.prototype.setAttribute;
+        const origSetAttrNS = Element.prototype.setAttributeNS;
         const origGetAttr = Element.prototype.getAttribute;
         const me = this;
     
         Element.prototype.setAttribute = function(name: string, value: any) {
-            if(name === 'easypz') {
+            if(name === 'easypz' || me.unassignedNodes.indexOf(this) !== -1) {
                 // Update the original SVG
                 origSetAttr.apply(this, arguments);
                 return;
@@ -177,11 +248,15 @@ export default class SvgToCanvas {
             //me.updateDataFromElementAttr(this, name, value);
             me.queueSetAttribute(this, name, value);
         };
+        Element.prototype.setAttributeNS = function(name: string, value: any) {
+            console.log('setAttrNS!!');
+
+            origSetAttrNS.apply(this, arguments);
+        };
     
         Element.prototype.getAttribute = function(name) {
-            let selector = me.getElementSelector(this);
         
-            if(!selector) {
+            if(me.unassignedNodes.indexOf(this) !== -1) {
                 return origGetAttr.apply(this, arguments);
             } else {
                 return me.getAttributeFromSelector(this, name);
@@ -189,48 +264,67 @@ export default class SvgToCanvas {
         };
     }
     
-    private setAttrParentElements: Element[] = [];
+    //private setAttrParentElements: Element[] = [];
+    private setAttrParentElements: string[] = [];
     private setAttrQueue: {[parentIndex: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
-    
+    private errCount = 0;
     private queueSetAttribute(element: Element, attrName: string, value: any) {
-        const parent = element.parentElement;
+        const parent = (element as any)['parentSelector'] as string;// element.parentElement;
         if(!parent) {
-            throw Error('element parent not found');
+            if(this.errCount < 10) {
+                console.error(element);
+                this.errCount++;
+                throw Error('element parent not found');
+                
+            }
         }
-        let parentIndex = this.setAttrParentElements.indexOf(parent);
-        if(parentIndex === -1) {
-            parentIndex = this.setAttrParentElements.length;
-            this.setAttrParentElements.push(parent);
+        else {
+            let parentIndex = this.setAttrParentElements.indexOf(parent);
+            if(parentIndex === -1) {
+                parentIndex = this.setAttrParentElements.length;
+                this.setAttrParentElements.push(parent);
+            }
+            if(!this.setAttrQueue[parentIndex]) {
+                this.setAttrQueue[parentIndex] = {};
+            }
+            if(!this.setAttrQueue[parentIndex][attrName]) {
+                this.setAttrQueue[parentIndex][attrName] = {};
+            }
+            //const childIndex = this.indexOfChild(element) - 1;
+            const childIndex = (element as any)['childIndex'];
+            this.setAttrQueue[parentIndex][attrName][childIndex] = value;
         }
-        if(!this.setAttrQueue[parentIndex]) {
-            this.setAttrQueue[parentIndex] = {};
-        }
-        if(!this.setAttrQueue[parentIndex][attrName]) {
-            this.setAttrQueue[parentIndex][attrName] = {};
-        }
-        const childIndex = this.indexOfChild(element) - 1;
-        this.setAttrQueue[parentIndex][attrName][childIndex] = value;
+        
     }
     
+    private lc = 0;
     private useSetAttributeQueue() {
+        if(this.lc < 30) {
+            //console.log(this.setAttrQueue, this.setAttrParentElements);
+        }
+        this.lc++;
         this.sendToWorker({
             cmd: 'UPDATE_NODES',
             data: {
                 queue: this.setAttrQueue,
-                parentNodeSelectors:  this.setAttrParentElementsToSelectors()
+                parentNodeSelectors:  this.setAttrParentElements
             },
         });
     
         for(let parentIndex in this.setAttrQueue) {
             const pIndex = parseInt(parentIndex);
             const parentEl = this.setAttrParentElements[pIndex];
-            let parentNode = this.getVisNode(parentEl);
+            //let parentNode = this.getVisNode(parentEl);
+            let parentNode = this.getVisNodeFromSelector(parentEl);
             if(!parentNode) {
-                if(parentEl === this.svg) {
+                /*if(parentEl === this.svg) {
                     parentNode = this.visData;
                     //console.log(this.setAttrQueue[parentIndex]);
-                } else {
+                } else*/ {
                     console.error(parentEl, parentNode, pIndex, parentIndex);
+                    console.error(this.visData);
+                    console.error(this.unassignedNodes);
+                    //console.error()
                 }
             }
         
@@ -247,7 +341,7 @@ export default class SvgToCanvas {
     
         this.setAttrQueue = {};
     }
-    
+    /*
     private setAttrParentElementsToSelectors() {
         let setAttrParentSelectors: any[] = [];
         
@@ -259,7 +353,7 @@ export default class SvgToCanvas {
         }
         
         return setAttrParentSelectors;
-    }
+    }*/
     
     private getAttributeFromSelector(element: Element, name: string) {
         const node = this.getVisNode(element);
@@ -272,21 +366,23 @@ export default class SvgToCanvas {
     }
     
     private getVisNode(element: Element): any|null {
-        const selector = this.getElementSelector(element);
+        const selector = this.getElementSelectorNew(element);
         
         return this.getVisNodeFromSelector(selector);
     }
     
     private cachedListSelections: {[selector: string]: {[index: number]: HTMLElement}} = {};
-    private getVisNodeFromSelector(selector: string): any|null {
+    public getVisNodeFromSelector(selector: string): any|null {
         const lastSplitPos = selector.lastIndexOf('>');
-        const selectorWithoutLast = selector.substr(0, lastSplitPos);
+        const selectorWithoutLast = selector.substr(0, lastSplitPos).trim();
         const lastPart = selector.substr(lastSplitPos + 1);
         const parentSel = selectorWithoutLast ? this.cachedListSelections[selectorWithoutLast] : null;
         let index = -1;
         const nthChildPosition = lastPart.indexOf(':nth-child(');
+        //console.log(nthChildPosition, lastPart);
         if(nthChildPosition !== -1) {
             index = parseInt(lastPart.substr(nthChildPosition + 11)); // length of ':nth-child('
+            //console.log(index, parentSel, selectorWithoutLast);
             if(parentSel && parentSel[index]) {
                 return parentSel[index];
             }
@@ -294,6 +390,7 @@ export default class SvgToCanvas {
         
         const selectedNodes: HTMLElement[] = [];
         this.findMatchingChildren(this.visData, selector, 0, selectedNodes);
+        //console.log(selectedNodes, selector);
         
         if(selectedNodes && selectedNodes.length === 1) {
             const el = selectedNodes[0];
@@ -328,7 +425,6 @@ export default class SvgToCanvas {
                 return;
             }
         }
-        
         const checker = this.checkIfMatching(selPart);
         
         for(let i = 0; i < visNode.children.length; i++)
@@ -411,16 +507,79 @@ export default class SvgToCanvas {
             "stroke-width": getRoundedAttr(el, 'stroke-width'),
             text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : '',
             style: {
-                stroke: style.getPropertyValue('stroke'),
+                /*stroke: style.getPropertyValue('stroke'),
                 "stroke-opacity": parseFloat(style.getPropertyValue('stroke-opacity')),
                 "stroke-width": parseFloat(style.getPropertyValue('stroke-width')),
                 fill: style.getPropertyValue('fill'),
-                textAnchor: style.textAnchor
+                textAnchor: style.textAnchor*/
             },
             children: []
         };
+    
+        
         
         return node;
+    }
+    
+    private applyStyles() {
+        for (let i = 0; i < document.styleSheets.length; i++){
+            const rules = (document.styleSheets[i] as any).rules as CSSRuleList;
+        
+            for(let j = 0; j < rules.length; j++) {
+                const rule = rules[j] as any;
+            
+                const selector = rule.selectorText as string;
+                this.applyRuleToMatchingNodes(selector, rule); //TODO
+            }
+        }
+    }
+    
+    private applyRuleToMatchingNodes(selector: string, rule: any): boolean {
+        
+        selector = selector
+            .replace(' >', '>')
+            .replace('> ', '>')
+            .replace('svg>', '');
+        
+        const selectorPartsLooseStrict = selector.split(' ')
+            .map(part => part.split('>'));
+        
+        const checkNode = (currentNode: any, looseIndex = 0, strictIndex = 0): boolean => {
+            const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
+            let partialMatch = false;
+            
+            for(let child of currentNode.children) {
+                if(selPart[0] === '.') {
+                    if(selPart.substr(1) === child.class) {
+                        partialMatch = true;
+                    }
+                } else {
+                    if(selPart === child.type) {
+                        partialMatch = true;
+                    }
+                }
+                if(partialMatch) {
+                    if(selectorPartsLooseStrict[looseIndex].length > strictIndex + 1) {
+                        checkNode(child, looseIndex, strictIndex + 1);
+                    } else if(selectorPartsLooseStrict.length > looseIndex + 1) {
+                        checkNode(child, looseIndex + 1, strictIndex);
+                    } else {
+                        if(rule.style.stroke) {
+                            child.style.stroke = rule.style.stroke;
+                        }
+                        if(rule.style['stroke-opacity']) {
+                            child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
+                        }
+                        if(rule.style['stroke-width']) {
+                            child.style['stroke-width'] = parseFloat(rule.style['stroke-width']);
+                        }
+                    }
+                }
+            }
+            return false;
+        };
+        
+        return checkNode(this.visData);
     }
     
     private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, childrenData: any): void {
@@ -459,7 +618,7 @@ export default class SvgToCanvas {
         }
     }
     
-    private getElementSelector(element: Element): string {
+    private getElementSelectorNew(element: Element): string {
         let sel = (element as any)['selector'];
     
         if(sel)
@@ -468,57 +627,33 @@ export default class SvgToCanvas {
         }
         else
         {
-            sel = this.getElementSelectorByTraversing(element, this.svg);
-            (element as any)['selector'] = sel;
+            if(element === this.svg) {
+                sel = 'svg';
+            } else {
+                let parentSelector = (element as any)['parentSelector'] ?
+                    (element as any)['parentSelector'] as string : '';
+                
+                let node = this.getVisNodeFromSelector(parentSelector);
+                if(!node) {
+                    console.error(parentSelector, this.visData);
+                }
+                const index = node.children.length + 1;
+                let name = element.localName;
+                if (!name) {
+                    console.error(node);
+                    throw Error('name is null');
+                }
+                name = name.toLowerCase();
+                //console.log(element, node, parentSelector, index);
+                sel = parentSelector + ' > ' + name + ':nth-child(' + index + ')';
+            }
+            
+            //console.log(element, sel);
+    
+            //let parentSelector = element['parentSelector'] ? element['parentSelector'] as string : '';
         
             return sel;
         }
-    }
-    
-    //TODO
-    /*private getElementParentSelectorAndIndex(element: HTMLElement): [string, number] {
-    
-    }*/
-    
-    private getElementSelectorByTraversing(element: Element, parentToStopAt: Element|SVGElement): string {
-        let path = '', node = element;
-        while (node && node !== parentToStopAt) {
-            let name = node.localName;
-            
-            if (!name) break;
-            name = name.toLowerCase();
-        
-            const parent = node.parentElement;
-            if(!parent) break;
-            
-            const siblings = parent.children;
-            if (siblings.length > 1) {
-                name += ':nth-child(' + (this.indexOfChild(node)) + ')';
-            }
-        
-            path = name + (path ? '>' + path : '');
-            node = parent;
-        }
-    
-        return node !== parentToStopAt ? '' : path;
-    }
-    
-    private indexOfChild(child: Element): number {
-        let cacheIndex = (child as any)['childIndex'];
-        if(cacheIndex !== undefined) {
-            return cacheIndex;
-        }
-        
-        let i = 0;
-        let siblingOrNull: Element|null = child;
-        
-        while(siblingOrNull)
-        {
-            siblingOrNull = siblingOrNull.previousElementSibling;
-            i++;
-        }
-        (child as any)['childIndex'] = i;
-        return i;
     }
     
     private propagateMouseEvent(evt: MouseEvent) {
@@ -534,23 +669,30 @@ export default class SvgToCanvas {
     
         for(let interactionSel of this.interactionSelections)
         {
-            let parentSelector = this.getElementSelector(interactionSel);
+            let parentSelector = this.getElementSelectorNew(interactionSel);
             let parentNode = this.getVisNodeFromSelector(parentSelector);
+            //console.log(parentNode);
             //let matchingVisParent = selectedNodes[i];
             let j = 1;
-        
-            for(let el of parentNode.children)
-            {
-                if(this.nodeAtPosition(el, new_event.clientX-10, new_event.clientY-10))
+            
+            if(!parentNode) {
+                //console.error(interactionSel, parentSelector, parentNode);
+            } else {
+                for(let el of parentNode.children)
                 {
-                    let selector = parentSelector + ' > :nth-child(' + j + ')';
-                    let svgEl = this.svg.querySelector(selector);
-                    
-                    if(svgEl) {
-                        svgEl.dispatchEvent(new_event);
+                    if(this.nodeAtPosition(el, new_event.clientX-10, new_event.clientY-10))
+                    {
+                        /*let selector = parentSelector + ' > :nth-child(' + j + ')';
+                        let svgEl = this.svg.querySelector(selector);*/
+                        const nodeIndex = this.nodesToElements.nodes.indexOf(el);
+                        const svgEl = this.nodesToElements.elements[nodeIndex];
+            
+                        if(svgEl) {
+                            svgEl.dispatchEvent(new_event);
+                        }
                     }
+                    j++;
                 }
-                j++;
             }
         }
     }

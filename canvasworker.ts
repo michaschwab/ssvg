@@ -10,12 +10,12 @@ self.onmessage = function(e) {
                 worker = new SvgToCanvasWorker(data.visData, data.canvas);
                 break;
             case 'UPDATE_NODES':
-                console.log('UPDATE', data.queue, data.parentNodeSelectors);
+                //console.log('UPDATE', data.queue, data.parentNodeSelectors);
                 worker.updatePropertiesFromQueue(data.queue, data.parentNodeSelectors);
                 //worker.drawCanvas();
                 break;
             case 'ADD_NODE':
-                console.log('ADD', data.node, data.parentNodeSelector);
+                //console.log('ADD', data.node, data.parentNodeSelector);
                 worker.addNode(data.node, data.parentNodeSelector);
                 break;
             default:
@@ -51,6 +51,10 @@ class SvgToCanvasWorker {
             requestAnimationFrame(raf);
         };
         requestAnimationFrame(raf);
+        
+        setTimeout(() => {
+            console.log(this.visData);
+        }, 1000);
     }
     
     private lastDrawn: any = null;
@@ -85,7 +89,7 @@ class SvgToCanvasWorker {
         
         parentNode.children.push(nodeData);
         
-        console.log(this.visData);
+        //console.log(this.visData);
     }
     
     updatePropertiesFromQueue(setAttrQueue: any, setAttrParentSelectors: any) {
@@ -116,7 +120,7 @@ class SvgToCanvasWorker {
         
         this.count++;
         if(this.count < 4) {
-            console.log(this.visData);
+            //console.log(this.visData);
         }
         
         //if(elData.type !== 'line')
