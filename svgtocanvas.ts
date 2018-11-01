@@ -91,9 +91,9 @@ export default class SvgToCanvas {
             setTimeout(() => {
                 console.log(this.visData);
             }, 1000);
-            setTimeout(() => {
+            /*setTimeout(() => {
                 this.applyStyles();
-            }, 200);
+            }, 200);*/
         }, 200);
     
         this.replaceNativeCreateElement();
@@ -167,7 +167,7 @@ export default class SvgToCanvas {
             //origAppendChild.apply(this, arguments);
     
             el['appendChild'] = <T extends Node>(el2: T) => {
-                console.log('nested add', el2);
+                //console.log('nested add', el2);
                 return el2;
             };
             const parentSelector = me.getElementSelectorNew(this);
@@ -197,6 +197,7 @@ export default class SvgToCanvas {
             }*/
             parentNode.children.push(node);
             
+            me.applyStylesToNode(node);
     
             //setTimeout(() => {
             me.sendToWorker({
@@ -270,6 +271,10 @@ export default class SvgToCanvas {
     private errCount = 0;
     private queueSetAttribute(element: Element, attrName: string, value: any) {
         const parent = (element as any)['parentSelector'] as string;// element.parentElement;
+        if(attrName === 'class') {
+            attrName = 'className';
+            //console.log(value);
+        }
         if(!parent) {
             if(this.errCount < 10) {
                 console.error(element);
@@ -294,7 +299,10 @@ export default class SvgToCanvas {
             const childIndex = (element as any)['childIndex'];
             this.setAttrQueue[parentIndex][attrName][childIndex] = value;
         }
-        
+        if(attrName === 'className') {
+            this.useSetAttributeQueue();
+            // To apply classes immediately so styles can be applied correctly.
+        }
     }
     
     private lc = 0;
@@ -456,7 +464,7 @@ export default class SvgToCanvas {
     {
         if(selPart.substr(0,1) === '.')
         {
-            return node => (node.class === selPart.substr(1));
+            return node => (node.className === selPart.substr(1));
         }
         else if(selPart.indexOf(':nth-child(') !== -1)
         {
@@ -474,7 +482,7 @@ export default class SvgToCanvas {
             return (node, i) => (i === targetIndex - 1 && (type === 'any' || node.type === type));
         }
         else if(selPart === '') {
-            return node => (node.class === 'svg');
+            return node => (node.className === 'svg');
         }
         else {
             return node => node.type === selPart;
@@ -493,7 +501,7 @@ export default class SvgToCanvas {
             type: el.tagName.toLowerCase(),
             transform: el.getAttribute('transform'),
             d: el.getAttribute('d'),
-            class: el.getAttribute('class'),
+            className: el.getAttribute('class'),
             r: el.getAttribute('r'),
             fill: el.getAttribute('fill'),
             cx: getRoundedAttr(el, 'cx'),
@@ -515,10 +523,82 @@ export default class SvgToCanvas {
             },
             children: []
         };
-    
-        
         
         return node;
+    }
+    
+    private applyStylesToNode(node: any) {
+        for (let i = 0; i < document.styleSheets.length; i++){
+            const rules = (document.styleSheets[i] as any).rules as CSSRuleList;
+            
+            for(let j = 0; j < rules.length; j++) {
+                const rule = rules[j] as any;
+                
+                const selector = rule.selectorText as string;
+                this.applyRuleToNode(node, selector, rule);
+            }
+        }
+    }
+    
+    private applyRuleToNode(node: any, selector: string, rule: any): boolean {
+        
+        selector = selector
+            .replace(' >', '>')
+            .replace('> ', '>')
+            .replace('svg>', '');
+        
+        const selectorPartsLooseStrict = selector.split(' ')
+            .map(part => part.split('>'));
+        /*if(node.type === 'circle' && selectorPartsLooseStrict[0][0] === '.nodes') {
+            console.log(selectorPartsLooseStrict);
+        }*/
+        
+        const checkNode = (currentNode: any, looseIndex = 0, strictIndex = 0): boolean => {
+            const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
+            let partialMatch = false;
+            
+            for(let child of currentNode.children) {
+                if(selPart[0] === '.') {
+                    if(selPart.substr(1) === child.className) {
+                        partialMatch = true;
+                    }
+                } else {
+                    if(selPart === child.type) {
+                        partialMatch = true;
+                    }
+                }
+                /*if(node.type === 'circle' && selectorPartsLooseStrict[0][0] === '.nodes') {
+                    console.log(selPart, partialMatch, child, selPart[0] === '.', selPart.substr(1), child.className);
+                }*/
+                if(partialMatch) {
+                    if(selectorPartsLooseStrict[looseIndex].length > strictIndex + 1) {
+                        checkNode(child, looseIndex, strictIndex + 1);
+                    } else if(selectorPartsLooseStrict.length > looseIndex + 1) {
+                        checkNode(child, looseIndex + 1, strictIndex);
+                    } else {
+                        /*if(child.type === 'circle') {
+                            console.log(child === node, child, node);
+                        }*/
+                        //console.log(child === node, child, node);
+                        if(child === node) {
+                            //console.log('applying styles');
+                            if(rule.style.stroke) {
+                                child.style.stroke = rule.style.stroke;
+                            }
+                            if(rule.style['stroke-opacity']) {
+                                child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
+                            }
+                            if(rule.style['stroke-width']) {
+                                child.style['stroke-width'] = parseFloat(rule.style['stroke-width']);
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        };
+        
+        return checkNode(this.visData);
     }
     
     private applyStyles() {
@@ -550,7 +630,7 @@ export default class SvgToCanvas {
             
             for(let child of currentNode.children) {
                 if(selPart[0] === '.') {
-                    if(selPart.substr(1) === child.class) {
+                    if(selPart.substr(1) === child.className) {
                         partialMatch = true;
                     }
                 } else {
