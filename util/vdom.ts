@@ -12,7 +12,7 @@ export default class VDom {
         scale: number,
         children: any[]
     }) {
-    
+        console.log(data);
     }
     
     addNode(nodeData: any, parentNodeSelector: string) {
@@ -25,9 +25,11 @@ export default class VDom {
             }
         }
         
-        parentNode.children.push(nodeData);
+        if(!parentNode || !parentNode.children) {
+            console.error('parent node not found or no children: ', parentNode, parentNodeSelector, this.data);
+        }
         
-        //console.log(this.visData);
+        parentNode.children.push(nodeData);
     }
     
     updatePropertiesFromQueue(setAttrQueue: any, setAttrParentSelectors: any) {

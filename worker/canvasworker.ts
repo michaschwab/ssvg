@@ -7,6 +7,7 @@ self.onmessage = function(e) {
         //console.log(e.data.cmd);
         switch(e.data.cmd) {
             case 'INIT':
+                //console.log('init');
                 worker = new SvgToCanvasWorker(data.visData, data.canvas);
                 break;
             case 'UPDATE_NODES':
