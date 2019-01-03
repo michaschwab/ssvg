@@ -1,5 +1,7 @@
 //import * as d3 from 'd3';
 
+import VDom from "../util/vdom";
+
 interface CanvasWorkerMessage {
     cmd: 'INIT'|'UPDATE_NODES'|'UPDATE_SIZE'|'ADD_NODE';
     data?: any;
@@ -40,37 +42,39 @@ function roughSizeOfObject( object: any ) {
 }
 
 export default class SvgToCanvas {
-    private visData: any = {
-        width: 0,
-        height: 0,
-        scale: 1,
-        children: []
-    };
+    
     private unassignedNodes: Node[] = [];
     private interactionSelections: HTMLElement[] = [];
-    private worker: Worker = new Worker('canvasworker.js');
+    private worker: Worker = new Worker('dist/worker.js');
     private setSize = false;
-    private nodesToElements = { nodes: [], elements: []};
+    private nodesToElements: { nodes: any[], elements: any[]} = { nodes: [], elements: []};
+    private vdom: VDom;
     
     constructor(private canvas: HTMLCanvasElement, private svg: SVGElement) {
         this.captureD3On();
     
-        this.visData.width = this.svg.getAttribute('width');
-        this.visData.height = this.svg.getAttribute('height');
+        const visData: any = {
+            width: this.svg.getAttribute('width'),
+            height: this.svg.getAttribute('height'),
+            scale: 1,
+            children: []
+        };
+    
+        this.vdom = new VDom(visData);
     
         this.setCanvasSize();
         
         const offscreen = (this.canvas as any).transferControlToOffscreen();
         this.sendToWorker({cmd: 'INIT', data: {
                 canvas: offscreen,
-                visData: this.visData
+                visData: visData
             }
         }, [offscreen]);
         
         
         window.setTimeout(() => {
             
-            this.addChildNodesToVisData(this.svg.childNodes, this.visData.children);
+            this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data.children);
     
             this.drawCanvas();
             this.svg.style.display = 'none';
@@ -89,7 +93,7 @@ export default class SvgToCanvas {
             requestAnimationFrame(recursiveRaf);
     
             setTimeout(() => {
-                console.log(this.visData);
+                console.log(this.vdom.data);
             }, 1000);
             /*setTimeout(() => {
                 this.applyStyles();
@@ -101,12 +105,12 @@ export default class SvgToCanvas {
     }
     
     private setCanvasSize() {
-        this.visData.scale = window.devicePixelRatio;
+        this.vdom.data.scale = window.devicePixelRatio;
     
-        this.canvas.style.width = this.visData.width + 'px';
-        this.canvas.style.height = this.visData.height + 'px';
-        this.canvas.width = this.visData.width * this.visData.scale;
-        this.canvas.height = this.visData.height * this.visData.scale;
+        this.canvas.style.width = this.vdom.data.width + 'px';
+        this.canvas.style.height = this.vdom.data.height + 'px';
+        this.canvas.width = this.vdom.data.width * this.vdom.data.scale;
+        this.canvas.height = this.vdom.data.height * this.vdom.data.scale;
     
         this.setSize = true;
     }
@@ -142,7 +146,8 @@ export default class SvgToCanvas {
         const me = this;
         
         document.createElementNS = function() {
-            const el = origCreate.apply(this, arguments);
+            let newArgs = Array.from(arguments);
+            const el = origCreate.apply(this, newArgs);
             
             el.appendChild = () => {
                 console.log('hi!!', el, arguments);
@@ -160,7 +165,7 @@ export default class SvgToCanvas {
         const origAppendChild = Element.prototype.appendChild;
         const me = this;
         
-        const newAppend = function<T extends Node>(el: T) {
+        const newAppend = function<T extends Node>(this: Element, el: T) {
             //console.log(arguments);
             //console.log(this, el);
     
@@ -173,8 +178,8 @@ export default class SvgToCanvas {
             const parentSelector = me.getElementSelectorNew(this);
             (el as any)['parentSelector'] = parentSelector;
             
-            const selector = me.getElementSelectorNew(el);
-            const parentNode = me.getVisNodeFromSelector(parentSelector);
+            const selector = me.getElementSelectorNew(this);
+            const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
             //console.log(this, parentSelector);
             (el as any)['selector'] = selector;
             (el as any)['childIndex'] = parentNode.children.length;
@@ -323,14 +328,14 @@ export default class SvgToCanvas {
             const pIndex = parseInt(parentIndex);
             const parentEl = this.setAttrParentElements[pIndex];
             //let parentNode = this.getVisNode(parentEl);
-            let parentNode = this.getVisNodeFromSelector(parentEl);
+            let parentNode = this.vdom.getVisNodeFromSelector(parentEl);
             if(!parentNode) {
                 /*if(parentEl === this.svg) {
-                    parentNode = this.visData;
+                    parentNode = this.vdom.data;
                     //console.log(this.setAttrQueue[parentIndex]);
                 } else*/ {
                     console.error(parentEl, parentNode, pIndex, parentIndex);
-                    console.error(this.visData);
+                    console.error(this.vdom.data);
                     console.error(this.unassignedNodes);
                     //console.error()
                 }
@@ -376,117 +381,7 @@ export default class SvgToCanvas {
     private getVisNode(element: Element): any|null {
         const selector = this.getElementSelectorNew(element);
         
-        return this.getVisNodeFromSelector(selector);
-    }
-    
-    private cachedListSelections: {[selector: string]: {[index: number]: HTMLElement}} = {};
-    public getVisNodeFromSelector(selector: string): any|null {
-        const lastSplitPos = selector.lastIndexOf('>');
-        const selectorWithoutLast = selector.substr(0, lastSplitPos).trim();
-        const lastPart = selector.substr(lastSplitPos + 1);
-        const parentSel = selectorWithoutLast ? this.cachedListSelections[selectorWithoutLast] : null;
-        let index = -1;
-        const nthChildPosition = lastPart.indexOf(':nth-child(');
-        //console.log(nthChildPosition, lastPart);
-        if(nthChildPosition !== -1) {
-            index = parseInt(lastPart.substr(nthChildPosition + 11)); // length of ':nth-child('
-            //console.log(index, parentSel, selectorWithoutLast);
-            if(parentSel && parentSel[index]) {
-                return parentSel[index];
-            }
-        }
-        
-        const selectedNodes: HTMLElement[] = [];
-        this.findMatchingChildren(this.visData, selector, 0, selectedNodes);
-        //console.log(selectedNodes, selector);
-        
-        if(selectedNodes && selectedNodes.length === 1) {
-            const el = selectedNodes[0];
-            if(index !== -1) {
-                if(!this.cachedListSelections[selectorWithoutLast]) {
-                    this.cachedListSelections[selectorWithoutLast] = {};
-                }
-                this.cachedListSelections[selectorWithoutLast][index] = el;
-            }
-            return el;
-        }
-        return null;
-    }
-    
-    private findMatchingChildren(visNode: any, selector: string, matchIndex: number, selectedNodes: any[], selectedNodeSelectors: string[] = []) {
-        if(!selector && selector !== '') {
-            console.error(visNode, selector, matchIndex, selectedNodes, selectedNodeSelectors);
-            throw Error('undefined selector');
-        }
-        
-        let selParts = selector.split('>').map(s => s.trim());
-        let selPart = selParts[matchIndex];
-        
-        if(matchIndex === 0 && selPart === 'svg')
-        {
-            matchIndex++;
-            selPart = selParts[matchIndex];
-            if(matchIndex === selParts.length)
-            {
-                selectedNodes.push(visNode);
-                selectedNodeSelectors.push(selector);
-                return;
-            }
-        }
-        const checker = this.checkIfMatching(selPart);
-        
-        for(let i = 0; i < visNode.children.length; i++)
-        {
-            let node = visNode.children[i];
-            let matching = false;
-            
-            if(checker(node, i))
-            {
-                if(matchIndex === selParts.length - 1)
-                {
-                    selectedNodes.push(node);
-                    selectedNodeSelectors.push(selector);
-                }
-                else
-                {
-                    matching = true;
-                }
-            }
-            
-            if(node.children && (matching || selParts.length < 2) && matchIndex + 1 < selParts.length)
-            {
-                this.findMatchingChildren(node, selector, matchIndex + 1, selectedNodes, selectedNodeSelectors);
-            }
-        }
-    }
-    
-    private checkIfMatching(selPart: string): ((node: any, index?: number) => boolean)
-    {
-        if(selPart.substr(0,1) === '.')
-        {
-            return node => (node.className === selPart.substr(1));
-        }
-        else if(selPart.indexOf(':nth-child(') !== -1)
-        {
-            let type = 'any';
-            let indexPart = selPart;
-            
-            if(selPart[0] !== ':')
-            {
-                type = selPart.substr(0, selPart.indexOf(':'));
-                indexPart = selPart.substr(selPart.indexOf(':'));
-            }
-            
-            let targetIndex = parseInt(indexPart.substr(':nth-child('.length));
-            
-            return (node, i) => (i === targetIndex - 1 && (type === 'any' || node.type === type));
-        }
-        else if(selPart === '') {
-            return node => (node.className === 'svg');
-        }
-        else {
-            return node => node.type === selPart;
-        }
+        return this.vdom.getVisNodeFromSelector(selector);
     }
     
     private getNodeDataFromEl(el: HTMLElement) {
@@ -598,7 +493,7 @@ export default class SvgToCanvas {
             return false;
         };
         
-        return checkNode(this.visData);
+        return checkNode(this.vdom.data);
     }
     
     private applyStyles() {
@@ -659,7 +554,7 @@ export default class SvgToCanvas {
             return false;
         };
         
-        return checkNode(this.visData);
+        return checkNode(this.vdom.data);
     }
     
     private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, childrenData: any): void {
@@ -713,9 +608,9 @@ export default class SvgToCanvas {
                 let parentSelector = (element as any)['parentSelector'] ?
                     (element as any)['parentSelector'] as string : '';
                 
-                let node = this.getVisNodeFromSelector(parentSelector);
+                let node = this.vdom.getVisNodeFromSelector(parentSelector);
                 if(!node) {
-                    console.error(parentSelector, this.visData);
+                    console.error(parentSelector, this.vdom.data);
                 }
                 const index = node.children.length + 1;
                 let name = element.localName;
@@ -750,7 +645,7 @@ export default class SvgToCanvas {
         for(let interactionSel of this.interactionSelections)
         {
             let parentSelector = this.getElementSelectorNew(interactionSel);
-            let parentNode = this.getVisNodeFromSelector(parentSelector);
+            let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
             //console.log(parentNode);
             //let matchingVisParent = selectedNodes[i];
             let j = 1;

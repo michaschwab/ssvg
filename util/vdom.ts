@@ -1,0 +1,163 @@
+export default class VDom {
+    /*private visData = {
+        width: 0,
+        height: 0,
+        scale: 1,
+        children: []
+    };*/
+    
+    constructor(public data: {
+        width: number,
+        height: number,
+        scale: number,
+        children: any[]
+    }) {
+    
+    }
+    
+    addNode(nodeData: any, parentNodeSelector: string) {
+        let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
+        if(!parentNode) {
+            if(parentNodeSelector === "") {
+                parentNode = this.data;
+            } else {
+                console.error(parentNode, parentNodeSelector);
+            }
+        }
+        
+        parentNode.children.push(nodeData);
+        
+        //console.log(this.visData);
+    }
+    
+    updatePropertiesFromQueue(setAttrQueue: any, setAttrParentSelectors: any) {
+        for(let parentIndex in setAttrQueue) {
+            if(setAttrQueue.hasOwnProperty(parentIndex)) {
+                const pIndex = parseInt(parentIndex);
+                let parentNodeSelector = setAttrParentSelectors[pIndex];
+                let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
+                if(!parentNode) {
+                    console.error(parentNode, pIndex, parentIndex);
+                }
+                
+                for(let attrName in setAttrQueue[parentIndex]) {
+                    if(setAttrQueue[parentIndex].hasOwnProperty(attrName)) {
+                        for(let childIndex in setAttrQueue[parentIndex][attrName]) {
+                            const childNode = parentNode.children[childIndex];
+                            //console.log(parentNode, childIndex);
+                            childNode[attrName] = setAttrQueue[parentIndex][attrName][childIndex];
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private cachedListSelections: {[selector: string]: {[index: number]: HTMLElement}} = {};
+    public getVisNodeFromSelector(selector: string): any|null {
+        const lastSplitPos = selector.lastIndexOf('>');
+        const selectorWithoutLast = selector.substr(0, lastSplitPos);
+        const lastPart = selector.substr(lastSplitPos + 1);
+        const parentSel = selectorWithoutLast ? this.cachedListSelections[selectorWithoutLast] : null;
+        let index = -1;
+        const nthChildPosition = lastPart.indexOf(':nth-child(');
+        if(nthChildPosition !== -1) {
+            index = parseInt(lastPart.substr(nthChildPosition + 11)); // length of ':nth-child('
+            if(parentSel && parentSel[index]) {
+                return parentSel[index];
+            }
+        }
+        
+        const selectedNodes: HTMLElement[] = [];
+        this.findMatchingChildren(this.data, selector, 0, selectedNodes);
+        
+        if(selectedNodes && selectedNodes.length === 1) {
+            const el = selectedNodes[0];
+            if(index !== -1) {
+                if(!this.cachedListSelections[selectorWithoutLast]) {
+                    this.cachedListSelections[selectorWithoutLast] = {};
+                }
+                this.cachedListSelections[selectorWithoutLast][index] = el;
+            }
+            return el;
+        }
+        return null;
+    }
+    
+    private findMatchingChildren(visNode: any, selector: string, matchIndex: number, selectedNodes: any[], selectedNodeSelectors: string[] = []) {
+        if(!selector && selector !== '') {
+            console.error(visNode, selector, matchIndex, selectedNodes, selectedNodeSelectors);
+            throw Error('undefined selector');
+        }
+        
+        let selParts = selector.split('>').map(s => s.trim());
+        let selPart = selParts[matchIndex];
+        
+        if(matchIndex === 0 && selPart === 'svg')
+        {
+            matchIndex++;
+            selPart = selParts[matchIndex];
+            if(matchIndex === selParts.length)
+            {
+                selectedNodes.push(visNode);
+                selectedNodeSelectors.push(selector);
+                return;
+            }
+        }
+        
+        const checker = this.checkIfMatching(selPart);
+        
+        for(let i = 0; i < visNode.children.length; i++)
+        {
+            let node = visNode.children[i];
+            let matching = false;
+            
+            if(checker(node, i))
+            {
+                if(matchIndex === selParts.length - 1)
+                {
+                    selectedNodes.push(node);
+                    selectedNodeSelectors.push(selector);
+                }
+                else
+                {
+                    matching = true;
+                }
+            }
+            
+            if(node.children && (matching || selParts.length < 2) && matchIndex + 1 < selParts.length)
+            {
+                this.findMatchingChildren(node, selector, matchIndex + 1, selectedNodes, selectedNodeSelectors);
+            }
+        }
+    }
+    
+    private checkIfMatching(selPart: string): ((node: any, index?: number) => boolean)
+    {
+        if(selPart.substr(0,1) === '.')
+        {
+            return node => (node.class === selPart.substr(1));
+        }
+        else if(selPart.indexOf(':nth-child(') !== -1)
+        {
+            let type = 'any';
+            let indexPart = selPart;
+            
+            if(selPart[0] !== ':')
+            {
+                type = selPart.substr(0, selPart.indexOf(':'));
+                indexPart = selPart.substr(selPart.indexOf(':'));
+            }
+            
+            let targetIndex = parseInt(indexPart.substr(':nth-child('.length));
+            
+            return (node, i) => (i === targetIndex - 1 && (type === 'any' || node.type === type));
+        }
+        else if(selPart === '') {
+            return node => (node.class === 'svg');
+        }
+        else {
+            return node => node.type === selPart;
+        }
+    }
+}

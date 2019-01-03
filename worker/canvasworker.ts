@@ -1,4 +1,4 @@
-//export = 0;
+import VDom from "../util/vdom";
 
 let worker: SvgToCanvasWorker;
 self.onmessage = function(e) {
@@ -11,12 +11,12 @@ self.onmessage = function(e) {
                 break;
             case 'UPDATE_NODES':
                 //console.log('UPDATE', data.queue, data.parentNodeSelectors);
-                worker.updatePropertiesFromQueue(data.queue, data.parentNodeSelectors);
+                worker.vdom.updatePropertiesFromQueue(data.queue, data.parentNodeSelectors);
                 //worker.drawCanvas();
                 break;
             case 'ADD_NODE':
                 //console.log('ADD', data.node, data.parentNodeSelector);
-                worker.addNode(data.node, data.parentNodeSelector);
+                worker.vdom.addNode(data.node, data.parentNodeSelector);
                 break;
             default:
                 console.error('did not find command ', e.data.cmd);
@@ -24,27 +24,25 @@ self.onmessage = function(e) {
     }
 };
 
-class SvgToCanvasWorker {
-    /*private visData: any= {
-        width: 0,
-        height: 0,
-        scale: 1,
-        children: []
-    };*/
+export default class SvgToCanvasWorker {
+
     private ctx: CanvasRenderingContext2D;
+    public vdom: VDom;
     private queues: { circles: any } = {
         circles: {}
     };
     private setSize = false;
     
-    constructor(private visData: any, private canvas: HTMLCanvasElement) {
+    constructor(visData: any, private canvas: HTMLCanvasElement) {
         //console.log(canvas);
     
         const ctx = canvas.getContext('2d');
         if(!ctx) throw new Error('could not create canvas context');
     
         this.ctx = ctx;
-        this.ctx.scale(this.visData.scale, this.visData.scale);
+        this.ctx.scale(visData.scale, visData.scale);
+        
+        this.vdom = new VDom(visData);
         
         const raf = () => {
             this.drawCanvas();
@@ -53,67 +51,29 @@ class SvgToCanvasWorker {
         requestAnimationFrame(raf);
         
         setTimeout(() => {
-            console.log(this.visData);
+            console.log(this.vdom.data);
         }, 1000);
     }
     
     private lastDrawn: any = null;
     
     drawCanvas() {
-        const canvas = this.canvas;
         const ctx = this.ctx;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        let scale = this.visData.scale;
+        let scale = this.vdom.data.scale;
         
         ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, this.visData.width * scale, this.visData.height * scale);
+        ctx.fillRect(0, 0, this.vdom.data.width * scale, this.vdom.data.height * scale);
         
         //this.executeSetAttributeQueue();
         //ctx.save();
         //console.log(this.visData);
-        this.drawChildren(this.visData);
+        this.drawChildren(this.vdom.data);
         //ctx.restore();
         //ctx.drawImage(offscreenCanvas, 0, 0);
         this.finishDrawingChildren();
     }
     
-    addNode(nodeData: any, parentNodeSelector: string) {
-        let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
-        if(!parentNode) {
-            if(parentNodeSelector === "") {
-                parentNode = this.visData;
-            } else {
-                console.error(parentNode, parentNodeSelector);
-            }
-        }
-        
-        parentNode.children.push(nodeData);
-        
-        //console.log(this.visData);
-    }
-    
-    updatePropertiesFromQueue(setAttrQueue: any, setAttrParentSelectors: any) {
-        for(let parentIndex in setAttrQueue) {
-            if(setAttrQueue.hasOwnProperty(parentIndex)) {
-                const pIndex = parseInt(parentIndex);
-                let parentNodeSelector = setAttrParentSelectors[pIndex];
-                let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
-                if(!parentNode) {
-                    console.error(parentNode, pIndex, parentIndex);
-                }
-    
-                for(let attrName in setAttrQueue[parentIndex]) {
-                    if(setAttrQueue[parentIndex].hasOwnProperty(attrName)) {
-                        for(let childIndex in setAttrQueue[parentIndex][attrName]) {
-                            const childNode = parentNode.children[childIndex];
-                            //console.log(parentNode, childIndex);
-                            childNode[attrName] = setAttrQueue[parentIndex][attrName][childIndex];
-                        }
-                    }
-                }
-            }
-        }
-    }
     private count = 0;
     private drawChildren(elData: any) {
         const ctx = this.ctx;
@@ -230,114 +190,6 @@ class SvgToCanvasWorker {
         
         this.queues.circles = {};
         this.lastDrawn = null;
-    }
-    
-    private cachedListSelections: {[selector: string]: {[index: number]: HTMLElement}} = {};
-    private getVisNodeFromSelector(selector: string): any|null {
-        const lastSplitPos = selector.lastIndexOf('>');
-        const selectorWithoutLast = selector.substr(0, lastSplitPos);
-        const lastPart = selector.substr(lastSplitPos + 1);
-        const parentSel = selectorWithoutLast ? this.cachedListSelections[selectorWithoutLast] : null;
-        let index = -1;
-        const nthChildPosition = lastPart.indexOf(':nth-child(');
-        if(nthChildPosition !== -1) {
-            index = parseInt(lastPart.substr(nthChildPosition + 11)); // length of ':nth-child('
-            if(parentSel && parentSel[index]) {
-                return parentSel[index];
-            }
-        }
-        
-        const selectedNodes: HTMLElement[] = [];
-        this.findMatchingChildren(this.visData, selector, 0, selectedNodes);
-        
-        if(selectedNodes && selectedNodes.length === 1) {
-            const el = selectedNodes[0];
-            if(index !== -1) {
-                if(!this.cachedListSelections[selectorWithoutLast]) {
-                    this.cachedListSelections[selectorWithoutLast] = {};
-                }
-                this.cachedListSelections[selectorWithoutLast][index] = el;
-            }
-            return el;
-        }
-        return null;
-    }
-    
-    private findMatchingChildren(visNode: any, selector: string, matchIndex: number, selectedNodes: any[], selectedNodeSelectors: string[] = []) {
-        if(!selector && selector !== '') {
-            console.error(visNode, selector, matchIndex, selectedNodes, selectedNodeSelectors);
-            throw Error('undefined selector');
-        }
-        
-        let selParts = selector.split('>').map(s => s.trim());
-        let selPart = selParts[matchIndex];
-        
-        if(matchIndex === 0 && selPart === 'svg')
-        {
-            matchIndex++;
-            selPart = selParts[matchIndex];
-            if(matchIndex === selParts.length)
-            {
-                selectedNodes.push(visNode);
-                selectedNodeSelectors.push(selector);
-                return;
-            }
-        }
-        
-        const checker = this.checkIfMatching(selPart);
-        
-        for(let i = 0; i < visNode.children.length; i++)
-        {
-            let node = visNode.children[i];
-            let matching = false;
-            
-            if(checker(node, i))
-            {
-                if(matchIndex === selParts.length - 1)
-                {
-                    selectedNodes.push(node);
-                    selectedNodeSelectors.push(selector);
-                }
-                else
-                {
-                    matching = true;
-                }
-            }
-            
-            if(node.children && (matching || selParts.length < 2) && matchIndex + 1 < selParts.length)
-            {
-                this.findMatchingChildren(node, selector, matchIndex + 1, selectedNodes, selectedNodeSelectors);
-            }
-        }
-    }
-    
-    private checkIfMatching(selPart: string): ((node: any, index?: number) => boolean)
-    {
-        if(selPart.substr(0,1) === '.')
-        {
-            return node => (node.class === selPart.substr(1));
-        }
-        else if(selPart.indexOf(':nth-child(') !== -1)
-        {
-            let type = 'any';
-            let indexPart = selPart;
-            
-            if(selPart[0] !== ':')
-            {
-                type = selPart.substr(0, selPart.indexOf(':'));
-                indexPart = selPart.substr(selPart.indexOf(':'));
-            }
-            
-            let targetIndex = parseInt(indexPart.substr(':nth-child('.length));
-            
-            return (node, i) => (i === targetIndex - 1 && (type === 'any' || node.type === type));
-        }
-        else if(selPart === '') {
-            return node => (node.class === 'svg');
-        }
-        else {
-            return node => node.type === selPart;
-        }
     }
     
     private applyTransform(transformString: string) {
