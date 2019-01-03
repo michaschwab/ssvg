@@ -33,14 +33,12 @@ export default class SvgToCanvas {
             }
         }, [offscreen]);
         
-        window.setTimeout(() => {
-            canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
-            canvas.addEventListener('mousemove', e => this.propagateMouseEvent(e));
-            canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
-            canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
-    
-            this.replaceNativeAttribute();
-        }, 200);
+        canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
+        canvas.addEventListener('mousemove', e => this.propagateMouseEvent(e));
+        canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
+        canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
+
+        this.replaceNativeAttribute();
     
         this.replaceNativeCreateElement();
         this.replaceNativeAppend();
