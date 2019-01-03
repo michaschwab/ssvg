@@ -1,11 +1,5 @@
 export default class VDom {
-    /*private visData = {
-        width: 0,
-        height: 0,
-        scale: 1,
-        children: []
-    };*/
-    
+
     constructor(public data: {
         width: number,
         height: number,

@@ -1,11 +1,16 @@
 import VDom from "../util/vdom";
+import CanvasWorkerMessage from "../util/canvas-worker-message"
 
 let worker: SvgToCanvasWorker;
-self.onmessage = function(e) {
-    if(e.data && e.data.cmd) {
-        const data = e.data.data;
-        //console.log(e.data.cmd);
-        switch(e.data.cmd) {
+
+self.onmessage = function(e: MessageEvent) {
+    
+    const msg: CanvasWorkerMessage = e.data;
+    
+    if(msg && msg.cmd) {
+        const data = msg.data;
+        
+        switch(msg.cmd) {
             case 'INIT':
                 //console.log('init');
                 worker = new SvgToCanvasWorker(data.visData, data.canvas);
@@ -20,19 +25,18 @@ self.onmessage = function(e) {
                 worker.vdom.addNode(data.node, data.parentNodeSelector);
                 break;
             default:
-                console.error('did not find command ', e.data.cmd);
+                console.error('did not find command ', msg.cmd);
         }
     }
 };
 
-export default class SvgToCanvasWorker {
+class SvgToCanvasWorker {
 
     private ctx: CanvasRenderingContext2D;
     public vdom: VDom;
     private queues: { circles: any } = {
         circles: {}
     };
-    private setSize = false;
     
     constructor(visData: any, private canvas: HTMLCanvasElement) {
         //console.log(canvas);

@@ -1,12 +1,8 @@
 //import * as d3 from 'd3';
 
 import VDom from "../util/vdom";
+import CanvasWorkerMessage from "../util/canvas-worker-message"
 import Elementhandler from "./elementhandler";
-
-interface CanvasWorkerMessage {
-    cmd: 'INIT'|'UPDATE_NODES'|'UPDATE_SIZE'|'ADD_NODE';
-    data?: any;
-}
 
 export default class SvgToCanvas {
     
@@ -115,7 +111,7 @@ export default class SvgToCanvas {
             const parentSelector = me.elementHandler.getElementSelector(this);
             (el as any)['parentSelector'] = parentSelector;
             
-            const selector = me.elementHandler.getElementSelector(this);
+            const selector = me.elementHandler.getElementSelector(<Element><any> el);
             const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
             //console.log(this, parentSelector);
             (el as any)['selector'] = selector;
@@ -132,7 +128,7 @@ export default class SvgToCanvas {
 
             parentNode.children.push(node);
             me.elementHandler.applyStylesToNode(node);
-    
+            
             me.sendToWorker({
                 cmd: 'ADD_NODE',
                 data: {
@@ -170,7 +166,6 @@ export default class SvgToCanvas {
                 origSetAttr.apply(this, arguments);
                 return;
             }
-            
             //me.updateDataFromElementAttr(this, name, value);
             me.elementHandler.queueSetAttribute(this, name, value);
         };
