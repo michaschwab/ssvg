@@ -17,7 +17,7 @@ self.onmessage = function(e: MessageEvent) {
                 break;
             case 'UPDATE_NODES':
                 //console.log('UPDATE', data.queue, data.parentNodeSelectors);
-                worker.vdom.updatePropertiesFromQueue(data.queue, data.parentNodeSelectors);
+                worker.vdom.updatePropertiesFromQueue(data.queue);
                 //worker.drawCanvas();
                 break;
             case 'ADD_NODE':

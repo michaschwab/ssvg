@@ -33,39 +33,24 @@ export default class Elementhandler {
         return this.vdom;
     }
     
-    private setAttrParentElements: string[] = [];
     private setAttrQueue: {[parentIndex: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
-    private errCount = 0;
     queueSetAttribute(element: Element, attrName: string, value: any) {
-        const parent = (element as any)['parentSelector'] as string;// element.parentElement;
+        
+        const parentSelector = (element as any)['parentSelector'] as string;
+        const childIndex = (element as any)['childIndex'];
+    
         if(attrName === 'class') {
             attrName = 'className';
-            //console.log(value);
         }
-        if(!parent) {
-            if(this.errCount < 10) {
-                console.error(element);
-                this.errCount++;
-                throw Error('element parent not found');
-                
-            }
+        
+        if(!this.setAttrQueue[parentSelector]) {
+            this.setAttrQueue[parentSelector] = {};
         }
-        else {
-            let parentIndex = this.setAttrParentElements.indexOf(parent);
-            if(parentIndex === -1) {
-                parentIndex = this.setAttrParentElements.length;
-                this.setAttrParentElements.push(parent);
-            }
-            if(!this.setAttrQueue[parentIndex]) {
-                this.setAttrQueue[parentIndex] = {};
-            }
-            if(!this.setAttrQueue[parentIndex][attrName]) {
-                this.setAttrQueue[parentIndex][attrName] = {};
-            }
-            //const childIndex = this.indexOfChild(element) - 1;
-            const childIndex = (element as any)['childIndex'];
-            this.setAttrQueue[parentIndex][attrName][childIndex] = value;
+        if(!this.setAttrQueue[parentSelector][attrName]) {
+            this.setAttrQueue[parentSelector][attrName] = {};
         }
+        this.setAttrQueue[parentSelector][attrName][childIndex] = value;
+    
         if(attrName === 'className') {
             this.updateNodes();
             // To apply classes immediately so styles can be applied correctly.
@@ -73,35 +58,39 @@ export default class Elementhandler {
     }
     
     private updateNodes() {
-
+        
         this.onNodesUpdated({
             queue: this.setAttrQueue,
-            parentNodeSelectors:  this.setAttrParentElements
         });
         
-        for(let parentIndex in this.setAttrQueue) {
-            const pIndex = parseInt(parentIndex);
-            const parentEl = this.setAttrParentElements[pIndex];
+        /*console.log(this.catchCount / (this.noCatchCount + this.catchCount), this.catchCount, this.noCatchCount);
+        
+        this.noCatchCount = 0;
+        this.catchCount = 0;*/
+        
+        for(let parentSelector in this.setAttrQueue) {
+            //const parentEl = this.setAttrParentElements[parentSelector];
             //let parentNode = this.getVisNode(parentEl);
-            let parentNode = this.vdom.getVisNodeFromSelector(parentEl);
+            //let parentNode = this.vdom.getVisNodeFromSelector(parentEl);
+            let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
             if(!parentNode) {
                 /*if(parentEl === this.svg) {
                     parentNode = this.vdom.data;
                     //console.log(this.setAttrQueue[parentIndex]);
                 } else*/ {
-                    console.error(parentEl, parentNode, pIndex, parentIndex);
+                    console.error(parentNode, parentSelector);
                     console.error(this.vdom.data);
                     //console.error(this.unassignedNodes);
                     //console.error()
                 }
             }
             
-            for(let attrName in this.setAttrQueue[parentIndex]) {
-                if(this.setAttrQueue[parentIndex].hasOwnProperty(attrName)) {
-                    for(let childIndex in this.setAttrQueue[parentIndex][attrName]) {
+            for(let attrName in this.setAttrQueue[parentSelector]) {
+                if(this.setAttrQueue[parentSelector].hasOwnProperty(attrName)) {
+                    for(let childIndex in this.setAttrQueue[parentSelector][attrName]) {
                         const childNode = parentNode.children[childIndex];
                         //console.log(parentNode, childIndex);
-                        childNode[attrName] = this.setAttrQueue[parentIndex][attrName][childIndex];
+                        childNode[attrName] = this.setAttrQueue[parentSelector][attrName][childIndex];
                     }
                 }
             }

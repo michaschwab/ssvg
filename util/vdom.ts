@@ -26,22 +26,23 @@ export default class VDom {
         parentNode.children.push(nodeData);
     }
     
-    updatePropertiesFromQueue(setAttrQueue: any, setAttrParentSelectors: any) {
-        for(let parentIndex in setAttrQueue) {
-            if(setAttrQueue.hasOwnProperty(parentIndex)) {
-                const pIndex = parseInt(parentIndex);
-                let parentNodeSelector = setAttrParentSelectors[pIndex];
-                let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
+    updatePropertiesFromQueue(setAttrQueue: any) {
+        for(let parentSelector in setAttrQueue) {
+            if(!parentSelector) {
+                console.error(setAttrQueue);
+            }
+            if(setAttrQueue.hasOwnProperty(parentSelector)) {
+                let parentNode = this.getVisNodeFromSelector(parentSelector);
                 if(!parentNode) {
-                    console.error(parentNode, pIndex, parentIndex);
+                    console.error(parentNode, parentSelector);
                 }
                 
-                for(let attrName in setAttrQueue[parentIndex]) {
-                    if(setAttrQueue[parentIndex].hasOwnProperty(attrName)) {
-                        for(let childIndex in setAttrQueue[parentIndex][attrName]) {
+                for(let attrName in setAttrQueue[parentSelector]) {
+                    if(setAttrQueue[parentSelector].hasOwnProperty(attrName)) {
+                        for(let childIndex in setAttrQueue[parentSelector][attrName]) {
                             const childNode = parentNode.children[childIndex];
                             //console.log(parentNode, childIndex);
-                            childNode[attrName] = setAttrQueue[parentIndex][attrName][childIndex];
+                            childNode[attrName] = setAttrQueue[parentSelector][attrName][childIndex];
                         }
                     }
                 }
