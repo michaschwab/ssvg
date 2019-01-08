@@ -63,26 +63,11 @@ export default class Elementhandler {
             queue: this.setAttrQueue,
         });
         
-        /*console.log(this.catchCount / (this.noCatchCount + this.catchCount), this.catchCount, this.noCatchCount);
-        
-        this.noCatchCount = 0;
-        this.catchCount = 0;*/
-        
         for(let parentSelector in this.setAttrQueue) {
-            //const parentEl = this.setAttrParentElements[parentSelector];
-            //let parentNode = this.getVisNode(parentEl);
-            //let parentNode = this.vdom.getVisNodeFromSelector(parentEl);
             let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
             if(!parentNode) {
-                /*if(parentEl === this.svg) {
-                    parentNode = this.vdom.data;
-                    //console.log(this.setAttrQueue[parentIndex]);
-                } else*/ {
-                    console.error(parentNode, parentSelector);
-                    console.error(this.vdom.data);
-                    //console.error(this.unassignedNodes);
-                    //console.error()
-                }
+                console.error(parentNode, parentSelector);
+                console.error(this.vdom.data);
             }
             
             for(let attrName in this.setAttrQueue[parentSelector]) {
@@ -98,19 +83,6 @@ export default class Elementhandler {
         
         this.setAttrQueue = {};
     }
-    /*
-    private setAttrParentElementsToSelectors() {
-        let setAttrParentSelectors: any[] = [];
-        
-        for(let parentIndex in this.setAttrQueue) {
-            const pIndex = parseInt(parentIndex);
-            const parentEl = this.setAttrParentElements[pIndex];
-            let selector = this.getElementSelector(parentEl);
-            setAttrParentSelectors.push(selector);
-        }
-        
-        return setAttrParentSelectors;
-    }*/
     
     getAttributeFromSelector(element: Element, name: string) {
         const node = this.getVisNode(element);
