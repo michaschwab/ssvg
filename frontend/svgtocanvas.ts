@@ -39,9 +39,9 @@ export default class SvgToCanvas {
         canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
 
         this.replaceNativeAttribute();
-    
         this.replaceNativeCreateElement();
         this.replaceNativeAppend();
+        this.replaceD3Attr();
     }
     
     private setCanvasSize() {
@@ -74,6 +74,36 @@ export default class SvgToCanvas {
         
                 return originalOn.apply(this, arguments);
             };
+        }
+    }
+    
+    private replaceD3Attr() {
+    
+        const me = this;
+        
+        function getReplacement(originalFct) {
+            return function(name, value) {
+                //console.log(this, arguments);
+                if(!value) {
+    
+                    if(me.unassignedNodes.indexOf(this) !== -1) {
+                        return originalFct.apply(this, arguments);
+                    } else {
+                        return me.elementHandler.getAttributesFromSelector(this, name);
+                    }
+                } else {
+                    me.elementHandler.queueSetAttributes(this, name, value);
+                
+                    return this;
+                }
+            };
+        }
+    
+        if((window as any)['d3']) {
+            const d3 = (window as any)['d3'];
+    
+            let origSelectionAttr = d3.selection.prototype.attr;
+            d3.selection.prototype.attr = getReplacement(origSelectionAttr);
         }
     }
     
@@ -117,7 +147,7 @@ export default class SvgToCanvas {
             
             Object.defineProperty(el, 'parentNode', {
                 writable: true,
-                value: me.svg
+                value: this
             });
             
             const node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);

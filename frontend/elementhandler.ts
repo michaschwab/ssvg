@@ -57,7 +57,44 @@ export default class Elementhandler {
         }
     }
     
+    queueSetAttributes(selection, attrName, value) {
+        try {
+            const els = selection._groups[0];
+            const parent = els[0].parentNode;
+        
+            const parentSelector = parent === this.svg ? "svg" : parent['selector'];
+            //safeLog(parent, parentSelector, attrName, selection);
+            
+            if(!parentSelector) {
+                safeLog(selection, parent);
+                throw Error('selector not found');
+            }
+    
+            if(!this.setAttrQueue[parentSelector]) {
+                this.setAttrQueue[parentSelector] = {};
+            }
+            if(!this.setAttrQueue[parentSelector][attrName]) {
+                this.setAttrQueue[parentSelector][attrName] = {};
+            }
+            
+            for(let i = 0; i < els.length; i++) {
+                const svgEl = els[i];
+                
+                this.setAttrQueue[parentSelector][attrName][i] =
+                    typeof value === "function" ? value(svgEl.__data__) : value;
+                
+                //safeLog(attrName, this.setAttrQueue[parentSelector][attrName][i])
+            }
+        } catch(e) {
+            console.error(e);
+            console.error(selection);
+            return;
+        }
+    }
+    
     private updateNodes() {
+        
+        //safeLog(this.setAttrQueue);
         
         this.onNodesUpdated({
             queue: this.setAttrQueue,
@@ -73,15 +110,25 @@ export default class Elementhandler {
             for(let attrName in this.setAttrQueue[parentSelector]) {
                 if(this.setAttrQueue[parentSelector].hasOwnProperty(attrName)) {
                     for(let childIndex in this.setAttrQueue[parentSelector][attrName]) {
-                        const childNode = parentNode.children[childIndex];
-                        //console.log(parentNode, childIndex);
-                        childNode[attrName] = this.setAttrQueue[parentSelector][attrName][childIndex];
+                        try {
+                            const childNode = parentNode.children[childIndex];
+                            childNode[attrName] = this.setAttrQueue[parentSelector][attrName][childIndex];
+                        } catch(e) {
+                            safeErrorLog(e, parentNode, parentSelector, attrName, childIndex);
+                            safeErrorLog(this.setAttrQueue);
+                        }
                     }
                 }
             }
         }
         
         this.setAttrQueue = {};
+    }
+    
+    getAttributesFromSelector(selection, name: string) {
+        const els = selection._groups[0];
+        
+        return els.map(el => this.getAttributeFromSelector(el, name));
     }
     
     getAttributeFromSelector(element: Element, name: string) {
@@ -326,7 +373,7 @@ export default class Elementhandler {
                 
                 let node = this.vdom.getVisNodeFromSelector(parentSelector);
                 if(!node) {
-                    console.error(parentSelector, this.vdom.data);
+                    console.error(parentSelector, parentSelector.length, this.vdom.data);
                 }
                 const index = node.children.length + 1;
                 let name = element.localName;
@@ -345,5 +392,21 @@ export default class Elementhandler {
             
             return sel;
         }
+    }
+}
+
+let safeLogCount = 0;
+function safeLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.log(...logContents);
+    }
+}
+function safeErrorLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.error(...logContents);
     }
 }
