@@ -34,21 +34,13 @@ export default class Elementhandler {
     }
     
     private setAttrQueue: {[parentIndex: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
-    queueSetAttribute(element: Element, attrName: string, value: any) {
+    queueSetAttributeOnElement(element: Element, attrName: string, value: any) {
         
         const parentSelector = (element as any)['parentSelector'] as string;
         const childIndex = (element as any)['childIndex'];
     
-        if(attrName === 'class') {
-            attrName = 'className';
-        }
-        
-        if(!this.setAttrQueue[parentSelector]) {
-            this.setAttrQueue[parentSelector] = {};
-        }
-        if(!this.setAttrQueue[parentSelector][attrName]) {
-            this.setAttrQueue[parentSelector][attrName] = {};
-        }
+        attrName = this.checkAttrName(parentSelector, attrName);
+    
         this.setAttrQueue[parentSelector][attrName][childIndex] = value;
     
         if(attrName === 'className') {
@@ -57,39 +49,47 @@ export default class Elementhandler {
         }
     }
     
-    queueSetAttributes(selection, attrName, value) {
-        try {
-            const els = selection._groups[0];
-            const parent = els[0].parentNode;
-        
-            const parentSelector = parent === this.svg ? "svg" : parent['selector'];
-            //safeLog(parent, parentSelector, attrName, selection);
-            
-            if(!parentSelector) {
-                safeLog(selection, parent);
-                throw Error('selector not found');
-            }
+    queueSetAttributeOnSelection(selection, attrName, value) {
+        const els = selection._groups[0];
+        const parent = els[0].parentNode;
     
-            if(!this.setAttrQueue[parentSelector]) {
-                this.setAttrQueue[parentSelector] = {};
-            }
-            if(!this.setAttrQueue[parentSelector][attrName]) {
-                this.setAttrQueue[parentSelector][attrName] = {};
-            }
-            
-            for(let i = 0; i < els.length; i++) {
-                const svgEl = els[i];
-                
-                this.setAttrQueue[parentSelector][attrName][i] =
-                    typeof value === "function" ? value(svgEl.__data__) : value;
-                
-                //safeLog(attrName, this.setAttrQueue[parentSelector][attrName][i])
-            }
-        } catch(e) {
-            console.error(e);
-            console.error(selection);
-            return;
+        const parentSelector = parent === this.svg ? "svg" : parent['selector'];
+        
+        if(!parentSelector) {
+            safeLog(selection, parent);
+            console.error('selector not found');
         }
+
+        attrName = this.checkAttrName(parentSelector, attrName);
+        
+        for(let i = 0; i < els.length; i++) {
+            const svgEl = els[i];
+            
+            this.setAttrQueue[parentSelector][attrName][i] =
+                typeof value === "function" ? value(svgEl.__data__) : value;
+            
+            //safeLog(attrName, this.setAttrQueue[parentSelector][attrName][i])
+        }
+
+        if(attrName === 'className') {
+            this.updateNodes();
+            // To apply classes immediately so styles can be applied correctly.
+        }
+    }
+    
+    private checkAttrName(parentSelector, attrName) {
+        if(attrName === 'class') {
+            attrName = 'className';
+        }
+    
+        if(!this.setAttrQueue[parentSelector]) {
+            this.setAttrQueue[parentSelector] = {};
+        }
+        if(!this.setAttrQueue[parentSelector][attrName]) {
+            this.setAttrQueue[parentSelector][attrName] = {};
+        }
+
+        return attrName;
     }
     
     private updateNodes() {

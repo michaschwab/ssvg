@@ -92,7 +92,7 @@ export default class SvgToCanvas {
                         return me.elementHandler.getAttributesFromSelector(this, name);
                     }
                 } else {
-                    me.elementHandler.queueSetAttributes(this, name, value);
+                    me.elementHandler.queueSetAttributeOnSelection(this, name, value);
                 
                     return this;
                 }
@@ -195,7 +195,7 @@ export default class SvgToCanvas {
                 return;
             }
             //me.updateDataFromElementAttr(this, name, value);
-            me.elementHandler.queueSetAttribute(this, name, value);
+            me.elementHandler.queueSetAttributeOnElement(this, name, value);
         };
         Element.prototype.setAttributeNS = function(name: string, value: any) {
             console.log('setAttrNS!!');
