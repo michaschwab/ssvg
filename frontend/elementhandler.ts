@@ -3,6 +3,7 @@ import VDom from "../util/vdom";
 export default class Elementhandler {
     
     private vdom: VDom;
+    private setAttrQueue: {[parentSelector: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
     
     constructor(private svg: SVGElement, private onNodesUpdated: (data: any) => void) {
         const visData: any = {
@@ -33,7 +34,6 @@ export default class Elementhandler {
         return this.vdom;
     }
     
-    private setAttrQueue: {[parentIndex: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
     queueSetAttributeOnElement(element: Element, attrName: string, value: any) {
         
         const parentSelector = (element as any)['parentSelector'] as string;
