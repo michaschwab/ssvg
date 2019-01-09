@@ -1,5 +1,3 @@
-//import * as d3 from 'd3';
-
 import VDom from "../util/vdom";
 import CanvasWorkerMessage from "../util/canvas-worker-message"
 import Elementhandler from "./elementhandler";
@@ -7,7 +5,7 @@ import Elementhandler from "./elementhandler";
 export default class SvgToCanvas {
     
     private unassignedNodes: Node[] = [];
-    private worker: Worker = new Worker('dist/worker.js');
+    private worker: Worker = new Worker('dist/canvasworker.js');
     private elementHandler: Elementhandler;
     private vdom: VDom;
     private setSize = false;

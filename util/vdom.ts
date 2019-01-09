@@ -6,7 +6,7 @@ export default class VDom {
         scale: number,
         children: any[]
     }) {
-        console.log(data);
+        //console.log(data);
     }
     
     addNode(nodeData: any, parentNodeSelector: string) {
