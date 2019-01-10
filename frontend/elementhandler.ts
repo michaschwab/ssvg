@@ -4,6 +4,7 @@ export default class Elementhandler {
     
     private vdom: VDom;
     private setAttrQueue: {[parentSelector: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
+    private addedNodesWithoutApplyingStyles = false;
     
     constructor(private svg: SVGElement, private onNodesUpdated: (data: any) => void) {
         const visData: any = {
@@ -94,7 +95,10 @@ export default class Elementhandler {
     
     private updateNodes() {
         
-        //safeLog(this.setAttrQueue);
+        if(this.addedNodesWithoutApplyingStyles) {
+            this.addedNodesWithoutApplyingStyles = false;
+            this.applyStyles();
+        }
         
         this.onNodesUpdated({
             queue: this.setAttrQueue,
@@ -185,7 +189,7 @@ export default class Elementhandler {
         return node;
     }
     
-    applyStylesToNode(node: any) {
+    applyStylesToNode(node: any) { //TODO: Remove
         for (let i = 0; i < document.styleSheets.length; i++){
             const rules = (document.styleSheets[i] as any).rules as CSSRuleList;
             
@@ -198,7 +202,20 @@ export default class Elementhandler {
         }
     }
     
-    private applyRuleToNode(node: any, selector: string, rule: any): boolean {
+    private applyStyles() {
+        for (let i = 0; i < document.styleSheets.length; i++) {
+            const rules = (document.styleSheets[i] as any).rules as CSSRuleList;
+        
+            for (let j = 0; j < rules.length; j++) {
+                const rule = rules[j] as any;
+            
+                const selector = rule.selectorText as string;
+                this.applyRuleToMatchingNodes(selector, rule); //TODO
+            }
+        }
+    }
+    
+    private applyRuleToNode(node: any, selector: string, rule: any): boolean { //TODO: Remove or Merge
         
         selector = selector
             .replace(' >', '>')
@@ -207,9 +224,6 @@ export default class Elementhandler {
         
         const selectorPartsLooseStrict = selector.split(' ')
             .map(part => part.split('>'));
-        /*if(node.type === 'circle' && selectorPartsLooseStrict[0][0] === '.nodes') {
-            console.log(selectorPartsLooseStrict);
-        }*/
         
         const checkNode = (currentNode: any, looseIndex = 0, strictIndex = 0): boolean => {
             const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
@@ -225,19 +239,13 @@ export default class Elementhandler {
                         partialMatch = true;
                     }
                 }
-                /*if(node.type === 'circle' && selectorPartsLooseStrict[0][0] === '.nodes') {
-                    console.log(selPart, partialMatch, child, selPart[0] === '.', selPart.substr(1), child.className);
-                }*/
+
                 if(partialMatch) {
                     if(selectorPartsLooseStrict[looseIndex].length > strictIndex + 1) {
                         checkNode(child, looseIndex, strictIndex + 1);
                     } else if(selectorPartsLooseStrict.length > looseIndex + 1) {
                         checkNode(child, looseIndex + 1, strictIndex);
                     } else {
-                        /*if(child.type === 'circle') {
-                            console.log(child === node, child, node);
-                        }*/
-                        //console.log(child === node, child, node);
                         if(child === node) {
                             //console.log('applying styles');
                             if(rule.style.stroke) {
@@ -259,18 +267,6 @@ export default class Elementhandler {
         return checkNode(this.vdom.data);
     }
     
-    private applyStyles() {
-        for (let i = 0; i < document.styleSheets.length; i++){
-            const rules = (document.styleSheets[i] as any).rules as CSSRuleList;
-            
-            for(let j = 0; j < rules.length; j++) {
-                const rule = rules[j] as any;
-                
-                const selector = rule.selectorText as string;
-                this.applyRuleToMatchingNodes(selector, rule); //TODO
-            }
-        }
-    }
     
     private applyRuleToMatchingNodes(selector: string, rule: any): boolean {
         
@@ -297,6 +293,7 @@ export default class Elementhandler {
                     }
                 }
                 if(partialMatch) {
+                    
                     if(selectorPartsLooseStrict[looseIndex].length > strictIndex + 1) {
                         checkNode(child, looseIndex, strictIndex + 1);
                     } else if(selectorPartsLooseStrict.length > looseIndex + 1) {
@@ -304,6 +301,10 @@ export default class Elementhandler {
                     } else {
                         if(rule.style.stroke) {
                             child.style.stroke = rule.style.stroke;
+                            //this.setAttrQueue(....)
+                            //TODO: Instead of setting this directly, somehow put it into the
+                            // setAttrQueue. First, we need the selector of the child's parent element.
+                            // Maybe give all parent vdom nodes selectors?
                         }
                         if(rule.style['stroke-opacity']) {
                             child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
@@ -354,6 +355,7 @@ export default class Elementhandler {
             }
             
         }
+        this.addedNodesWithoutApplyingStyles = true;
     }
     
     getElementSelector(element: Element): string {

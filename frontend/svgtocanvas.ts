@@ -90,6 +90,9 @@ export default class SvgToCanvas {
                         return me.elementHandler.getAttributesFromSelector(this, name);
                     }
                 } else {
+                    if(name === 'class') {
+                        return originalFct.apply(this, arguments);
+                    }
                     me.elementHandler.queueSetAttributeOnSelection(this, name, value);
                 
                     return this;
@@ -153,7 +156,7 @@ export default class SvgToCanvas {
             me.nodesToElements.elements.push(el);
 
             parentNode.children.push(node);
-            me.elementHandler.applyStylesToNode(node);
+            me.elementHandler.applyStylesToNode(node); //TODO: Remove.
             
             me.sendToWorker({
                 cmd: 'ADD_NODE',
@@ -191,6 +194,9 @@ export default class SvgToCanvas {
                 // Update the original SVG
                 origSetAttr.apply(this, arguments);
                 return;
+            }
+            if(name === 'class') {
+                origSetAttr.apply(this, arguments);
             }
             //me.updateDataFromElementAttr(this, name, value);
             me.elementHandler.queueSetAttributeOnElement(this, name, value);
