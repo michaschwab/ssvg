@@ -68,18 +68,22 @@ export default class Forcefrontend {
                     }
                     else
                     {
-                        try {
-                            for(let i = 0; i < this.links.length; i++) {
-                                this.links[i].source.x = this.nodesById[this.links[i].source].x;
-                                this.links[i].source.y = this.nodesById[this.links[i].source].y;
-                                this.links[i].target.x = this.nodesById[this.links[i].target].x;
-                                this.links[i].target.y = this.nodesById[this.links[i].target].y;
+                        for(let i = 0; i < this.links.length; i++) {
+                            try {
+                                const sourceId = typeof this.links[i].source === 'string' ?
+                                    this.links[i].source : this.links[i].source.id;
+                                const targetId = typeof this.links[i].target === 'string' ?
+                                    this.links[i].target : this.links[i].target.id;
+                                
+                                this.links[i].source.x = this.nodesById[sourceId].x;
+                                this.links[i].source.y = this.nodesById[sourceId].y;
+                                this.links[i].target.x = this.nodesById[targetId].x;
+                                this.links[i].target.y = this.nodesById[targetId].y;
+                            } catch(e) {
+                                safeErrorLog(e);
+                                safeErrorLog(this.links[i].source);
                             }
                         }
-                        catch(e) {
-                            console.error(e);
-                        }
-                        
                     }
                 
                     //console.log(this.nodes[0].x);
@@ -105,5 +109,22 @@ export default class Forcefrontend {
     private sendToWorker(msg: CanvasForceWorkerMessage, data?: any) {
         this.worker.postMessage(msg, data);
         //console.log(roughSizeOfObject(msg));
+    }
+}
+
+
+let safeLogCount = 0;
+function safeLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.log(...logContents);
+    }
+}
+function safeErrorLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.error(...logContents);
     }
 }
