@@ -13,6 +13,7 @@ export default class Forcefrontend {
     constructor() {
         if((window as any)['d3']) {
             this.replaceD3ForceSimulation();
+            this.replaceD3Drag();
             this.replaceD3Attr();
             this.setupWorkerCommunication()
         }
@@ -30,7 +31,10 @@ export default class Forcefrontend {
                 on: (name: string, callback: () => void) => {
                     if(name === 'tick') {
                         this.onTick = callback;
+                    } else {
+                        console.log(name);
                     }
+
                     return sim;
                 },
                 links: (links) => { this.setLinks(links); return sim; },
@@ -39,8 +43,40 @@ export default class Forcefrontend {
         };
     }
 
+    replaceD3Drag() {
+        const d3 = (window as any)['d3'];
+        const origDrag = d3.drag;
+
+        d3.drag = () => {
+            let d3Drag;
+            let callbacks = {'start': () => {}, 'drag': () => {}, 'end': () => {}};
+            const dragWrapper = () => {
+                console.log(arguments);
+                d3Drag = origDrag();
+                d3Drag.on('start', onDrag('start'));
+                d3Drag.on('drag', onDrag('drag'));
+                d3Drag.on('end', onDrag('end'));
+            };
+            dragWrapper.on = (name: string, callback: () => void) => {
+                callbacks[name] = callback;
+                return dragWrapper;
+            };
+            const onDrag = (eventName) => {
+                return d => {
+                    const nodeMock = {x: 0, y: 0, fx: 0, fy: 0};
+                    callbacks[eventName](nodeMock);
+                    console.log(nodeMock);
+                    console.log(d);
+                };
+            };
+
+
+            return dragWrapper;
+        };
+    }
+
     replaceD3Attr() {
-        if((window as any)['d3']) {
+        /*if((window as any)['d3']) {
             const d3 = (window as any)['d3'];
             const me = this;
 
@@ -52,12 +88,22 @@ export default class Forcefrontend {
 
                 return origSelectionAttr.apply(this, arguments);
             };
-        }
+        }*/
     }
+/*
+    private nodeAttrQueue: {x: number[], y: number[]} = {x: [], y: []};
 
     setNodePositions(selection, attrName, value) {
+        const els = selection._groups[0];
+        attrName = attrName.substr(1); // Turn cx and cy into x and y.
 
-    }
+        for(let i = 0; i < els.length; i++) {
+            const svgEl = els[i];
+
+            this.nodeAttrQueue[attrName][i] =
+                typeof value === "function" ? value(svgEl.__data__) : value;
+        }
+    }*/
     
     private setupWorkerCommunication() {
         this.worker.onmessage = (event) => {
@@ -101,9 +147,7 @@ export default class Forcefrontend {
                             }
                         }
                     }
-                
-                    //console.log(this.nodes[0].x);
-                    //this.links = event.data.links;
+
                     return this.onTick();
             }
         };
