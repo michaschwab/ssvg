@@ -16,6 +16,9 @@ self.onmessage = function(e: MessageEvent) {
         if(data.links) {
             worker.setLinks(data.links);
         }
+        if(data.nodeDrag) {
+            worker.setNodeForce(data.nodeDrag.index, data.nodeDrag.fx, data.nodeDrag.fy);
+        }
     }
 };
 
@@ -43,6 +46,11 @@ class SvgToCanvasForceWorker {
             }
             postMessage(data);
         })
+    }
+
+    setNodeForce(index, fx, fy) {
+        this.nodes[index].fx = fx;
+        this.nodes[index].fy = fy;
     }
     
     setNodes(nodes) {

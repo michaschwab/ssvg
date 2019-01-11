@@ -62,11 +62,11 @@ export default class Forcefrontend {
                 return dragWrapper;
             };
             const onDrag = (eventName) => {
-                return d => {
+                return (d, i) => {
                     const nodeMock = {x: 0, y: 0, fx: 0, fy: 0};
                     callbacks[eventName](nodeMock);
-                    console.log(nodeMock);
-                    console.log(d);
+
+                    this.worker.postMessage({ nodeDrag: {index: i, fx: nodeMock.fx, fy: nodeMock.fy} });
                 };
             };
 
