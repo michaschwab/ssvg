@@ -39,10 +39,15 @@ export default class VDom {
                 
                 for(let attrName in setAttrQueue[parentSelector]) {
                     if(setAttrQueue[parentSelector].hasOwnProperty(attrName)) {
+                        const attrNameStart = attrName.substr(0, 'style;'.length);
+                        const attrNameEnd = attrName.substr('style;'.length);
                         for(let childIndex in setAttrQueue[parentSelector][attrName]) {
                             const childNode = parentNode.children[childIndex];
-                            //console.log(parentNode, childIndex);
-                            childNode[attrName] = setAttrQueue[parentSelector][attrName][childIndex];
+                            if(attrNameStart === 'style;') {
+                                childNode['style'][attrNameEnd] = setAttrQueue[parentSelector][attrName][childIndex];
+                            } else {
+                                childNode[attrName] = setAttrQueue[parentSelector][attrName][childIndex];
+                            }
                         }
                     }
                 }

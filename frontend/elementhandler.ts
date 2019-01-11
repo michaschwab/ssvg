@@ -5,6 +5,7 @@ export default class Elementhandler {
     private vdom: VDom;
     private setAttrQueue: {[parentSelector: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
     private addedNodesWithoutApplyingStyles = false;
+    private nodesToElements: { nodes: any[], elements: any[]} = { nodes: [], elements: []};
     
     constructor(private svg: SVGElement, private onNodesUpdated: (data: any) => void) {
         const visData: any = {
@@ -268,9 +269,11 @@ export default class Elementhandler {
     }
     
     
-    private applyRuleToMatchingNodes(selector: string, rule: any): boolean {
-        
-        selector = selector
+    private applyRuleToMatchingNodes(selectorString: string, rule: any): boolean {
+
+        selectorString = selectorString.trim();
+
+        const selector = selectorString
             .replace(' >', '>')
             .replace('> ', '>')
             .replace('svg>', '');
@@ -281,8 +284,9 @@ export default class Elementhandler {
         const checkNode = (currentNode: any, looseIndex = 0, strictIndex = 0): boolean => {
             const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
             let partialMatch = false;
-            
-            for(let child of currentNode.children) {
+
+            for(let childIndex = 0; childIndex < currentNode.children.length; childIndex++) {
+                const child = currentNode.children[childIndex];
                 if(selPart[0] === '.') {
                     if(selPart.substr(1) === child.className) {
                         partialMatch = true;
@@ -299,18 +303,23 @@ export default class Elementhandler {
                     } else if(selectorPartsLooseStrict.length > looseIndex + 1) {
                         checkNode(child, looseIndex + 1, strictIndex);
                     } else {
+                        const parentSelector = this.getNodeSelector(currentNode);
+                        //safeLog(selectorString, parentSelector);
+
                         if(rule.style.stroke) {
-                            child.style.stroke = rule.style.stroke;
-                            //this.setAttrQueue(....)
-                            //TODO: Instead of setting this directly, somehow put it into the
-                            // setAttrQueue. First, we need the selector of the child's parent element.
-                            // Maybe give all parent vdom nodes selectors?
+                            //child.style.stroke = rule.style.stroke;
+                            this.checkAttrName(parentSelector, 'style;stroke');
+                            this.setAttrQueue[parentSelector]['style;stroke'][childIndex] = rule.style.stroke;
                         }
                         if(rule.style['stroke-opacity']) {
-                            child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
+                            //child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
+                            this.checkAttrName(parentSelector, 'style;stroke-opacity');
+                            this.setAttrQueue[parentSelector]['style;stroke-opacity'][childIndex] = parseFloat(rule.style['stroke-opacity']);
                         }
                         if(rule.style['stroke-width']) {
-                            child.style['stroke-width'] = parseFloat(rule.style['stroke-width']);
+                            //child.style['stroke-width'] = parseFloat(rule.style['stroke-width']);
+                            this.checkAttrName(parentSelector, 'style;stroke-width');
+                            this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = parseFloat(rule.style['stroke-width']);
                         }
                     }
                 }
@@ -357,6 +366,10 @@ export default class Elementhandler {
         }
         this.addedNodesWithoutApplyingStyles = true;
     }
+
+    getNodeSelector(node: any): string {
+        return this.getElementSelector(this.getElementFromNode(node));
+    }
     
     getElementSelector(element: Element): string {
         let sel = (element as any)['selector'];
@@ -394,6 +407,16 @@ export default class Elementhandler {
             
             return sel;
         }
+    }
+
+    linkNodeToElement(node, element: Node) {
+        this.nodesToElements.nodes.push(node);
+        this.nodesToElements.elements.push(element);
+    }
+
+    getElementFromNode(node) {
+        const nodeIndex = this.nodesToElements.nodes.indexOf(node);
+        return this.nodesToElements.elements[nodeIndex];
     }
 }
 

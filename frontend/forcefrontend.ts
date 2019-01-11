@@ -70,15 +70,12 @@ export default class Forcefrontend {
                     {
                         for(let i = 0; i < this.links.length; i++) {
                             try {
-                                const sourceId = typeof this.links[i].source === 'string' ?
-                                    this.links[i].source : this.links[i].source.id;
-                                const targetId = typeof this.links[i].target === 'string' ?
-                                    this.links[i].target : this.links[i].target.id;
-                                
-                                this.links[i].source.x = this.nodesById[sourceId].x;
-                                this.links[i].source.y = this.nodesById[sourceId].y;
-                                this.links[i].target.x = this.nodesById[targetId].x;
-                                this.links[i].target.y = this.nodesById[targetId].y;
+                                if(typeof this.links[i].source === 'object') {
+                                    this.links[i].source.x = this.nodesById[this.links[i].source.id].x;
+                                    this.links[i].source.y = this.nodesById[this.links[i].source.id].y;
+                                    this.links[i].target.x = this.nodesById[this.links[i].target.id].x;
+                                    this.links[i].target.y = this.nodesById[this.links[i].target.id].y;
+                                }
                             } catch(e) {
                                 safeErrorLog(e);
                                 safeErrorLog(this.links[i].source);

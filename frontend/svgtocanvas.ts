@@ -10,7 +10,6 @@ export default class SvgToCanvas {
     private vdom: VDom;
     private setSize = false;
     private interactionSelections: HTMLElement[] = [];
-    private nodesToElements: { nodes: any[], elements: any[]} = { nodes: [], elements: []};
     
     constructor(private canvas: HTMLCanvasElement, private svg: SVGElement) {
         this.captureD3On();
@@ -152,11 +151,10 @@ export default class SvgToCanvas {
             });
             
             const node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);
-            me.nodesToElements.nodes.push(node);
-            me.nodesToElements.elements.push(el);
+            me.elementHandler.linkNodeToElement(node, el);
 
             parentNode.children.push(node);
-            me.elementHandler.applyStylesToNode(node); //TODO: Remove.
+            //me.elementHandler.applyStylesToNode(node);
             
             me.sendToWorker({
                 cmd: 'ADD_NODE',
@@ -245,8 +243,7 @@ export default class SvgToCanvas {
                     {
                         /*let selector = parentSelector + ' > :nth-child(' + j + ')';
                         let svgEl = this.svg.querySelector(selector);*/
-                        const nodeIndex = this.nodesToElements.nodes.indexOf(el);
-                        const svgEl = this.nodesToElements.elements[nodeIndex];
+                        const svgEl = this.elementHandler.getElementFromNode(el);
             
                         if(svgEl) {
                             svgEl.dispatchEvent(new_event);

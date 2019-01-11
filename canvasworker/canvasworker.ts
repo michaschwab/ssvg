@@ -8,21 +8,19 @@ self.onmessage = function(e: MessageEvent) {
     const msg: CanvasWorkerMessage = e.data;
     
     if(msg && msg.cmd) {
-        const data = msg.data;
-        
         switch(msg.cmd) {
             case 'INIT':
                 //console.log('init');
-                worker = new SvgToCanvasWorker(data.visData, data.canvas);
+                worker = new SvgToCanvasWorker(msg.data.visData, msg.data.canvas);
                 break;
             case 'UPDATE_NODES':
                 //console.log('UPDATE', data.queue, data.parentNodeSelectors);
-                worker.vdom.updatePropertiesFromQueue(data.queue);
+                worker.vdom.updatePropertiesFromQueue(msg.data.queue);
                 //worker.drawCanvas();
                 break;
             case 'ADD_NODE':
                 //console.log('ADD', data.node, data.parentNodeSelector);
-                worker.vdom.addNode(data.node, data.parentNodeSelector);
+                worker.vdom.addNode(msg.data.node, msg.data.parentNodeSelector);
                 break;
             default:
                 console.error('did not find command ', msg.cmd);
