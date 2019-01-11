@@ -75,9 +75,9 @@ export default class SvgToCanvas {
     }
     
     private replaceD3Attr() {
-    
+
         const me = this;
-        
+
         function getReplacement(originalFct) {
             return function(name, value) {
                 //console.log(this, arguments);

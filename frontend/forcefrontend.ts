@@ -1,7 +1,7 @@
 import CanvasForceWorkerMessage from "../util/forceworkermessage";
 
 export default class Forcefrontend {
-    
+
     private worker: Worker = new Worker('dist/forceworker.js');
     private onTick: () => void;
     
@@ -11,31 +11,52 @@ export default class Forcefrontend {
     private nodesById: {[id: string]: any} = {};
     
     constructor() {
-        
         if((window as any)['d3']) {
-            const d3 = (window as any)['d3'];
-            
-            console.log(d3.forceSimulation.prototype);
-            
-            d3.forceSimulation = () => {
-                const sim = {
-                    force: () => { return sim; },
-                    nodes: (nodes) => { this.setNodes(nodes); return sim; },
-                    alphaTarget: () => { return sim; },
-                    restart: () => { return sim; },
-                    on: (name: string, callback: () => void) => {
-                        if(name === 'tick') {
-                            this.onTick = callback;
-                        }
-                        return sim;
-                    },
-                    links: (links) => { this.setLinks(links); return sim; },
-                };
-                return sim;
-            };
-    
+            this.replaceD3ForceSimulation();
+            this.replaceD3Attr();
             this.setupWorkerCommunication()
         }
+    }
+
+    replaceD3ForceSimulation() {
+        const d3 = (window as any)['d3'];
+
+        d3.forceSimulation = () => {
+            const sim = {
+                force: () => { return sim; },
+                nodes: (nodes) => { this.setNodes(nodes); return sim; },
+                alphaTarget: () => { return sim; },
+                restart: () => { return sim; },
+                on: (name: string, callback: () => void) => {
+                    if(name === 'tick') {
+                        this.onTick = callback;
+                    }
+                    return sim;
+                },
+                links: (links) => { this.setLinks(links); return sim; },
+            };
+            return sim;
+        };
+    }
+
+    replaceD3Attr() {
+        if((window as any)['d3']) {
+            const d3 = (window as any)['d3'];
+            const me = this;
+
+            let origSelectionAttr = d3.selection.prototype.attr;
+            d3.selection.prototype.attr = function(name, value) {
+                if((name === 'cx' || name === 'cy') && value) {
+                    me.setNodePositions(this, name, value);
+                }
+
+                return origSelectionAttr.apply(this, arguments);
+            };
+        }
+    }
+
+    setNodePositions(selection, attrName, value) {
+
     }
     
     private setupWorkerCommunication() {
@@ -44,8 +65,7 @@ export default class Forcefrontend {
                 case "tick":
                 
                     const nodes = event.data.nodes;
-                    //const links = event.data.links;
-                    
+
                     if(!nodes) {
                         return;
                     }
@@ -64,7 +84,6 @@ export default class Forcefrontend {
                                 this.links[i][key] = links[i][key];
                             }
                         }
-                        console.log(this.links);
                     }
                     else
                     {
