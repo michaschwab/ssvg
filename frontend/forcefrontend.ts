@@ -14,7 +14,6 @@ export default class Forcefrontend {
         if((window as any)['d3']) {
             this.replaceD3ForceSimulation();
             this.replaceD3Drag();
-            this.replaceD3Attr();
             this.setupWorkerCommunication()
         }
     }
@@ -50,15 +49,16 @@ export default class Forcefrontend {
         d3.drag = () => {
             let d3Drag;
             let callbacks = {'start': () => {}, 'drag': () => {}, 'end': () => {}};
-            const dragWrapper = () => {
-                console.log(arguments);
-                d3Drag = origDrag();
-                d3Drag.on('start', onDrag('start'));
-                d3Drag.on('drag', onDrag('drag'));
-                d3Drag.on('end', onDrag('end'));
+            const dragWrapper = function(selection) {
+                d3Drag = origDrag()
+                    .on('start', onDrag('start'))
+                    .on('drag', onDrag('drag'))
+                    .on('end', onDrag('end'))
+                    (selection);
             };
             dragWrapper.on = (name: string, callback: () => void) => {
                 callbacks[name] = callback;
+                console.log(name);
                 return dragWrapper;
             };
             const onDrag = (eventName) => {
@@ -74,36 +74,6 @@ export default class Forcefrontend {
             return dragWrapper;
         };
     }
-
-    replaceD3Attr() {
-        /*if((window as any)['d3']) {
-            const d3 = (window as any)['d3'];
-            const me = this;
-
-            let origSelectionAttr = d3.selection.prototype.attr;
-            d3.selection.prototype.attr = function(name, value) {
-                if((name === 'cx' || name === 'cy') && value) {
-                    me.setNodePositions(this, name, value);
-                }
-
-                return origSelectionAttr.apply(this, arguments);
-            };
-        }*/
-    }
-/*
-    private nodeAttrQueue: {x: number[], y: number[]} = {x: [], y: []};
-
-    setNodePositions(selection, attrName, value) {
-        const els = selection._groups[0];
-        attrName = attrName.substr(1); // Turn cx and cy into x and y.
-
-        for(let i = 0; i < els.length; i++) {
-            const svgEl = els[i];
-
-            this.nodeAttrQueue[attrName][i] =
-                typeof value === "function" ? value(svgEl.__data__) : value;
-        }
-    }*/
     
     private setupWorkerCommunication() {
         this.worker.onmessage = (event) => {
