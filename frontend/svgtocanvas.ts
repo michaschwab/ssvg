@@ -152,9 +152,7 @@ export default class SvgToCanvas {
             
             const node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);
             me.elementHandler.linkNodeToElement(node, el);
-
-            parentNode.children.push(node);
-            //me.elementHandler.applyStylesToNode(node);
+            me.elementHandler.addNodeToParent(parentNode, node);
             
             me.sendToWorker({
                 cmd: 'ADD_NODE',

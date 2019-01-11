@@ -190,19 +190,6 @@ export default class Elementhandler {
         return node;
     }
     
-    applyStylesToNode(node: any) { //TODO: Remove
-        for (let i = 0; i < document.styleSheets.length; i++){
-            const rules = (document.styleSheets[i] as any).rules as CSSRuleList;
-            
-            for(let j = 0; j < rules.length; j++) {
-                const rule = rules[j] as any;
-                
-                const selector = rule.selectorText as string;
-                this.applyRuleToNode(node, selector, rule);
-            }
-        }
-    }
-    
     private applyStyles() {
         for (let i = 0; i < document.styleSheets.length; i++) {
             const rules = (document.styleSheets[i] as any).rules as CSSRuleList;
@@ -215,60 +202,7 @@ export default class Elementhandler {
             }
         }
     }
-    
-    private applyRuleToNode(node: any, selector: string, rule: any): boolean { //TODO: Remove or Merge
-        
-        selector = selector
-            .replace(' >', '>')
-            .replace('> ', '>')
-            .replace('svg>', '');
-        
-        const selectorPartsLooseStrict = selector.split(' ')
-            .map(part => part.split('>'));
-        
-        const checkNode = (currentNode: any, looseIndex = 0, strictIndex = 0): boolean => {
-            const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
-            let partialMatch = false;
-            
-            for(let child of currentNode.children) {
-                if(selPart[0] === '.') {
-                    if(selPart.substr(1) === child.className) {
-                        partialMatch = true;
-                    }
-                } else {
-                    if(selPart === child.type) {
-                        partialMatch = true;
-                    }
-                }
 
-                if(partialMatch) {
-                    if(selectorPartsLooseStrict[looseIndex].length > strictIndex + 1) {
-                        checkNode(child, looseIndex, strictIndex + 1);
-                    } else if(selectorPartsLooseStrict.length > looseIndex + 1) {
-                        checkNode(child, looseIndex + 1, strictIndex);
-                    } else {
-                        if(child === node) {
-                            //console.log('applying styles');
-                            if(rule.style.stroke) {
-                                child.style.stroke = rule.style.stroke;
-                            }
-                            if(rule.style['stroke-opacity']) {
-                                child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
-                            }
-                            if(rule.style['stroke-width']) {
-                                child.style['stroke-width'] = parseFloat(rule.style['stroke-width']);
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
-        };
-        
-        return checkNode(this.vdom.data);
-    }
-    
-    
     private applyRuleToMatchingNodes(selectorString: string, rule: any): boolean {
 
         selectorString = selectorString.trim();
@@ -326,8 +260,13 @@ export default class Elementhandler {
             }
             return false;
         };
-        
+
         return checkNode(this.vdom.data);
+    }
+
+    addNodeToParent(parentNode, node) {
+        parentNode.children.push(node);
+        this.addedNodesWithoutApplyingStyles = true;
     }
     
     private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, childrenData: any): void {
@@ -397,13 +336,8 @@ export default class Elementhandler {
                     throw Error('name is null');
                 }
                 name = name.toLowerCase();
-                //console.log(element, node, parentSelector, index);
                 sel = parentSelector + ' > ' + name + ':nth-child(' + index + ')';
             }
-            
-            //console.log(element, sel);
-            
-            //let parentSelector = element['parentSelector'] ? element['parentSelector'] as string : '';
             
             return sel;
         }
