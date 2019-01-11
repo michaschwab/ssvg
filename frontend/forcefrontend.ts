@@ -25,7 +25,10 @@ export default class Forcefrontend {
             const sim = {
                 force: () => { return sim; },
                 nodes: (nodes) => { this.setNodes(nodes); return sim; },
-                alphaTarget: () => { return sim; },
+                alphaTarget: () => {
+                    // todo set the alpha target on the worker.
+                    return sim;
+                },
                 restart: () => { return sim; },
                 on: (name: string, callback: () => void) => {
                     if(name === 'tick') {
