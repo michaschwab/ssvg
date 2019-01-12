@@ -24,8 +24,15 @@ export default class Forcefrontend {
         d3.forceSimulation = () => {
             const sim = {
                 force: (name, fct) => {
-                    console.log(name, fct);
-                    //this.worker.postMessage({force: {name, fct}});
+                    if(name === 'link' && !fct) {
+                        return sim; // Allow setting the links
+                    }
+                    if(!fct || !fct.workerData) {
+                        console.error('missing implementation for force ', name, ': ', fct);
+                    } else {
+                        this.worker.postMessage({force: {name, workerData: fct.workerData}});
+                    }
+
                     return sim;
                 },
                 nodes: (nodes) => { this.setNodes(nodes); return sim; },
@@ -56,17 +63,37 @@ export default class Forcefrontend {
                 id: (idFct: (d) => string) => {
                     const handler = {
                         get(target, idAttr) {
-                            forceLink.idAttr = idAttr;
+                            forceLink.workerData.idAttr = idAttr;
                         },
                     };
 
                     idFct(new Proxy({}, handler));
                     return forceLink;
                 },
-                idAttr: '',
-                name: 'forceLink'
+                workerData: {
+                    idAttr: '',
+                    name: 'forceLink'
+                }
             };
             return forceLink;
+        };
+
+        d3.forceManyBody = () => {
+            return {
+                workerData: {
+                    name: 'forceManyBody'
+                }
+            };
+        };
+
+        d3.forceCenter = (x, y) => {
+            return {
+                workerData: {
+                    name: 'forceCenter',
+                    x: x,
+                    y: y
+                }
+            };
         };
     }
 
@@ -86,7 +113,6 @@ export default class Forcefrontend {
             };
             dragWrapper.on = (name: string, callback: () => void) => {
                 callbacks[name] = callback;
-                console.log(name);
                 return dragWrapper;
             };
             const onDrag = (eventName) => {

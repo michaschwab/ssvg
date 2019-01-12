@@ -23,7 +23,7 @@ self.onmessage = function(e: MessageEvent) {
             worker.setAlphaTarget(data.alphaTarget);
         }
         if(data.force) {
-            worker.setForce(data.force.name, data.force.fct);
+            worker.setForce(data.force.name, data.force.workerData);
         }
         if(data.restart) {
             worker.restart();
@@ -40,13 +40,9 @@ class SvgToCanvasForceWorker {
     
     constructor() {
         const d3 = (self as any)['d3'];
-        this.simulation = d3.forceSimulation()
-            .force("link", d3.forceLink().id(function(d) { return d.id; }))
-            .force("charge", d3.forceManyBody())
-            .force("center", d3.forceCenter(960 / 2, 600 / 2));
+        this.simulation = d3.forceSimulation();
         
         this.simulation.on('tick', () => {
-            //console.log('tick', arguments);
             const data = {type: "tick", nodes: this.nodes};
             if(!this.sentInitial && this.links) {
                 this.sentInitial = true;
@@ -72,8 +68,26 @@ class SvgToCanvasForceWorker {
         this.simulation.force("link").links(this.links);
     }
 
-    setForce(name, fct) {
-        console.log(name, fct);
+    setForce(name, forceData: {name: string, [propName: string]: any}) {
+        const d3 = (self as any)['d3'];
+
+        switch(forceData.name) {
+            case 'forceLink': {
+                this.simulation.force(name, d3.forceLink().id(d => d[forceData.idAttr]));
+                break;
+            }
+            case 'forceManyBody': {
+                this.simulation.force(name, d3.forceManyBody());
+                break;
+            }
+            case 'forceCenter': {
+                this.simulation.force(name, d3.forceCenter(forceData.x, forceData.y));
+                break;
+            }
+            default: {
+                console.error('no implementation for force: ', forceData);
+            }
+        }
     }
 
     setAlphaTarget(alpha: number) {
