@@ -19,6 +19,12 @@ self.onmessage = function(e: MessageEvent) {
         if(data.nodeDrag) {
             worker.setNodeForce(data.nodeDrag.index, data.nodeDrag.fx, data.nodeDrag.fy);
         }
+        if(data.alphaTarget) {
+            worker.setAlphaTarget(data.alphaTarget);
+        }
+        if(data.restart) {
+            worker.restart();
+        }
     }
 };
 
@@ -61,6 +67,14 @@ class SvgToCanvasForceWorker {
     setLinks(links) {
         this.links = links;
         this.simulation.force("link").links(this.links);
+    }
+
+    setAlphaTarget(alpha: number) {
+        this.simulation.alphaTarget(alpha);
+    }
+
+    restart() {
+        this.simulation.restart();
     }
 }
 

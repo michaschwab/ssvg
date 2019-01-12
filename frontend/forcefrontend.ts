@@ -25,11 +25,14 @@ export default class Forcefrontend {
             const sim = {
                 force: () => { return sim; },
                 nodes: (nodes) => { this.setNodes(nodes); return sim; },
-                alphaTarget: () => {
-                    // todo set the alpha target on the worker.
+                alphaTarget: (alphaTarget) => {
+                    this.worker.postMessage({ alphaTarget });
                     return sim;
                 },
-                restart: () => { return sim; },
+                restart: () => {
+                    this.worker.postMessage({restart: true});
+                    return sim;
+                },
                 on: (name: string, callback: () => void) => {
                     if(name === 'tick') {
                         this.onTick = callback;
@@ -66,10 +69,9 @@ export default class Forcefrontend {
             };
             const onDrag = (eventName) => {
                 return (d, i) => {
-                    const nodeMock = {x: 0, y: 0, fx: 0, fy: 0};
-                    callbacks[eventName](nodeMock);
+                    callbacks[eventName](d);
 
-                    this.worker.postMessage({ nodeDrag: {index: i, fx: nodeMock.fx, fy: nodeMock.fy} });
+                    this.worker.postMessage({ nodeDrag: {index: i, fx: d.fx, fy: d.fy} });
                 };
             };
 
