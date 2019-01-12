@@ -22,6 +22,9 @@ self.onmessage = function(e: MessageEvent) {
         if(data.alphaTarget) {
             worker.setAlphaTarget(data.alphaTarget);
         }
+        if(data.force) {
+            worker.setForce(data.force.name, data.force.fct);
+        }
         if(data.restart) {
             worker.restart();
         }
@@ -67,6 +70,10 @@ class SvgToCanvasForceWorker {
     setLinks(links) {
         this.links = links;
         this.simulation.force("link").links(this.links);
+    }
+
+    setForce(name, fct) {
+        console.log(name, fct);
     }
 
     setAlphaTarget(alpha: number) {

@@ -23,7 +23,11 @@ export default class Forcefrontend {
 
         d3.forceSimulation = () => {
             const sim = {
-                force: () => { return sim; },
+                force: (name, fct) => {
+                    console.log(name, fct);
+                    //this.worker.postMessage({force: {name, fct}});
+                    return sim;
+                },
                 nodes: (nodes) => { this.setNodes(nodes); return sim; },
                 alphaTarget: (alphaTarget) => {
                     this.worker.postMessage({ alphaTarget });
@@ -45,6 +49,24 @@ export default class Forcefrontend {
                 links: (links) => { this.setLinks(links); return sim; },
             };
             return sim;
+        };
+
+        d3.forceLink = () => {
+            const forceLink = {
+                id: (idFct: (d) => string) => {
+                    const handler = {
+                        get(target, idAttr) {
+                            forceLink.idAttr = idAttr;
+                        },
+                    };
+
+                    idFct(new Proxy({}, handler));
+                    return forceLink;
+                },
+                idAttr: '',
+                name: 'forceLink'
+            };
+            return forceLink;
         };
     }
 
