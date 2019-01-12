@@ -10,8 +10,15 @@ export default class SvgToCanvas {
     private vdom: VDom;
     private setSize = false;
     private interactionSelections: HTMLElement[] = [];
+
+    private svg: SVGElement;
+    private canvas: HTMLCanvasElement;
     
-    constructor(private canvas: HTMLCanvasElement, private svg: SVGElement) {
+    constructor() {
+        this.svg = document.getElementsByTagName('svg')[0];
+        this.canvas = document.createElement('canvas');
+        this.svg.parentElement.appendChild(this.canvas);
+
         this.captureD3On();
         
         this.elementHandler = new Elementhandler(this.svg, (data: any) => {
@@ -30,10 +37,10 @@ export default class SvgToCanvas {
             }
         }, [offscreen]);
         
-        canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
-        canvas.addEventListener('mousemove', e => this.propagateMouseEvent(e));
-        canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
-        canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
+        this.canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
+        this.canvas.addEventListener('mousemove', e => this.propagateMouseEvent(e));
+        this.canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
+        this.canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
 
         this.replaceNativeAttribute();
         this.replaceNativeCreateElement();
