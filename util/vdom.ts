@@ -1,5 +1,13 @@
-export default class VDom {
+class SetPropertyQueue {
+    [parentSelector: string]: {
+        [attrName: string]: {
+            [childIndex: number]: string|number
+        }
+    }
+}
 
+export default class VDom {
+    
     constructor(public data: {
         width: number,
         height: number,
@@ -26,7 +34,7 @@ export default class VDom {
         parentNode.children.push(nodeData);
     }
     
-    updatePropertiesFromQueue(setAttrQueue: any) {
+    updatePropertiesFromQueue(setAttrQueue: SetPropertyQueue) {
         for(let parentSelector in setAttrQueue) {
             if(!parentSelector) {
                 console.error(setAttrQueue);

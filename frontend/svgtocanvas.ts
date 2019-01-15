@@ -21,12 +21,7 @@ export default class SvgToCanvas {
 
         this.captureD3On();
         
-        this.elementHandler = new Elementhandler(this.svg, (data: any) => {
-            this.sendToWorker({
-                cmd: 'UPDATE_NODES',
-                data: data,
-            });
-        });
+        this.elementHandler = new Elementhandler(this.svg, () => this.updateCanvas());
         this.vdom = this.elementHandler.getVDom();
     
         this.setCanvasSize();
@@ -37,6 +32,12 @@ export default class SvgToCanvas {
             }
         }, [offscreen]);
         
+        this.worker.onmessage = e => {
+            if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
+                this.updateCanvas();
+            }
+        };
+        
         this.canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('mousemove', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
@@ -46,6 +47,17 @@ export default class SvgToCanvas {
         this.replaceNativeCreateElement();
         this.replaceNativeAppend();
         this.replaceD3Attr();
+    }
+    
+    private updateCanvas() {
+        this.elementHandler.useAttrQueue(queue => {
+            this.sendToWorker({
+                cmd: 'UPDATE_NODES',
+                data: {
+                    queue: queue,
+                },
+            });
+        });
     }
     
     private setCanvasSize() {

@@ -7,7 +7,7 @@ export default class Elementhandler {
     private addedNodesWithoutApplyingStyles = false;
     private nodesToElements: { nodes: any[], elements: any[]} = { nodes: [], elements: []};
     
-    constructor(private svg: SVGElement, private onNodesUpdated: (data: any) => void) {
+    constructor(private svg: SVGElement, private onUpdateNeeded: () => void) {
         const visData: any = {
             width: this.svg.getAttribute('width'),
             height: this.svg.getAttribute('height'),
@@ -18,16 +18,9 @@ export default class Elementhandler {
         this.vdom = new VDom(visData);
         
         window.setTimeout(() => {
-            this.updateNodes();
             this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data.children);
             
             this.svg.style.display = 'none';
-    
-            const recursiveRaf = () => {
-                this.updateNodes();
-                requestAnimationFrame(recursiveRaf);
-            };
-            requestAnimationFrame(recursiveRaf);
             
         }, 200);
     }
@@ -46,7 +39,7 @@ export default class Elementhandler {
         this.setAttrQueue[parentSelector][attrName][childIndex] = value;
     
         if(attrName === 'className') {
-            this.updateNodes();
+            this.onUpdateNeeded();
             // To apply classes immediately so styles can be applied correctly.
         }
     }
@@ -74,7 +67,7 @@ export default class Elementhandler {
         }
 
         if(attrName === 'className') {
-            this.updateNodes();
+            this.onUpdateNeeded();
             // To apply classes immediately so styles can be applied correctly.
         }
     }
@@ -94,16 +87,14 @@ export default class Elementhandler {
         return attrName;
     }
     
-    private updateNodes() {
+    useAttrQueue(cb: (data) => void) {
         
         if(this.addedNodesWithoutApplyingStyles) {
             this.addedNodesWithoutApplyingStyles = false;
             this.applyStyles();
         }
         
-        this.onNodesUpdated({
-            queue: this.setAttrQueue,
-        });
+        cb(this.setAttrQueue);
         
         for(let parentSelector in this.setAttrQueue) {
             let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);

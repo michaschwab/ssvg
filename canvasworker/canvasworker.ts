@@ -16,7 +16,7 @@ self.onmessage = function(e: MessageEvent) {
             case 'UPDATE_NODES':
                 //console.log('UPDATE', data.queue, data.parentNodeSelectors);
                 worker.vdom.updatePropertiesFromQueue(msg.data.queue);
-                //worker.drawCanvas();
+                worker.drawCanvas();
                 break;
             case 'ADD_NODE':
                 //console.log('ADD', data.node, data.parentNodeSelector);
@@ -37,7 +37,6 @@ class SvgToCanvasWorker {
     };
     
     constructor(visData: any, private canvas: HTMLCanvasElement) {
-        //console.log(canvas);
     
         const ctx = canvas.getContext('2d');
         if(!ctx) throw new Error('could not create canvas context');
@@ -47,11 +46,7 @@ class SvgToCanvasWorker {
         
         this.vdom = new VDom(visData);
         
-        const raf = () => {
-            this.drawCanvas();
-            requestAnimationFrame(raf);
-        };
-        requestAnimationFrame(raf);
+        this.drawCanvas();
         
         setTimeout(() => {
             console.log(this.vdom.data);
@@ -75,6 +70,8 @@ class SvgToCanvasWorker {
         //ctx.restore();
         //ctx.drawImage(offscreenCanvas, 0, 0);
         this.finishDrawingChildren();
+        
+        postMessage({msg: 'DRAWN'});
     }
     
     private count = 0;
