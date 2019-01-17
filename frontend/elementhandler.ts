@@ -96,6 +96,7 @@ export default class Elementhandler {
         
         cb(this.setAttrQueue);
         
+        // wtf am i doing here
         for(let parentSelector in this.setAttrQueue) {
             let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
             if(!parentNode) {
@@ -143,7 +144,7 @@ export default class Elementhandler {
         return this.vdom.getVisNodeFromSelector(selector);
     }
     
-    getNodeDataFromEl(el: HTMLElement) {
+    getNodeDataFromEl(el: HTMLElement): {type: string; [attr: string]: any} {
         const getRoundedAttr = (el: Element, attrName: string) => {
             const val = el.getAttribute(attrName);
             return val ? parseFloat(val) : null;
@@ -167,7 +168,7 @@ export default class Elementhandler {
             y1: getRoundedAttr(el, 'y1'),
             y2: getRoundedAttr(el, 'y2'),
             "stroke-width": getRoundedAttr(el, 'stroke-width'),
-            text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : '',
+            text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : undefined,
             style: {
                 /*stroke: style.getPropertyValue('stroke'),
                 "stroke-opacity": parseFloat(style.getPropertyValue('stroke-opacity')),
@@ -177,6 +178,18 @@ export default class Elementhandler {
             },
             children: []
         };
+        
+        const clean = obj => {
+            const propNames = Object.getOwnPropertyNames(obj);
+            for (let i = 0; i < propNames.length; i++) {
+                const propName = propNames[i];
+                if (obj[propName] === null || obj[propName] === undefined) {
+                    delete obj[propName];
+                }
+            }
+        };
+        
+        clean(node);
         
         return node;
     }
