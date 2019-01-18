@@ -60,7 +60,7 @@ export default class Elementhandler {
             const svgEl = elements[i];
             
             this.setAttrQueue[parentSelector][attrName][i] =
-                typeof value === "function" ? value(svgEl.__data__) : value;
+                typeof value === "function" ? value(svgEl.__data__, i) : value;
             
             //safeLog(attrName, this.setAttrQueue[parentSelector][attrName][i])
         }
@@ -148,9 +148,7 @@ export default class Elementhandler {
             const val = el.getAttribute(attrName);
             return val ? parseFloat(val) : null;
         };
-        const win = document.defaultView || window;
-        const style = win.getComputedStyle(el, '');
-        
+        //safeLog(el.style);
         const node = {
             type: el.tagName.toLowerCase(),
             transform: el.getAttribute('transform'),
@@ -174,6 +172,7 @@ export default class Elementhandler {
                 "stroke-width": parseFloat(style.getPropertyValue('stroke-width')),
                 fill: style.getPropertyValue('fill'),
                 textAnchor: style.textAnchor*/
+                fill: el.style.fill
             },
             children: []
         };
@@ -189,6 +188,9 @@ export default class Elementhandler {
         };
         
         clean(node);
+        clean(node.style);
+        
+        safeLog(node);
         
         return node;
     }
