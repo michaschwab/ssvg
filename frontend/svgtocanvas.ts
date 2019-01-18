@@ -97,7 +97,7 @@ export default class SvgToCanvas {
 
         const me = this;
 
-        function getReplacement(originalFct) {
+        function getReplacement(originalFct, prefix = '') {
             return function(name, value) {
                 //console.log(this, arguments);
                 if(!value) {
@@ -105,7 +105,7 @@ export default class SvgToCanvas {
                     if(me.unassignedNodes.indexOf(this) !== -1) {
                         return originalFct.apply(this, arguments);
                     } else {
-                        return me.elementHandler.getAttributesFromSelector(this, name);
+                        return me.elementHandler.getAttributesFromSelector(this, prefix + name);
                     }
                 } else {
                     if(name === 'class') {
@@ -123,7 +123,7 @@ export default class SvgToCanvas {
                             elements.push(me.elementHandler.getElementFromNode(child));
                         }
                     }
-                    me.elementHandler.queueSetAttributeOnSelection(elements, name, value);
+                    me.elementHandler.queueSetAttributeOnSelection(elements, prefix + name, value);
                 
                     return this;
                 }
@@ -135,6 +135,10 @@ export default class SvgToCanvas {
     
             let origSelectionAttr = d3.selection.prototype.attr;
             d3.selection.prototype.attr = getReplacement(origSelectionAttr);
+    
+            let origSelectionStyle = d3.selection.prototype.style;
+            d3.selection.prototype.style = getReplacement(origSelectionStyle, 'style;');
+            
         }
     }
     

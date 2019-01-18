@@ -94,29 +94,7 @@ export default class Elementhandler {
         }
         
         cb(this.setAttrQueue);
-        
-        // wtf am i doing here
-        for(let parentSelector in this.setAttrQueue) {
-            let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
-            if(!parentNode) {
-                console.error(parentNode, parentSelector);
-                console.error(this.vdom.data);
-            }
-            
-            for(let attrName in this.setAttrQueue[parentSelector]) {
-                if(this.setAttrQueue[parentSelector].hasOwnProperty(attrName)) {
-                    for(let childIndex in this.setAttrQueue[parentSelector][attrName]) {
-                        try {
-                            const childNode = parentNode.children[childIndex];
-                            childNode[attrName] = this.setAttrQueue[parentSelector][attrName][childIndex];
-                        } catch(e) {
-                            safeErrorLog(e, parentNode, parentSelector, attrName, childIndex);
-                            safeErrorLog(this.setAttrQueue);
-                        }
-                    }
-                }
-            }
-        }
+        this.vdom.updatePropertiesFromQueue(this.setAttrQueue);
         
         this.setAttrQueue = {};
     }
@@ -148,7 +126,7 @@ export default class Elementhandler {
             const val = el.getAttribute(attrName);
             return val ? parseFloat(val) : null;
         };
-        //safeLog(el.style);
+        
         const node = {
             type: el.tagName.toLowerCase(),
             transform: el.getAttribute('transform'),
@@ -166,14 +144,7 @@ export default class Elementhandler {
             y2: getRoundedAttr(el, 'y2'),
             "stroke-width": getRoundedAttr(el, 'stroke-width'),
             text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : undefined,
-            style: {
-                /*stroke: style.getPropertyValue('stroke'),
-                "stroke-opacity": parseFloat(style.getPropertyValue('stroke-opacity')),
-                "stroke-width": parseFloat(style.getPropertyValue('stroke-width')),
-                fill: style.getPropertyValue('fill'),
-                textAnchor: style.textAnchor*/
-                fill: el.style.fill
-            },
+            style: {},
             children: []
         };
         
@@ -188,9 +159,6 @@ export default class Elementhandler {
         };
         
         clean(node);
-        clean(node.style);
-        
-        safeLog(node);
         
         return node;
     }
