@@ -111,7 +111,8 @@ export default class SvgToCanvas {
                     if(name === 'class') {
                         return originalFct.apply(this, arguments);
                     }
-                    me.elementHandler.queueSetAttributeOnSelection(this, name, value);
+                    const elements = this._groups ? this._groups[0] : this[0];
+                    me.elementHandler.queueSetAttributeOnSelection(elements, name, value);
                 
                     return this;
                 }

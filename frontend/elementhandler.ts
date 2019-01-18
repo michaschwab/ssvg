@@ -44,21 +44,20 @@ export default class Elementhandler {
         }
     }
     
-    queueSetAttributeOnSelection(selection, attrName, value) {
-        const els = selection._groups[0];
-        const parent = els[0].parentNode;
+    queueSetAttributeOnSelection(elements, attrName, value) {
+        const parent = elements[0].parentNode;
     
         const parentSelector = parent === this.svg ? "svg" : parent['selector'];
         
         if(!parentSelector) {
-            safeLog(selection, parent);
+            safeLog(elements, parent);
             console.error('selector not found');
         }
 
         attrName = this.checkAttrName(parentSelector, attrName);
         
-        for(let i = 0; i < els.length; i++) {
-            const svgEl = els[i];
+        for(let i = 0; i < elements.length; i++) {
+            const svgEl = elements[i];
             
             this.setAttrQueue[parentSelector][attrName][i] =
                 typeof value === "function" ? value(svgEl.__data__) : value;
