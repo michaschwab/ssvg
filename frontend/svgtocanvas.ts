@@ -8,29 +8,17 @@ export default class SvgToCanvas {
     private worker: Worker = new Worker('dist/canvasworker.js');
     private elementHandler: Elementhandler;
     private vdom: VDom;
-    private setSize = false;
     private interactionSelections: HTMLElement[] = [];
 
-    private svg: SVGElement;
+    private svg: SVGElement|undefined;
     private canvas: HTMLCanvasElement;
+    private svgAssignedAndSizeSet = false;
     
     constructor() {
-        this.svg = document.getElementsByTagName('svg')[0];
         this.canvas = document.createElement('canvas');
-        this.svg.parentElement.appendChild(this.canvas);
 
         this.captureD3On();
-        
-        this.elementHandler = new Elementhandler(this.svg, () => this.updateCanvas());
-        this.vdom = this.elementHandler.getVDom();
-    
-        this.setCanvasSize();
-        const offscreen = (this.canvas as any).transferControlToOffscreen();
-        this.sendToWorker({cmd: 'INIT', data: {
-                canvas: offscreen,
-                visData: this.vdom.data
-            }
-        }, [offscreen]);
+        this.setupElementsIfSvgExists();
         
         this.worker.onmessage = e => {
             if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
@@ -49,7 +37,32 @@ export default class SvgToCanvas {
         this.replaceD3Attr();
     }
     
+    private setupElementsIfSvgExists(svgEl?: SVGElement) {
+        
+        if(this.svg) {
+            return true;
+        }
+        
+        const svg = !svgEl ? document.getElementsByTagName('svg')[0] : svgEl;
+        
+        if(!svg) {
+            return false;
+        }
+        
+        this.svg = svg;
+        this.svg.parentElement.appendChild(this.canvas);
+        this.elementHandler = new Elementhandler(this.svg, () => this.updateCanvas());
+        this.vdom = this.elementHandler.getVDom();
+
+        this.setCanvasSize();
+        
+        return true;
+    }
+    
     private updateCanvas() {
+        if(!this.svgAssignedAndSizeSet) {
+            return;
+        }
         this.elementHandler.useAttrQueue(queue => {
             this.sendToWorker({
                 cmd: 'UPDATE_NODES',
@@ -61,6 +74,9 @@ export default class SvgToCanvas {
     }
     
     private setCanvasSize() {
+        if(!this.svg || !this.vdom.data.width || !this.vdom.data.height) {
+            return;
+        }
         this.vdom.data.scale = window.devicePixelRatio;
     
         this.canvas.style.width = this.vdom.data.width + 'px';
@@ -68,11 +84,17 @@ export default class SvgToCanvas {
         this.canvas.width = this.vdom.data.width * this.vdom.data.scale;
         this.canvas.height = this.vdom.data.height * this.vdom.data.scale;
     
-        this.setSize = true;
+        const offscreen = (this.canvas as any).transferControlToOffscreen();
+        this.sendToWorker({cmd: 'INIT', data: {
+                canvas: offscreen,
+                visData: this.vdom.data
+            }
+        }, [offscreen]);
+        
+        this.svgAssignedAndSizeSet = true;
     }
     
     private captureD3On() {
-        console.log('trying to capture "on"');
         if((window as any)['d3']) {
             const d3 = (window as any)['d3'];
             const originalOn = d3.selection.prototype.on;
@@ -108,7 +130,7 @@ export default class SvgToCanvas {
                         return me.elementHandler.getAttributesFromSelector(this, prefix + name);
                     }
                 } else {
-                    if(name === 'class') {
+                    if(name === 'class' || !me.svg) {
                         return originalFct.apply(this, arguments);
                     }
                     // For d3 v4, this would just be this.groups[0]. The rest is for
@@ -124,6 +146,11 @@ export default class SvgToCanvas {
                         }
                     }
                     me.elementHandler.queueSetAttributeOnSelection(elements, prefix + name, value);
+                    
+                    if(elements[0] === me.svg && (name === 'width' || name === 'height')) {
+                        me.vdom.data[name] = value;
+                        me.setCanvasSize();
+                    }
                 
                     return this;
                 }
@@ -150,9 +177,12 @@ export default class SvgToCanvas {
             let newArgs = Array.from(arguments);
             const el = origCreate.apply(this, newArgs);
             
-            el.appendChild = () => {
+            /*el.appendChild = () => {
                 console.log('hi!!', el, arguments);
-            };
+                //return el;
+            };*/
+    
+            el.appendChild = me.getNewAppend(el.appendChild);
             
             me.unassignedNodes.push(el);
     
@@ -162,33 +192,49 @@ export default class SvgToCanvas {
         }
     }
     
-    private replaceNativeAppend() {
-        const origAppendChild = Element.prototype.appendChild;
+    private getNewAppend(origAppend) {
         const me = this;
         
-        const newAppend = function<T extends Node>(this: Element, el: T) {
+        return function<T extends Node>(this: Element, el: T) {
     
+            //todo make sure el is within svg, or if this.svg doesn't exist, that it is the svg.
+            if(!me.svgAssignedAndSizeSet) {
+                if(!me.svg && el['tagName'] === 'svg') {
+                    const appended = origAppend.apply(this, arguments);
+                    me.setupElementsIfSvgExists(<SVGElement> <any> el);
+                    return appended;
+                    
+                } else {
+                    return origAppend.apply(this, arguments);
+                }
+            }
+            
+            //todo check if outside of the svg element
+            if(el['tagName'] === 'CANVAS') {
+                return origAppend.apply(this, arguments);
+            }
+
             el['appendChild'] = <T extends Node>(el2: T) => {
                 return el2;
             };
             const parentSelector = me.elementHandler.getElementSelector(this);
             (el as any)['parentSelector'] = parentSelector;
-            
+    
             const selector = me.elementHandler.getElementSelector(<Element><any> el);
             const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
             //console.log(this, parentSelector);
             (el as any)['selector'] = selector;
             (el as any)['childIndex'] = parentNode.children.length;
-            
+    
             Object.defineProperty(el, 'parentNode', {
                 writable: true,
                 value: this
             });
-            
+    
             const node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);
             me.elementHandler.linkNodeToElement(node, el);
             me.elementHandler.addNodeToParent(parentNode, node);
-            
+    
             me.sendToWorker({
                 cmd: 'ADD_NODE',
                 data: {
@@ -204,6 +250,11 @@ export default class SvgToCanvas {
     
             return el;
         };
+    }
+    
+    private replaceNativeAppend() {
+        const origAppendChild = Element.prototype.appendChild;
+        const newAppend = this.getNewAppend(origAppendChild);
     
         Element.prototype.appendChild = newAppend;
         Element.prototype.insertBefore = function<T extends Node>(newChild: T, refChild: Node|null) {

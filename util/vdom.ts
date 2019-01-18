@@ -40,7 +40,12 @@ export default class VDom {
                 console.error(setAttrQueue);
             }
             if(setAttrQueue.hasOwnProperty(parentSelector)) {
-                let parentNode = this.getVisNodeFromSelector(parentSelector);
+                let parentNode;
+                if(parentSelector === 'SVG_PARENT') {
+                    parentNode = {children: [this.data]};
+                } else {
+                    parentNode = this.getVisNodeFromSelector(parentSelector);
+                }
                 if(!parentNode) {
                     console.error(parentNode, parentSelector);
                 }
