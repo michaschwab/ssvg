@@ -111,7 +111,18 @@ export default class SvgToCanvas {
                     if(name === 'class') {
                         return originalFct.apply(this, arguments);
                     }
-                    const elements = this._groups ? this._groups[0] : this[0];
+                    // For d3 v4, this would just be this.groups[0]. The rest is for
+                    // earlier versions, where selectAll() returned other values.
+                    let elements = this._groups ? this._groups[0] : this[0];
+                    if(typeof elements === 'object' && Object.keys(elements).length === 1 && elements.parentNode) {
+                        const parentElement = elements.parentNode;
+                        const selector = me.elementHandler.getElementSelector(parentElement);
+                        const parentNode = me.vdom.getVisNodeFromSelector(selector);
+                        elements = [];
+                        for(const child of parentNode.children) {
+                            elements.push(me.elementHandler.getElementFromNode(child));
+                        }
+                    }
                     me.elementHandler.queueSetAttributeOnSelection(elements, name, value);
                 
                     return this;
