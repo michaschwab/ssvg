@@ -184,7 +184,10 @@ class SvgToCanvasWorker {
                     this.ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
                 }
                 this.ctx.fill();
-                this.ctx.stroke();
+                
+                if(stroke) {
+                    this.ctx.stroke();
+                }
             }
         }
         
