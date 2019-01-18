@@ -45,6 +45,8 @@ export default class Elementhandler {
     }
     
     queueSetAttributeOnSelection(elements, attrName, value) {
+        if(!elements.length) return;
+        
         const parent = elements[0].parentNode;
     
         let parentSelector = parent === this.svg ? "svg" : parent['selector'];
