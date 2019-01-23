@@ -121,8 +121,8 @@ export default class SvgToCanvas {
 
         function getReplacement(originalFct, prefix = '') {
             return function(name, value) {
-                //console.log(this, arguments);
-                if(!value) {
+                
+                if(value === undefined) {
     
                     if(me.unassignedNodes.indexOf(this) !== -1) {
                         return originalFct.apply(this, arguments);
@@ -215,7 +215,7 @@ export default class SvgToCanvas {
             }
 
             el['appendChild'] = <T extends Node>(el2: T) => {
-                return el2;
+                return me.getNewAppend(origAppend).call(el, el2);
             };
             const parentSelector = me.elementHandler.getElementSelector(this);
             (el as any)['parentSelector'] = parentSelector;

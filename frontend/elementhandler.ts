@@ -106,7 +106,8 @@ export default class Elementhandler {
     }
     
     getAttributesFromSelector(selection, name: string) {
-        const els = selection._groups[0];
+        // Dealing with d3 v3.
+        const els = selection._groups ? selection._groups[0] : selection[0];
         
         return els.map(el => this.getAttributeFromSelector(el, name));
     }
