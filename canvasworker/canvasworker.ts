@@ -105,9 +105,9 @@ class SvgToCanvasWorker {
                     ctx.restore(); //test
                     ctx.restore();
                 } else if(this.lastDrawn.type === 'circle') {
-                    ctx.fill();
+                    /*ctx.fill();
                     ctx.stroke();
-                    console.log('circle end kind of?!');
+                    console.log('circle end kind of?!');*/
                 }
                 ctx.closePath();
             }
@@ -121,9 +121,10 @@ class SvgToCanvasWorker {
     
                 ctx.beginPath();
                 ctx.fillStyle = SvgToCanvasWorker.colorToRgba(fill, elData.style['fill-opacity']);
+                ctx.strokeStyle = stroke;
                 ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
                 ctx.fill();
-                if(elData.stroke) {
+                if(stroke) {
                     ctx.stroke();
                 }
             } else if(elData.type === 'line') {
