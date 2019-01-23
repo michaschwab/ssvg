@@ -113,10 +113,19 @@ class SvgToCanvasWorker {
             }
             
             if(elData.type === 'circle') {
-                if(!this.queues.circles[fill]) {
+                if(!fill) fill = '#000';
+                /*if(!this.queues.circles[fill]) {
                     this.queues.circles[fill] = [];
                 }
-                this.queues.circles[fill].push(elData);
+                this.queues.circles[fill].push(elData);*/
+    
+                ctx.beginPath();
+                ctx.fillStyle = SvgToCanvasWorker.colorToRgba(fill, elData.style['fill-opacity']);
+                ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
+                ctx.fill();
+                if(elData.stroke) {
+                    ctx.stroke();
+                }
             } else if(elData.type === 'line') {
                 if(!this.lastDrawn || this.lastDrawn.type !== 'line') {
                     ctx.save();
@@ -262,4 +271,19 @@ class SvgToCanvasWorker {
         return transformObject;
     }
     
+    private static colorToRgba(color: string, opacity = 1) {
+        if(color[0] === '#') {
+            let c; // From https://stackoverflow.com/questions/21646738/convert-hex-to-rgba
+            if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(color)){
+                c= color.substring(1).split('');
+                if(c.length== 3){
+                    c= [c[0], c[0], c[1], c[1], c[2], c[2]];
+                }
+                c= '0x'+c.join('');
+                return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+',' + opacity + ')';
+            }
+            throw new Error('Bad Hex');
+        }
+        return color;
+    }
 }
