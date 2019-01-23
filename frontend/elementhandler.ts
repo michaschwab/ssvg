@@ -16,13 +16,11 @@ export default class Elementhandler {
         };
     
         this.vdom = new VDom(visData);
+        this.svg.style.display = 'none';
         
         window.setTimeout(() => {
             this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data.children);
-            
-            this.svg.style.display = 'none';
-            
-        }, 200);
+        }, 100);
     }
     
     getVDom() {
