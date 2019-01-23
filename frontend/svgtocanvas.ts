@@ -145,7 +145,11 @@ export default class SvgToCanvas {
                             elements.push(me.elementHandler.getElementFromNode(child));
                         }
                     }
-                    me.elementHandler.queueSetAttributeOnSelection(elements, prefix + name, value);
+                    if(elements.length === 1) {
+                        me.elementHandler.queueSetAttributeOnElement(elements[0], prefix + name, value);
+                    } else {
+                        me.elementHandler.queueSetAttributeOnSelection(elements, prefix + name, value);
+                    }
                     
                     if(elements[0] === me.svg && (name === 'width' || name === 'height')) {
                         me.vdom.data[name] = value;
@@ -283,6 +287,11 @@ export default class SvgToCanvas {
             //me.updateDataFromElementAttr(this, name, value);
             me.elementHandler.queueSetAttributeOnElement(this, name, value);
         };
+        //TODO: Figure out how to access the element when setting a style property.
+        /*CSSStyleDeclaration.prototype.setProperty = function(name: string, value: any) {
+            safeLog(this, arguments);
+            me.elementHandler.queueSetAttributeOnElement(this, 'style;' + name, value);
+        };*/
         Element.prototype.setAttributeNS = function(name: string, value: any) {
             console.log('setAttrNS!!');
 
@@ -352,5 +361,22 @@ export default class SvgToCanvas {
     private sendToWorker(msg: CanvasWorkerMessage, data?: any) {
         this.worker.postMessage(msg, data);
         //console.log(roughSizeOfObject(msg));
+    }
+}
+
+
+let safeLogCount = 0;
+function safeLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.log(...logContents);
+    }
+}
+function safeErrorLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.error(...logContents);
     }
 }

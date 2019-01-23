@@ -176,3 +176,19 @@ export default class VDom {
         }
     }
 }
+
+let safeLogCount = 0;
+function safeLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.log(...logContents);
+    }
+}
+function safeErrorLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.error(...logContents);
+    }
+}

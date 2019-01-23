@@ -30,12 +30,22 @@ export default class Elementhandler {
     }
     
     queueSetAttributeOnElement(element: Element, attrName: string, value: any) {
-        
-        const parentSelector = (element as any)['parentSelector'] as string;
-        const childIndex = (element as any)['childIndex'];
+        //TODO: merge with updatePropertiesFromQueue from VDom?
+        const parent = element.parentNode;
+        let parentSelector = parent === this.svg ? "svg" : (element as any)['parentSelector'] as string;
+        let childIndex = (element as any)['childIndex'];
+    
+        if(!parentSelector && element === this.svg) {
+            parentSelector = 'SVG_PARENT';
+            childIndex = 0;
+        }
+    
+        if(!parentSelector) {
+            safeLog(element, parent);
+            console.error('selector not found');
+        }
     
         attrName = this.checkAttrName(parentSelector, attrName);
-    
         this.setAttrQueue[parentSelector][attrName][childIndex] = value;
     
         if(attrName === 'className') {
@@ -48,12 +58,7 @@ export default class Elementhandler {
         if(!elements.length) return;
         
         const parent = elements[0].parentNode;
-    
         let parentSelector = parent === this.svg ? "svg" : parent['selector'];
-        
-        if(!parentSelector && elements[0] === this.svg) {
-            parentSelector = 'SVG_PARENT';
-        }
         
         if(!parentSelector) {
             safeLog(elements, parent);
@@ -234,6 +239,11 @@ export default class Elementhandler {
                             //child.style['stroke-width'] = parseFloat(rule.style['stroke-width']);
                             this.checkAttrName(parentSelector, 'style;stroke-width');
                             this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = parseFloat(rule.style['stroke-width']);
+                        }
+                        if(rule.style['fill-opacity']) {
+                            //child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
+                            this.checkAttrName(parentSelector, 'style;fill-opacity');
+                            this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] = parseFloat(rule.style['fill-opacity']);
                         }
                     }
                 }
