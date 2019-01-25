@@ -32,7 +32,8 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, this.vdom.data.width, this.vdom.data.height);
-        
+    
+        this.lastDrawn = null;
         this.drawNodeAndChildren(this.vdom.data);
         
         if(this.lastDrawn) {
@@ -87,10 +88,11 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         if(mode === 'normal') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
             if(!fill) fill = '#000';
-            if(!this.circlesByColor[fill]) {
-                this.circlesByColor[fill] = [];
+            const fillRgba = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
+            if(!this.circlesByColor[fillRgba]) {
+                this.circlesByColor[fillRgba] = [];
             }
-            this.circlesByColor[fill].push(elData);
+            this.circlesByColor[fillRgba].push(elData);
         }
         if(mode === 'start') {
             this.circlesByColor = {};
