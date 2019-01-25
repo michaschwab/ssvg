@@ -49,15 +49,14 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                 return;
             }
             
-            if(elData.type === 'circle') {
-                this.drawCircle(elData);
-            } else if(elData.type === 'line') {
-                this.drawLine(elData);
-            } else if(elData.type === 'path') {
-                this.drawPath(elData);
-            } else if(elData.type === 'tspan') {
-                this.drawTspan(elData);
+            if(!this.lastDrawn || (this.lastDrawn && this.lastDrawn.type !== elData.type)) {
+                if(this.lastDrawn) {
+                    this.drawElement(this.lastDrawn, 'end');
+                }
+                this.drawElement(elData, 'start');
             }
+            
+            this.drawElement(elData);
             this.lastDrawn = elData;
         }
         
@@ -71,7 +70,14 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         }
     }
     
-    private drawCircle(elData) {
+    private drawElement(elData: any, mode: ('start'|'normal'|'end') = 'normal') {
+        const type: string = elData.type;
+        this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)](elData, mode);
+    }
+    
+    private drawCircle(elData, mode: ('start'|'normal'|'end') = 'normal') {
+        if(mode !== 'normal') return;
+        
         let fill = elData.style.fill ? elData.style.fill : elData.fill;
         if(!fill) fill = '#000';
         let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
@@ -86,7 +92,9 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         }
     }
     
-    private drawPath(elData) {
+    private drawPath(elData, mode: ('start'|'normal'|'end') = 'normal') {
+        if(mode !== 'normal') return;
+        
         let fill = elData.style.fill ? elData.style.fill : elData.fill;
         let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
         let strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
@@ -100,14 +108,18 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         }
     }
     
-    private drawTspan(elData) {
+    private drawTspan(elData, mode: ('start'|'normal'|'end') = 'normal') {
+        if(mode !== 'normal') return;
+        
         this.ctx.font = "10px Arial";
         this.ctx.fillStyle = "#000000";
         this.ctx.textAlign = elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor;
         this.ctx.fillText(elData.text, elData.x, elData.y);
     }
     
-    private drawLine(elData) {
+    private drawLine(elData, mode: ('start'|'normal'|'end') = 'normal') {
+        if(mode !== 'normal') return;
+        
         let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
         
         this.ctx.beginPath();
