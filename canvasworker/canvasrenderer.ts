@@ -6,13 +6,13 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     
     private ctx: CanvasRenderingContext2D;
     
-    constructor(private vdom: VDom, private canvas: HTMLCanvasElement, private forceSingle = false) {
+    constructor(private vdom: VDom, private canvas: HTMLCanvasElement,
+                private forceSingle = false, private onDrawn = () => {}) {
         const ctx = canvas.getContext('2d');
         if(!ctx) throw new Error('could not create canvas context');
         
         this.ctx = ctx;
         this.ctx.scale(this.vdom.data.scale, this.vdom.data.scale);
-        console.log(this.vdom.data.scale);
         this.ctx.save();
         
         this.draw();
@@ -40,7 +40,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             this.drawSingleNode(this.lastDrawn, 'end');
         }
         
-        postMessage({msg: 'DRAWN'});
+        this.onDrawn();
     }
     
     private drawNodeAndChildren(elData: any) {

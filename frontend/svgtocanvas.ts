@@ -1,6 +1,8 @@
 import VDom from "../util/vdom";
 import CanvasWorkerMessage from "../util/canvas-worker-message"
 import Elementhandler from "./elementhandler";
+import SvgToCanvasWorker from "../canvasworker/canvasworker";
+import Canvasrenderer from "../canvasworker/canvasrenderer";
 
 export default class SvgToCanvas {
     private unassignedNodes: Node[] = [];
@@ -8,28 +10,42 @@ export default class SvgToCanvas {
     private elementHandler: Elementhandler;
     private vdom: VDom;
     private interactionSelections: HTMLElement[] = [];
+    
+    private renderer: SvgToCanvasWorker;
 
     private svg: SVGElement|undefined;
     private canvas: HTMLCanvasElement;
     private svgAssignedAndSizeSet = false;
     
-    constructor(private safeMode = false, private maxPixelRatio?: number|undefined) {
-        const scripts = Array.from(document.getElementsByTagName("script"));
-        const thisScript = scripts.filter(script => script.src.indexOf('svg2canvas') !== -1 &&
-            script.src.indexOf('frontend.js') !== -1);
-        const path = thisScript[0].src.substr(0, thisScript[0].src.length - 'frontend.js'.length);
-        
-        this.worker = new Worker(path + 'canvasworker.js');
+    constructor(private safeMode = false, private maxPixelRatio?: number|undefined, private useWorker = true) {
         this.canvas = document.createElement('canvas');
+        if(!('OffscreenCanvas' in window)) {
+            this.useWorker = false;
+        }
+        
+        if(this.useWorker) {
+            const scripts = Array.from(document.getElementsByTagName("script"));
+            const thisScript = scripts.filter(script => script.src.indexOf('svg2canvas') !== -1 &&
+                script.src.indexOf('frontend.js') !== -1);
+            const path = thisScript[0].src.substr(0, thisScript[0].src.length - 'frontend.js'.length);
+    
+            this.worker = new Worker(path + 'canvasworker.js');
+    
+            this.worker.onmessage = e => {
+                if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
+                    this.updateCanvas();
+                }
+            };
+        } else {
+            const raf = () => {
+                this.updateCanvas();
+                requestAnimationFrame(raf);
+            };
+            raf();
+        }
 
         this.captureD3On();
         this.setupElementsIfSvgExists();
-        
-        this.worker.onmessage = e => {
-            if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
-                this.updateCanvas();
-            }
-        };
         
         this.canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('mousemove', e => this.propagateMouseEvent(e));
@@ -68,14 +84,19 @@ export default class SvgToCanvas {
         if(!this.svgAssignedAndSizeSet) {
             return;
         }
-        this.elementHandler.useAttrQueue(queue => {
-            this.sendToWorker({
-                cmd: 'UPDATE_NODES',
-                data: {
-                    queue: queue,
-                },
+        if(this.useWorker) {
+            this.elementHandler.useAttrQueue(queue => {
+                this.sendToWorker({
+                    cmd: 'UPDATE_NODES',
+                    data: {
+                        queue: queue,
+                    },
+                });
             });
-        });
+        } else {
+            this.elementHandler.useAttrQueue();
+            this.renderer.draw();
+        }
     }
     
     private setCanvasSize() {
@@ -91,14 +112,18 @@ export default class SvgToCanvas {
         this.canvas.style.height = this.vdom.data.height + 'px';
         this.canvas.width = this.vdom.data.width * this.vdom.data.scale;
         this.canvas.height = this.vdom.data.height * this.vdom.data.scale;
-    
-        const offscreen = (this.canvas as any).transferControlToOffscreen();
-        this.sendToWorker({cmd: 'INIT', data: {
-                canvas: offscreen,
-                visData: this.vdom.data,
-                safeMode: this.safeMode
-            }
-        }, [offscreen]);
+        
+        if(this.useWorker) {
+            const offscreen = (this.canvas as any).transferControlToOffscreen();
+            this.sendToWorker({cmd: 'INIT', data: {
+                    canvas: offscreen,
+                    visData: this.vdom.data,
+                    safeMode: this.safeMode
+                }
+            }, [offscreen]);
+        } else {
+            this.renderer = new Canvasrenderer(this.vdom, this.canvas, this.safeMode);
+        }
         
         this.svgAssignedAndSizeSet = true;
     }
@@ -248,13 +273,15 @@ export default class SvgToCanvas {
             me.elementHandler.linkNodeToElement(node, el);
             me.elementHandler.addNodeToParent(parentNode, node);
     
-            me.sendToWorker({
-                cmd: 'ADD_NODE',
-                data: {
-                    node: node,
-                    parentNodeSelector: parentSelector
-                },
-            });
+            if(me.useWorker) {
+                me.sendToWorker({
+                    cmd: 'ADD_NODE',
+                    data: {
+                        node: node,
+                        parentNodeSelector: parentSelector
+                    },
+                });
+            }
     
             if(me.unassignedNodes.indexOf(el) !== -1) {
                 const index = me.unassignedNodes.indexOf(el);

@@ -21,7 +21,9 @@ self.onmessage = function(e: MessageEvent) {
                 //console.log('init');
                 vdom = new VDom(msg.data.visData);
                 const safeMode = !!msg.data.safeMode;
-                worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode);
+                worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode, () => {
+                    postMessage({msg: 'DRAWN'});
+                });
                 //worker = new Twojsrenderer(vdom, msg.data.canvas);
                 //worker = new Webglrenderer(vdom, msg.data.canvas);
                 break;

@@ -95,8 +95,7 @@ export default class Elementhandler {
         return attrName;
     }
     
-    useAttrQueue(cb: (data) => void) {
-        
+    useAttrQueue(cb: (data) => void = () => {}) {
         if(this.addedNodesWithoutApplyingStyles) {
             this.addedNodesWithoutApplyingStyles = false;
             this.applyStyles();
