@@ -13,7 +13,7 @@ export default class SvgToCanvas {
     private canvas: HTMLCanvasElement;
     private svgAssignedAndSizeSet = false;
     
-    constructor(private safeMode = false) {
+    constructor(private safeMode = false, private maxPixelRatio?: number|undefined) {
         const scripts = Array.from(document.getElementsByTagName("script"));
         const thisScript = scripts.filter(script => script.src.indexOf('svg2canvas') !== -1 &&
             script.src.indexOf('frontend.js') !== -1);
@@ -83,6 +83,9 @@ export default class SvgToCanvas {
             return;
         }
         this.vdom.data.scale = window.devicePixelRatio;
+        if(this.maxPixelRatio !== undefined && this.vdom.data.scale > this.maxPixelRatio) {
+            this.vdom.data.scale = this.maxPixelRatio;
+        }
     
         this.canvas.style.width = this.vdom.data.width + 'px';
         this.canvas.style.height = this.vdom.data.height + 'px';
