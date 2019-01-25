@@ -39,7 +39,7 @@ export default class VDom {
             if(!parentSelector) {
                 console.error(setAttrQueue);
             }
-            if(setAttrQueue.hasOwnProperty(parentSelector)) {
+            //if(setAttrQueue.hasOwnProperty(parentSelector)) {
                 let parentNode;
                 if(parentSelector === 'SVG_PARENT') {
                     parentNode = {children: [this.data]};
@@ -51,20 +51,20 @@ export default class VDom {
                 }
                 
                 for(let attrName in setAttrQueue[parentSelector]) {
-                    if(setAttrQueue[parentSelector].hasOwnProperty(attrName)) {
+                    //if(setAttrQueue[parentSelector].hasOwnProperty(attrName)) {
                         const attrNameStart = attrName.substr(0, 'style;'.length);
-                        const attrNameEnd = attrName.substr('style;'.length);
                         for(let childIndex in setAttrQueue[parentSelector][attrName]) {
                             const childNode = parentNode.children[childIndex];
                             if(attrNameStart === 'style;') {
+                                const attrNameEnd = attrName.substr('style;'.length);
                                 childNode['style'][attrNameEnd] = setAttrQueue[parentSelector][attrName][childIndex];
                             } else {
                                 childNode[attrName] = setAttrQueue[parentSelector][attrName][childIndex];
                             }
                         }
-                    }
+                    //}
                 }
-            }
+            //}
         }
     }
     

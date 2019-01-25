@@ -48,42 +48,15 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             if(elData.type === 'title') {
                 return;
             }
-            let fill = elData.style.fill ? elData.style.fill : elData.fill;
-            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-            let strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
             
             if(elData.type === 'circle') {
-                if(!fill) fill = '#000';
-                ctx.beginPath();
-                ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
-                ctx.strokeStyle = stroke;
-                ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
-                ctx.fill();
-                if(stroke) {
-                    ctx.stroke();
-                }
+                this.drawCircle(elData);
             } else if(elData.type === 'line') {
-                ctx.beginPath();
-                ctx.strokeStyle = stroke;
-                ctx.moveTo(elData.x1, elData.y1);
-                ctx.lineTo(elData.x2, elData.y2);
-                ctx.stroke();
-                //currentD += 'M ' + elData.x1 +',' + elData.y1 + 'L ' + elData.x2 + ',' + elData.y2;
+                this.drawLine(elData);
             } else if(elData.type === 'path') {
-                let p = new Path2D(elData.d);
-                //ctx.stroke(p);
-                ctx.fillStyle = fill;
-                //ctx.fill(p);
-                if(stroke !== 'none') {
-                    ctx.lineWidth = strokeWidth;
-                    ctx.strokeStyle = strokeWidth + ' ' + stroke;
-                    ctx.stroke(p);
-                }
+                this.drawPath(elData);
             } else if(elData.type === 'tspan') {
-                ctx.font = "10px Arial";
-                ctx.fillStyle = "#000000";
-                ctx.textAlign = elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor;
-                ctx.fillText(elData.text, elData.x, elData.y);
+                this.drawTspan(elData);
             }
             this.lastDrawn = elData;
         }
@@ -94,9 +67,54 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             }
         }
         if(elData.type !== 'line') {
-            //console.log(elData.type);
-            //ctx.restore();
+        
         }
+    }
+    
+    private drawCircle(elData) {
+        let fill = elData.style.fill ? elData.style.fill : elData.fill;
+        if(!fill) fill = '#000';
+        let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+        
+        this.ctx.beginPath();
+        this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
+        this.ctx.strokeStyle = stroke;
+        this.ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
+        this.ctx.fill();
+        if(stroke) {
+            this.ctx.stroke();
+        }
+    }
+    
+    private drawPath(elData) {
+        let fill = elData.style.fill ? elData.style.fill : elData.fill;
+        let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+        let strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
+    
+        let p = new Path2D(elData.d);
+        this.ctx.fillStyle = fill;
+        if(stroke !== 'none') {
+            this.ctx.lineWidth = strokeWidth;
+            this.ctx.strokeStyle = strokeWidth + ' ' + stroke;
+            this.ctx.stroke(p);
+        }
+    }
+    
+    private drawTspan(elData) {
+        this.ctx.font = "10px Arial";
+        this.ctx.fillStyle = "#000000";
+        this.ctx.textAlign = elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor;
+        this.ctx.fillText(elData.text, elData.x, elData.y);
+    }
+    
+    private drawLine(elData) {
+        let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+        
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = stroke;
+        this.ctx.moveTo(elData.x1, elData.y1);
+        this.ctx.lineTo(elData.x2, elData.y2);
+        this.ctx.stroke();
     }
     
     private applyTransform(transformString: string) {
