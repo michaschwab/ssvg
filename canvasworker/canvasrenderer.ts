@@ -164,6 +164,10 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     }
     
     private drawLine(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+        if(this.vdom.data.scale > 1) {
+            mode = 'forcesingle';
+            // In my tests, drawing a long connected path is very slow for high DPI devices.
+        }
         if(mode === 'normal') {
             this.ctx.moveTo(elData.x1, elData.y1);
             this.ctx.lineTo(elData.x2, elData.y2);
