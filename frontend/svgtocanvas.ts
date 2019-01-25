@@ -335,13 +335,13 @@ export default class SvgToCanvas {
             if(!parentNode) {
                 //console.error(interactionSel, parentSelector, parentNode);
             } else {
-                for(let el of parentNode.children)
+                for(let vdomNode of parentNode.children)
                 {
-                    if(this.nodeAtPosition(el, new_event.clientX-10, new_event.clientY-10))
+                    if(this.nodeAtPosition(vdomNode, new_event.clientX-10, new_event.clientY-10))
                     {
                         /*let selector = parentSelector + ' > :nth-child(' + j + ')';
                         let svgEl = this.svg.querySelector(selector);*/
-                        const svgEl = this.elementHandler.getElementFromNode(el);
+                        const svgEl = this.elementHandler.getElementFromNode(vdomNode);
             
                         if(svgEl) {
                             svgEl.dispatchEvent(new_event);
