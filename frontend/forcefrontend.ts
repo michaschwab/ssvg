@@ -1,8 +1,7 @@
 import CanvasForceWorkerMessage from "../util/forceworkermessage";
 
 export default class Forcefrontend {
-
-    private worker: Worker = new Worker('dist/forceworker.js');
+    private worker: Worker;
     private onTick: () => void;
     
     private nodes;
@@ -11,6 +10,13 @@ export default class Forcefrontend {
     private nodesById: {[id: string]: any} = {};
     
     constructor() {
+        const scripts = Array.from(document.getElementsByTagName("script"));
+        const thisScript = scripts.filter(script => script.src.indexOf('svg2canvas') !== -1 &&
+            script.src.indexOf('forcefrontend.js') !== -1);
+        const path = thisScript[0].src.substr(0, thisScript[0].src.length - 'forcefrontend.js'.length);
+        
+        this.worker = new Worker(path + 'forceworker.js');
+        
         if((window as any)['d3']) {
             this.replaceD3ForceSimulation();
             this.replaceD3Drag();

@@ -3,9 +3,8 @@ import CanvasWorkerMessage from "../util/canvas-worker-message"
 import Elementhandler from "./elementhandler";
 
 export default class SvgToCanvas {
-    
     private unassignedNodes: Node[] = [];
-    private worker: Worker = new Worker('dist/canvasworker.js');
+    private worker: Worker;
     private elementHandler: Elementhandler;
     private vdom: VDom;
     private interactionSelections: HTMLElement[] = [];
@@ -15,6 +14,12 @@ export default class SvgToCanvas {
     private svgAssignedAndSizeSet = false;
     
     constructor() {
+        const scripts = Array.from(document.getElementsByTagName("script"));
+        const thisScript = scripts.filter(script => script.src.indexOf('svg2canvas') !== -1 &&
+            script.src.indexOf('frontend.js') !== -1);
+        const path = thisScript[0].src.substr(0, thisScript[0].src.length - 'frontend.js'.length);
+        
+        this.worker = new Worker(path + 'canvasworker.js');
         this.canvas = document.createElement('canvas');
 
         this.captureD3On();
