@@ -174,7 +174,8 @@ export default class Elementhandler {
     
     private applyStyles() {
         for (let i = 0; i < document.styleSheets.length; i++) {
-            const rules = (document.styleSheets[i] as any).rules as CSSRuleList;
+            const sheet = document.styleSheets[i] as any;
+            const rules = (sheet.rules ? sheet.rules : sheet.cssRules) as CSSRuleList;
         
             for (let j = 0; j < rules.length; j++) {
                 const rule = rules[j] as any;
