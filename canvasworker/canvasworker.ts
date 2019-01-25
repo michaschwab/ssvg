@@ -1,6 +1,7 @@
 import VDom from "../util/vdom";
 import CanvasWorkerMessage from "../util/canvas-worker-message"
 import Canvasrenderer from "./canvasrenderer";
+//import Webglrenderer from "./webglrenderer";
 
 export default interface SvgToCanvasWorker {
     draw(): void;
@@ -19,6 +20,7 @@ self.onmessage = function(e: MessageEvent) {
                 //console.log('init');
                 vdom = new VDom(msg.data.visData);
                 worker = new Canvasrenderer(vdom, msg.data.canvas);
+                //worker = new Webglrenderer(vdom, msg.data.canvas);
                 break;
             case 'UPDATE_NODES':
                 //console.log('UPDATE', data.queue, data.parentNodeSelectors);
