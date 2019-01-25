@@ -8,10 +8,10 @@ import SvgToCanvasWorker from "./canvasworker";
     enumerable: true,
     writable: false
 });*/
-importScripts("http://localhost:8080/node_modules/svg2canvas/dist/two.js");
+importScripts("http://localhost:8080/node_modules/svg2canvas/two.js");
 //import Two from './two.js';
 
-export default class Webglrenderer implements SvgToCanvasWorker {
+export default class Twojsrenderer implements SvgToCanvasWorker {
     private two: any;
     private circles;
     private circleData;

@@ -2,6 +2,7 @@ import VDom from "../util/vdom";
 import CanvasWorkerMessage from "../util/canvas-worker-message"
 import Canvasrenderer from "./canvasrenderer";
 //import Webglrenderer from "./webglrenderer";
+//import Twojsrenderer from "./twojsrenderer";
 
 export default interface SvgToCanvasWorker {
     draw(): void;
@@ -19,7 +20,9 @@ self.onmessage = function(e: MessageEvent) {
             case 'INIT':
                 //console.log('init');
                 vdom = new VDom(msg.data.visData);
-                worker = new Canvasrenderer(vdom, msg.data.canvas);
+                const safeMode = !!msg.data.safeMode;
+                worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode);
+                //worker = new Twojsrenderer(vdom, msg.data.canvas);
                 //worker = new Webglrenderer(vdom, msg.data.canvas);
                 break;
             case 'UPDATE_NODES':

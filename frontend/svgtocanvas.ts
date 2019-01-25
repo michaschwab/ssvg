@@ -13,7 +13,7 @@ export default class SvgToCanvas {
     private canvas: HTMLCanvasElement;
     private svgAssignedAndSizeSet = false;
     
-    constructor() {
+    constructor(private safeMode = false) {
         const scripts = Array.from(document.getElementsByTagName("script"));
         const thisScript = scripts.filter(script => script.src.indexOf('svg2canvas') !== -1 &&
             script.src.indexOf('frontend.js') !== -1);
@@ -92,7 +92,8 @@ export default class SvgToCanvas {
         const offscreen = (this.canvas as any).transferControlToOffscreen();
         this.sendToWorker({cmd: 'INIT', data: {
                 canvas: offscreen,
-                visData: this.vdom.data
+                visData: this.vdom.data,
+                safeMode: this.safeMode
             }
         }, [offscreen]);
         

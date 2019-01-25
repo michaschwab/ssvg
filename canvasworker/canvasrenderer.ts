@@ -6,7 +6,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     
     private ctx: CanvasRenderingContext2D;
     
-    constructor(private vdom: VDom, private canvas: HTMLCanvasElement) {
+    constructor(private vdom: VDom, private canvas: HTMLCanvasElement, private forceSingle = false) {
         const ctx = canvas.getContext('2d');
         if(!ctx) throw new Error('could not create canvas context');
         
@@ -33,12 +33,16 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, this.vdom.data.width, this.vdom.data.height);
         
-        this.drawChildren(this.vdom.data);
+        this.drawNodeAndChildren(this.vdom.data);
+        
+        if(this.lastDrawn) {
+            this.drawSingleNode(this.lastDrawn, 'end');
+        }
         
         postMessage({msg: 'DRAWN'});
     }
     
-    private drawChildren(elData: any) {
+    private drawNodeAndChildren(elData: any) {
         const ctx = this.ctx;
         
         ctx.save();
@@ -49,51 +53,91 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                 return;
             }
             
-            if(!this.lastDrawn || (this.lastDrawn && this.lastDrawn.type !== elData.type)) {
-                if(this.lastDrawn) {
-                    this.drawElement(this.lastDrawn, 'end');
+            if(!this.forceSingle) {
+                if(!this.lastDrawn || (this.lastDrawn && this.lastDrawn.type !== elData.type)) {
+                    if(this.lastDrawn) {
+                        this.drawSingleNode(this.lastDrawn, 'end');
+                    }
+                    this.drawSingleNode(elData, 'start');
                 }
-                this.drawElement(elData, 'start');
+    
+                this.drawSingleNode(elData);
+            } else {
+                this.drawSingleNode(elData, 'forcesingle');
             }
             
-            this.drawElement(elData);
             this.lastDrawn = elData;
         }
         
         if(elData.children) {
             for(let i = 0; i < elData.children.length; i++) {
-                this.drawChildren(elData.children[i]);
+                this.drawNodeAndChildren(elData.children[i]);
             }
         }
-        if(elData.type !== 'line') {
-        
-        }
+        ctx.restore();
     }
     
-    private drawElement(elData: any, mode: ('start'|'normal'|'end') = 'normal') {
+    private drawSingleNode(elData: any, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         const type: string = elData.type;
         this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)](elData, mode);
     }
     
-    private drawCircle(elData, mode: ('start'|'normal'|'end') = 'normal') {
-        if(mode !== 'normal') return;
-        
-        let fill = elData.style.fill ? elData.style.fill : elData.fill;
-        if(!fill) fill = '#000';
-        let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-        
-        this.ctx.beginPath();
-        this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
-        this.ctx.strokeStyle = stroke;
-        this.ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
-        this.ctx.fill();
-        if(stroke) {
-            this.ctx.stroke();
+    private circlesByColor: {[color: string]: any} = {};
+    private drawCircle(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+        if(mode === 'normal') {
+            let fill = elData.style.fill ? elData.style.fill : elData.fill;
+            if(!fill) fill = '#000';
+            if(!this.circlesByColor[fill]) {
+                this.circlesByColor[fill] = [];
+            }
+            this.circlesByColor[fill].push(elData);
+        }
+        if(mode === 'start') {
+            this.circlesByColor = {};
+            return;
+        }
+        if(mode === 'end') {
+            for(let fillColor in this.circlesByColor) {
+                if(this.circlesByColor.hasOwnProperty(fillColor)) {
+                    this.ctx.fillStyle = fillColor;
+    
+                    let sampleData = this.circlesByColor[fillColor][0];
+                    let stroke = sampleData.style.stroke ? sampleData.style.stroke : sampleData.stroke;
+                    this.ctx.lineWidth = sampleData.strokeWidth;
+                    this.ctx.strokeStyle = stroke;
+                    
+                    this.ctx.beginPath();
+                    for(let elData of this.circlesByColor[fillColor]) {
+                        this.ctx.moveTo(elData.cx + elData.r, elData.cy);
+                        this.ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
+                    }
+                    this.ctx.fill();
+    
+                    if(stroke) {
+                        this.ctx.stroke();
+                    }
+                }
+            }
+            return;
+        }
+        if(mode === 'forcesingle') {
+            let fill = elData.style.fill ? elData.style.fill : elData.fill;
+            if(!fill) fill = '#000';
+            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+    
+            this.ctx.beginPath();
+            this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
+            this.ctx.strokeStyle = stroke;
+            this.ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
+            this.ctx.fill();
+            if(stroke) {
+                this.ctx.stroke();
+            }
         }
     }
     
-    private drawPath(elData, mode: ('start'|'normal'|'end') = 'normal') {
-        if(mode !== 'normal') return;
+    private drawPath(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+        if(mode !== 'normal' && mode !== 'forcesingle') return;
         
         let fill = elData.style.fill ? elData.style.fill : elData.fill;
         let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
@@ -108,8 +152,8 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         }
     }
     
-    private drawTspan(elData, mode: ('start'|'normal'|'end') = 'normal') {
-        if(mode !== 'normal') return;
+    private drawTspan(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+        if(mode !== 'normal' && mode !== 'forcesingle') return;
         
         this.ctx.font = "10px Arial";
         this.ctx.fillStyle = "#000000";
@@ -117,16 +161,27 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         this.ctx.fillText(elData.text, elData.x, elData.y);
     }
     
-    private drawLine(elData, mode: ('start'|'normal'|'end') = 'normal') {
-        if(mode !== 'normal') return;
-        
-        let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-        
-        this.ctx.beginPath();
-        this.ctx.strokeStyle = stroke;
-        this.ctx.moveTo(elData.x1, elData.y1);
-        this.ctx.lineTo(elData.x2, elData.y2);
-        this.ctx.stroke();
+    private drawLine(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+        if(mode === 'normal') {
+            this.ctx.moveTo(elData.x1, elData.y1);
+            this.ctx.lineTo(elData.x2, elData.y2);
+        }
+        if(mode === 'start') {
+            this.ctx.beginPath();
+            return;
+        }
+        if(mode === 'end') {
+            this.ctx.strokeStyle = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            this.ctx.stroke();
+            return;
+        }
+        if(mode === 'forcesingle') {
+            this.ctx.beginPath();
+            this.ctx.moveTo(elData.x1, elData.y1);
+            this.ctx.lineTo(elData.x2, elData.y2);
+            this.ctx.strokeStyle = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            this.ctx.stroke();
+        }
     }
     
     private applyTransform(transformString: string) {
