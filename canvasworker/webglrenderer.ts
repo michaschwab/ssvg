@@ -9,7 +9,7 @@ export default class Webglrenderer implements SvgToCanvasWorker {
     private lines;
     private linesData;
     
-    constructor(private vdom: VDom, private canvas: HTMLCanvasElement) {
+    constructor(private vdom: VDom, private canvas: HTMLCanvasElement, private onDrawn = () => {}) {
         
         const Stardust = (self as any)['Stardust'];
         
@@ -66,7 +66,7 @@ export default class Webglrenderer implements SvgToCanvasWorker {
         }
         this.countSinceLastFullSecond++;
         //console.log('drawn');
-        postMessage({msg: 'DRAWN'});
+        this.onDrawn();
     }
     
     private drawChildren(elData: any) {

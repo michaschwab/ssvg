@@ -1,4 +1,4 @@
-import VDom from "../util/vdom";
+import VDom, {SetPropertyQueue} from "../util/vdom";
 import SvgToCanvasWorker from "./canvasworker";
 //importScripts("https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js");
 //importScripts("https://raw.github.com/jonobr1/two.js/master/build/two.min.js");
@@ -8,7 +8,7 @@ import SvgToCanvasWorker from "./canvasworker";
     enumerable: true,
     writable: false
 });*/
-importScripts("http://localhost:8080/node_modules/svg2canvas/two.js");
+//importScripts("http://localhost:8080/node_modules/svg2canvas/two.js");
 //import Two from './two.js';
 
 export default class Twojsrenderer implements SvgToCanvasWorker {
@@ -18,8 +18,8 @@ export default class Twojsrenderer implements SvgToCanvasWorker {
     private lines;
     private linesData;
     
-    constructor(private vdom: VDom, private canvas: HTMLCanvasElement) {
-        
+    constructor(private vdom: VDom, private canvas: HTMLCanvasElement,
+                private offscreenCanvas: HTMLCanvasElement, private onDrawn = () => {}) {
         const Two = (self as any)['Two'];
         
         Object.defineProperty(this.canvas, 'style', {
@@ -29,26 +29,9 @@ export default class Twojsrenderer implements SvgToCanvasWorker {
         this.two = new Two({
             width: vdom.data.width,
             height: vdom.data.height,
-            type: 'WebGLRenderer',
+            type: Two.Types.canvas,
             domElement: canvas
         });
-        //console.log(this.canvas.style);
-        //this.platform = Stardust.platform("webgl-2d", this.canvas, this.vdom.data.width, this.vdom.data.height);
-        
-        /*const circleSpec = Stardust.mark.circle(8);
-        this.circles = Stardust.mark.create(circleSpec, this.platform);
-        this.circles
-            .attr('center', d => [d.cx, d.cy])
-            .attr('radius', d => d.r)
-            .attr('color', d => d.style.fill ? d.style.fill : d.fill);*/
-        
-        /*this.lines = Stardust.mark.create(Stardust.mark.line(), this.platform);
-        this.lines
-            .attr('width', 1)
-            //.attr('color', d => d.style.stroke ? d.style.stroke : d.stroke)
-            .attr('color', [0,0,0,1])
-            .attr('p1', d => [d.x1, d.y1])
-            .attr('p2', d => [d.x2, d.y2]);*/
         
         this.draw();
         
@@ -61,82 +44,98 @@ export default class Twojsrenderer implements SvgToCanvasWorker {
     private lastFullSecond = 0;
     private countSinceLastFullSecond = 0;
     
+    addNode(node) {
+        if(node.type === 'circle') {
+            node.twojsNode = this.two.makeCircle(50, 50, 5);
+        } else if(node.type === 'line') {
+            node.twojsNode = this.two.makeLine(10, 10, 20, 20);
+        }
+    }
+    
+    updatePropertiesFromQueue(setAttrQueue: SetPropertyQueue) {
+        for(let parentSelector in setAttrQueue) {
+            const parentNode = this.vdom.getParentNodeFromSelector(parentSelector);
+        
+            for(let attrName in setAttrQueue[parentSelector]) {
+                //const attrNameStart = attrName.substr(0, 'style;'.length);
+                for(let childIndex in setAttrQueue[parentSelector][attrName]) {
+                    const childNode = parentNode.children[childIndex];
+                    //console.log(childNode);
+                    const value = setAttrQueue[parentSelector][attrName][childIndex];
+                    const twojsNode = childNode.twojsNode;
+                    
+                    if(childNode.type === 'circle' && childNode.twojsNode) {
+                        
+                        if(attrName === 'fill') {
+                            twojsNode.fill = value;//'#FF8000';
+                            //safeLog('setting circle fill');
+                        } else if(attrName === 'stroke' || attrName === 'style;stroke') {
+                            twojsNode.stroke = value;
+                            //safeLog('setting circle stroke to ', value);
+                        } else if(attrName === 'r') {
+                            twojsNode.r = value;
+                        } else if(attrName === 'cx') {
+                            twojsNode.translation.x = value;
+                            //twojsNode.x = typeof value === 'string' ? parseInt(value) : Math.round(value);
+                            
+                        } else if(attrName === 'cy') {
+                            twojsNode.translation.y = value;
+                            //twojsNode.y = value;
+                        } else {
+                            //childNode.twojsNode[attrName] = value;
+                        }
+                    } else if(childNode.type === 'line' && childNode.twojsNode) {
+                        
+                        if(attrName === 'x1') {
+                            twojsNode.vertices[0].x = value;
+                        } else if(attrName === 'y1') {
+                            twojsNode.vertices[0].y = value;
+                        } else if(attrName === 'x2') {
+                            twojsNode.vertices[1].x = value;
+                        } else if(attrName === 'y2') {
+                            twojsNode.vertices[1].y = value;
+                        } else if(attrName === 'stroke' || attrName === 'style;stroke') {
+                            twojsNode.stroke = value;
+                            console.count('setting line stroke');
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     draw() {
         //this.platform.clear();
         this.circleData = [];
         this.linesData = [];
-        this.drawChildren(this.vdom.data);
         
         this.two.update();
         
         const fullSecond = Math.round(performance.now() / 1000);
         if(fullSecond !== this.lastFullSecond) {
             this.lastFullSecond = fullSecond;
-            console.log(this.countSinceLastFullSecond);
+            //console.log(this.countSinceLastFullSecond);
             this.countSinceLastFullSecond = 0;
+            //console.log(this.two);
         }
         this.countSinceLastFullSecond++;
         //console.log('drawn');
-        postMessage({msg: 'DRAWN'});
+        this.onDrawn();
     }
+}
+
+let safeLogCount = 0;
+function safeLog(...logContents) {
     
-    private drawChildren(elData: any) {
-        
-        const Stardust = (self as any)['Stardust'];
-        
-        //if(elData.type !== 'line')
-        {
-            //this.applyTransform(elData.transform);
-        }
-        
-        if(elData.type && elData.type !== 'g') {
-            let fill = elData.style.fill ? elData.style.fill : elData.fill;
-            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-            let strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.log(...logContents);
+    }
+}
+function safeErrorLog(...logContents) {
     
-            if(elData.type === 'title') {
-                return;
-            }
-            
-            if(elData.type === 'circle') {
-    
-                const circle = this.two.makeCircle(elData.cx, elData.cy, elData.r);
-                circle.fill = fill;
-                circle.stroke = stroke;
-                circle.lineWidth = strokeWidth;
-                
-            } else if(elData.type === 'line') {
-                this.linesData.push(elData);
-                /*ctx.moveTo(elData.x1, elData.y1);
-                ctx.lineTo(elData.x2, elData.y2);*/
-            } else if(elData.type === 'path') {
-                /*let p = new Path2D(elData.d);
-                //ctx.stroke(p);
-                ctx.fillStyle = fill;
-                //console.log(elData);
-                //ctx.fill(p);
-                if(stroke !== 'none') {
-                    ctx.lineWidth = strokeWidth;
-                    ctx.strokeStyle = strokeWidth + ' ' + stroke;
-                    ctx.stroke(p);
-                }*/
-            } else if(elData.type === 'tspan') {
-                /*ctx.font = "10px Arial";
-                ctx.fillStyle = "#000000";
-                ctx.textAlign = elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor;
-                ctx.fillText(elData.text, elData.x, elData.y);*/
-            }
-            this.lastDrawn = elData;
-        }
-        
-        if(elData.children) {
-            for(let i = 0; i < elData.children.length; i++) {
-                this.drawChildren(elData.children[i]);
-            }
-        }
-        if(elData.type !== 'line') {
-            //console.log(elData.type);
-            //ctx.restore();
-        }
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.error(...logContents);
     }
 }

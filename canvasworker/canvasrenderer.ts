@@ -23,6 +23,8 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     }
     
     private lastDrawn: any = null;
+    private lastFullSecond = 0;
+    private countSinceLastFullSecond = 0;
     
     draw() {
         const ctx = this.ctx;
@@ -41,6 +43,14 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         }
         
         this.onDrawn();
+    
+        const fullSecond = Math.round(performance.now() / 1000);
+        if(fullSecond !== this.lastFullSecond) {
+            this.lastFullSecond = fullSecond;
+            console.log(this.countSinceLastFullSecond);
+            this.countSinceLastFullSecond = 0;
+        }
+        this.countSinceLastFullSecond++;
     }
     
     private drawNodeAndChildren(elData: any) {

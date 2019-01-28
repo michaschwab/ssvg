@@ -1,4 +1,4 @@
-class SetPropertyQueue {
+export class SetPropertyQueue {
     [parentSelector: string]: {
         [attrName: string]: {
             [childIndex: number]: string|number
@@ -32,39 +32,42 @@ export default class VDom {
         }
         
         parentNode.children.push(nodeData);
+        return nodeData;
+    }
+    
+    getParentNodeFromSelector(parentSelector: string) {
+        if(!parentSelector) {
+            console.error('no parent selector', parentSelector);
+        }
+        //if(setAttrQueue.hasOwnProperty(parentSelector)) {
+        let parentNode;
+        if(parentSelector === 'SVG_PARENT') {
+            parentNode = {children: [this.data]};
+        } else {
+            parentNode = this.getVisNodeFromSelector(parentSelector);
+        }
+        if(!parentNode) {
+            console.error(parentNode, parentSelector);
+        }
+        return parentNode;
     }
     
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueue) {
         for(let parentSelector in setAttrQueue) {
-            if(!parentSelector) {
-                console.error(setAttrQueue);
-            }
-            //if(setAttrQueue.hasOwnProperty(parentSelector)) {
-                let parentNode;
-                if(parentSelector === 'SVG_PARENT') {
-                    parentNode = {children: [this.data]};
-                } else {
-                    parentNode = this.getVisNodeFromSelector(parentSelector);
-                }
-                if(!parentNode) {
-                    console.error(parentNode, parentSelector);
-                }
+            const parentNode = this.getParentNodeFromSelector(parentSelector);
                 
-                for(let attrName in setAttrQueue[parentSelector]) {
-                    //if(setAttrQueue[parentSelector].hasOwnProperty(attrName)) {
-                        const attrNameStart = attrName.substr(0, 'style;'.length);
-                        for(let childIndex in setAttrQueue[parentSelector][attrName]) {
-                            const childNode = parentNode.children[childIndex];
-                            if(attrNameStart === 'style;') {
-                                const attrNameEnd = attrName.substr('style;'.length);
-                                childNode['style'][attrNameEnd] = setAttrQueue[parentSelector][attrName][childIndex];
-                            } else {
-                                childNode[attrName] = setAttrQueue[parentSelector][attrName][childIndex];
-                            }
-                        }
-                    //}
+            for(let attrName in setAttrQueue[parentSelector]) {
+                const attrNameStart = attrName.substr(0, 'style;'.length);
+                for(let childIndex in setAttrQueue[parentSelector][attrName]) {
+                    const childNode = parentNode.children[childIndex];
+                    if(attrNameStart === 'style;') {
+                        const attrNameEnd = attrName.substr('style;'.length);
+                        childNode['style'][attrNameEnd] = setAttrQueue[parentSelector][attrName][childIndex];
+                    } else {
+                        childNode[attrName] = setAttrQueue[parentSelector][attrName][childIndex];
+                    }
                 }
-            //}
+            }
         }
     }
     

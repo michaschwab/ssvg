@@ -15,13 +15,16 @@ export default class SvgToCanvas {
 
     private svg: SVGElement|undefined;
     private canvas: HTMLCanvasElement;
+    private canvas2: HTMLCanvasElement;
     private svgAssignedAndSizeSet = false;
     
     constructor(private safeMode = false, private maxPixelRatio?: number|undefined, private useWorker = true) {
         this.canvas = document.createElement('canvas');
+        this.canvas2 = document.createElement('canvas');
         if(!('OffscreenCanvas' in window)) {
             this.useWorker = false;
         }
+        //this.useWorker = false;
         
         if(this.useWorker) {
             const scripts = Array.from(document.getElementsByTagName("script"));
@@ -94,8 +97,10 @@ export default class SvgToCanvas {
                 });
             });
         } else {
-            this.elementHandler.useAttrQueue();
-            this.renderer.draw();
+            this.elementHandler.useAttrQueue(queue => {
+                this.renderer.updatePropertiesFromQueue(queue);
+                this.renderer.draw();
+            });
         }
     }
     
@@ -112,15 +117,21 @@ export default class SvgToCanvas {
         this.canvas.style.height = this.vdom.data.height + 'px';
         this.canvas.width = this.vdom.data.width * this.vdom.data.scale;
         this.canvas.height = this.vdom.data.height * this.vdom.data.scale;
+        this.canvas2.style.width = this.vdom.data.width + 'px';
+        this.canvas2.style.height = this.vdom.data.height + 'px';
+        this.canvas2.width = this.vdom.data.width * this.vdom.data.scale;
+        this.canvas2.height = this.vdom.data.height * this.vdom.data.scale;
         
         if(this.useWorker) {
             const offscreen = (this.canvas as any).transferControlToOffscreen();
+            const offscreen2 = (this.canvas2 as any).transferControlToOffscreen();
             this.sendToWorker({cmd: 'INIT', data: {
                     canvas: offscreen,
+                    offscreenCanvas: offscreen2,
                     visData: this.vdom.data,
                     safeMode: this.safeMode
                 }
-            }, [offscreen]);
+            }, [offscreen, offscreen2]);
         } else {
             this.renderer = new Canvasrenderer(this.vdom, this.canvas, this.safeMode);
         }
@@ -281,6 +292,10 @@ export default class SvgToCanvas {
                         parentNodeSelector: parentSelector
                     },
                 });
+            } else {
+                if(me.renderer.addNode) {
+                    me.renderer.addNode(node);
+                }
             }
     
             if(me.unassignedNodes.indexOf(el) !== -1) {
