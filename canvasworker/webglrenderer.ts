@@ -1,6 +1,8 @@
 import VDom from "../util/vdom";
 import SvgToCanvasWorker from "./canvasworker";
-importScripts("https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js");
+if('importScripts' in self) {
+    importScripts("https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js");
+}
 
 export default class Webglrenderer implements SvgToCanvasWorker {
     private platform;

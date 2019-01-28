@@ -8,8 +8,9 @@ import SvgToCanvasWorker from "./canvasworker";
     enumerable: true,
     writable: false
 });*/
-//importScripts("http://localhost:8080/node_modules/svg2canvas/two.js");
-//import Two from './two.js';
+if('importScripts' in self) {
+    importScripts("http://localhost:8080/node_modules/svg2canvas/two.js");
+}
 
 export default class Twojsrenderer implements SvgToCanvasWorker {
     private two: any;

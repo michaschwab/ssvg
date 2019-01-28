@@ -3,6 +3,7 @@ import CanvasWorkerMessage from "../util/canvas-worker-message"
 import Elementhandler from "./elementhandler";
 import SvgToCanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
+import Webglrenderer from "../canvasworker/webglrenderer";
 
 export default class SvgToCanvas {
     private unassignedNodes: Node[] = [];
@@ -24,7 +25,6 @@ export default class SvgToCanvas {
         if(!('OffscreenCanvas' in window)) {
             this.useWorker = false;
         }
-        //this.useWorker = false;
         
         if(this.useWorker) {
             const scripts = Array.from(document.getElementsByTagName("script"));
@@ -98,7 +98,9 @@ export default class SvgToCanvas {
             });
         } else {
             this.elementHandler.useAttrQueue(queue => {
-                this.renderer.updatePropertiesFromQueue(queue);
+                if(this.renderer.updatePropertiesFromQueue) {
+                    this.renderer.updatePropertiesFromQueue(queue);
+                }
                 this.renderer.draw();
             });
         }
@@ -133,7 +135,7 @@ export default class SvgToCanvas {
                 }
             }, [offscreen, offscreen2]);
         } else {
-            this.renderer = new Canvasrenderer(this.vdom, this.canvas, this.safeMode);
+            this.renderer = new Webglrenderer(this.vdom, this.canvas, () => {});
         }
         
         this.svgAssignedAndSizeSet = true;
