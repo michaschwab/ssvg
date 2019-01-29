@@ -1,8 +1,8 @@
 export class SetPropertyQueue {
     [parentSelector: string]: {
-        [attrName: string]: {
-            [childIndex: number]: string|number
-        }
+        [attrName: string]:
+            string[]|SharedArrayBuffer
+        
     }
 }
 
@@ -58,13 +58,28 @@ export default class VDom {
                 
             for(let attrName in setAttrQueue[parentSelector]) {
                 const attrNameStart = attrName.substr(0, 'style;'.length);
-                for(let childIndex in setAttrQueue[parentSelector][attrName]) {
+                
+                let values;
+                let factor;
+                
+                if(setAttrQueue[parentSelector][attrName] instanceof SharedArrayBuffer) {
+                    values = new Int32Array(<ArrayBuffer> setAttrQueue[parentSelector][attrName]);
+                    factor = 0.1;
+                } else {
+                    values = setAttrQueue[parentSelector][attrName];
+                }
+                
+                for(let childIndex in values) {
                     const childNode = parentNode.children[childIndex];
+                    if(!childNode) {
+                        continue;
+                    }
+                    const value = factor ? factor * values[childIndex] : values[childIndex];
                     if(attrNameStart === 'style;') {
                         const attrNameEnd = attrName.substr('style;'.length);
-                        childNode['style'][attrNameEnd] = setAttrQueue[parentSelector][attrName][childIndex];
+                        childNode['style'][attrNameEnd] = value;
                     } else {
-                        childNode[attrName] = setAttrQueue[parentSelector][attrName][childIndex];
+                        childNode[attrName] = value;
                     }
                 }
             }

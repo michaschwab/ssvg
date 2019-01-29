@@ -89,6 +89,10 @@ export default class SvgToCanvas {
         }
         if(this.useWorker) {
             this.elementHandler.useAttrQueue(queue => {
+                if(Object.keys(queue).length === 0) {
+                    requestAnimationFrame(() => this.updateCanvas());
+                    return;
+                }
                 this.sendToWorker({
                     cmd: 'UPDATE_NODES',
                     data: {
@@ -135,7 +139,7 @@ export default class SvgToCanvas {
                 }
             }, [offscreen, offscreen2]);
         } else {
-            this.renderer = new Webglrenderer(this.vdom, this.canvas, () => {});
+            this.renderer = new Canvasrenderer(this.vdom, this.canvas, this.safeMode, () => {});
         }
         
         this.svgAssignedAndSizeSet = true;

@@ -3,7 +3,8 @@ import VDom from "../util/vdom";
 export default class Elementhandler {
     
     private vdom: VDom;
-    private setAttrQueue: {[parentSelector: string]: { [attrName: string]: { [childIndex: number]: any }}} = {};
+    private sharedArrays: {[parentSelector: string]: { [attrName: string]: Int32Array}} = {};
+    private setAttrQueue: {[parentSelector: string]: { [attrName: string]: (string[]|SharedArrayBuffer)}} = {};
     private addedNodesWithoutApplyingStyles = false;
     private nodesToElements: { nodes: any[], elements: any[]} = { nodes: [], elements: []};
     
@@ -68,8 +69,12 @@ export default class Elementhandler {
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
             
-            this.setAttrQueue[parentSelector][attrName][i] =
-                typeof value === "function" ? value(svgEl.__data__, i) : value;
+            const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
+            if(this.useSharedArrayFor.indexOf(attrName) === -1) {
+                this.setAttrQueue[parentSelector][attrName][i] = evaluatedValue;
+            } else {
+                this.sharedArrays[parentSelector][attrName][i] = evaluatedValue * 10; // For precision.
+            }
             
             //safeLog(attrName, this.setAttrQueue[parentSelector][attrName][i])
         }
@@ -80,6 +85,8 @@ export default class Elementhandler {
         }
     }
     
+    private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2'];
+    
     private checkAttrName(parentSelector, attrName) {
         if(attrName === 'class') {
             attrName = 'className';
@@ -87,9 +94,19 @@ export default class Elementhandler {
     
         if(!this.setAttrQueue[parentSelector]) {
             this.setAttrQueue[parentSelector] = {};
+            this.sharedArrays[parentSelector] = {};
         }
         if(!this.setAttrQueue[parentSelector][attrName]) {
-            this.setAttrQueue[parentSelector][attrName] = {};
+            if(this.useSharedArrayFor.indexOf(attrName) === -1) {
+                this.setAttrQueue[parentSelector][attrName] = [];
+            } else {
+                const length = 30000;
+                const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
+                
+                this.setAttrQueue[parentSelector][attrName] = buffer;
+                this.sharedArrays[parentSelector][attrName] = new Int32Array(buffer);
+            }
+            
         }
 
         return attrName;
@@ -231,17 +248,17 @@ export default class Elementhandler {
                         if(rule.style['stroke-opacity']) {
                             //child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
                             this.checkAttrName(parentSelector, 'style;stroke-opacity');
-                            this.setAttrQueue[parentSelector]['style;stroke-opacity'][childIndex] = parseFloat(rule.style['stroke-opacity']);
+                            this.setAttrQueue[parentSelector]['style;stroke-opacity'][childIndex] = rule.style['stroke-opacity'];
                         }
                         if(rule.style['stroke-width']) {
                             //child.style['stroke-width'] = parseFloat(rule.style['stroke-width']);
                             this.checkAttrName(parentSelector, 'style;stroke-width');
-                            this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = parseFloat(rule.style['stroke-width']);
+                            this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = rule.style['stroke-width'];
                         }
                         if(rule.style['fill-opacity']) {
                             //child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
                             this.checkAttrName(parentSelector, 'style;fill-opacity');
-                            this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] = parseFloat(rule.style['fill-opacity']);
+                            this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] = rule.style['fill-opacity'];
                         }
                     }
                 }

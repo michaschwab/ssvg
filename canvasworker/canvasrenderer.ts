@@ -47,7 +47,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         const fullSecond = Math.round(performance.now() / 1000);
         if(fullSecond !== this.lastFullSecond) {
             this.lastFullSecond = fullSecond;
-            console.log(this.countSinceLastFullSecond);
+            //console.log(this.countSinceLastFullSecond);
             this.countSinceLastFullSecond = 0;
         }
         this.countSinceLastFullSecond++;
