@@ -28,7 +28,7 @@ export default class SvgToCanvas {
         
         if(this.useWorker) {
             const scripts = Array.from(document.getElementsByTagName("script"));
-            const thisScript = scripts.filter(script => script.src.indexOf('svg2canvas') !== -1 &&
+            const thisScript = scripts.filter(script => script.src.indexOf('ssvg') !== -1 &&
                 script.src.indexOf('frontend.js') !== -1);
             const path = thisScript[0].src.substr(0, thisScript[0].src.length - 'frontend.js'.length);
     
