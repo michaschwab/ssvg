@@ -5,7 +5,7 @@ import SvgToCanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
 import Webglrenderer from "../canvasworker/webglrenderer";
 
-export default class SvgToCanvas {
+export default class SSVG {
     private unassignedNodes: Node[] = [];
     private worker: Worker;
     private elementHandler: Elementhandler;

@@ -3,7 +3,7 @@ module.exports = [{
   output: {
     filename: "frontend.js",
     path: __dirname + "/dist",
-    library: "SvgToCanvas",
+    library: "SSVG",
     libraryTarget: 'umd',
   },
 

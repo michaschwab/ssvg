@@ -9,7 +9,7 @@ import SvgToCanvasWorker from "./canvasworker";
     writable: false
 });*/
 if('importScripts' in self) {
-    importScripts("http://localhost:8080/node_modules/svg2canvas/two.js");
+    importScripts("http://localhost:8080/node_modules/ssvg/two.js");
 }
 
 export default class Twojsrenderer implements SvgToCanvasWorker {
@@ -97,7 +97,7 @@ export default class Twojsrenderer implements SvgToCanvasWorker {
                             twojsNode.vertices[1].y = value;
                         } else if(attrName === 'stroke' || attrName === 'style;stroke') {
                             twojsNode.stroke = value;
-                            console.count('setting line stroke');
+                            //console.count('setting line stroke');
                         }
                     }
                 }

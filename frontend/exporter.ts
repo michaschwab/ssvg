@@ -1,3 +1,3 @@
-import SvgToCanvas from "./svgtocanvas";
+import SSVG from "./ssvg";
 
-export = SvgToCanvas;
+export = SSVG;
