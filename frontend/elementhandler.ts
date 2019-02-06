@@ -315,7 +315,7 @@ export default class Elementhandler {
         return this.getElementSelector(this.getElementFromNode(node));
     }
     
-    getElementSelector(element: Element): string {
+    getElementSelector(element: Element): string|null {
         let sel = (element as any)['selector'];
         
         if(sel)
@@ -332,7 +332,8 @@ export default class Elementhandler {
                 
                 let node = this.vdom.getVisNodeFromSelector(parentSelector);
                 if(!node) {
-                    console.error(parentSelector, parentSelector.length, this.vdom.data);
+                    console.warn('Element not found', parentSelector, parentSelector.length, this.vdom.data);
+                    return null;
                 }
                 const index = node.children.length + 1;
                 let name = element.localName;

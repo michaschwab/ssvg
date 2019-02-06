@@ -18,6 +18,10 @@ export default class SSVG {
     private canvas: HTMLCanvasElement;
     private svgAssignedAndSizeSet = false;
     
+    private lastTenCanvasDrawTimes: number[] = [];
+    
+    private showFpsElement: HTMLElement;
+    
     constructor(private safeMode = false, private maxPixelRatio?: number|undefined, private useWorker = true) {
         this.canvas = document.createElement('canvas');
         if(!('OffscreenCanvas' in window)) {
@@ -34,11 +38,19 @@ export default class SSVG {
     
             this.worker.onmessage = e => {
                 if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
+                    this.logDrawn();
                     this.updateCanvas();
                 }
             };
+            const raf = () => {
+                this.updateFps();
+                requestAnimationFrame(raf);
+            };
+            raf();
         } else {
             const raf = () => {
+                this.updateFps();
+                this.logDrawn();
                 this.updateCanvas();
                 requestAnimationFrame(raf);
             };
@@ -57,6 +69,15 @@ export default class SSVG {
         this.replaceNativeCreateElement();
         this.replaceNativeAppend();
         this.replaceD3Attr();
+        
+        this.showFpsElement = document.createElement('div');
+        this.showFpsElement.style.position = 'absolute';
+        this.showFpsElement.style.top = '30px';
+        this.showFpsElement.style.right = '30px';
+        this.showFpsElement.style.opacity = '0.2';
+        this.showFpsElement.style.fontSize = '50px';
+        
+        document.body.appendChild(this.showFpsElement);
     }
     
     private setupElementsIfSvgExists(svgEl?: SVGElement) {
@@ -265,6 +286,9 @@ export default class SSVG {
                 return me.getNewAppend(origAppend).call(el, el2);
             };
             const parentSelector = me.elementHandler.getElementSelector(this);
+            if(parentSelector === null) {
+                return origAppend.apply(this, arguments);
+            }
             (el as any)['parentSelector'] = parentSelector;
     
             const selector = me.elementHandler.getElementSelector(<Element><any> el);
@@ -405,6 +429,22 @@ export default class SSVG {
             return distance < visNode.r;
         }
         return false;
+    }
+    
+    private logDrawn() {
+        this.lastTenCanvasDrawTimes.push(Date.now());
+        
+        if(this.lastTenCanvasDrawTimes.length > 10) {
+            this.lastTenCanvasDrawTimes.shift(); // Remove first item
+        }
+    }
+    
+    private updateFps() {
+        if(this.lastTenCanvasDrawTimes.length) {
+            const timeForTenDrawsMs = Date.now() - this.lastTenCanvasDrawTimes[0];
+            const fps = Math.round(this.lastTenCanvasDrawTimes.length / timeForTenDrawsMs * 1000);
+            this.showFpsElement.innerText = fps + ' FPS';
+        }
     }
     
     private sendToWorker(msg: CanvasWorkerMessage, data?: any) {
