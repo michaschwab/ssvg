@@ -100,7 +100,7 @@ export default class Elementhandler {
             if(this.useSharedArrayFor.indexOf(attrName) === -1) {
                 this.setAttrQueue[parentSelector][attrName] = [];
             } else {
-                const length = 30000;
+                const length = 10000;
                 const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
                 
                 this.setAttrQueue[parentSelector][attrName] = buffer;

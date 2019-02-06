@@ -16,12 +16,10 @@ export default class SSVG {
 
     private svg: SVGElement|undefined;
     private canvas: HTMLCanvasElement;
-    private canvas2: HTMLCanvasElement;
     private svgAssignedAndSizeSet = false;
     
     constructor(private safeMode = false, private maxPixelRatio?: number|undefined, private useWorker = true) {
         this.canvas = document.createElement('canvas');
-        this.canvas2 = document.createElement('canvas');
         if(!('OffscreenCanvas' in window)) {
             this.useWorker = false;
         }
@@ -123,21 +121,15 @@ export default class SSVG {
         this.canvas.style.height = this.vdom.data.height + 'px';
         this.canvas.width = this.vdom.data.width * this.vdom.data.scale;
         this.canvas.height = this.vdom.data.height * this.vdom.data.scale;
-        this.canvas2.style.width = this.vdom.data.width + 'px';
-        this.canvas2.style.height = this.vdom.data.height + 'px';
-        this.canvas2.width = this.vdom.data.width * this.vdom.data.scale;
-        this.canvas2.height = this.vdom.data.height * this.vdom.data.scale;
         
         if(this.useWorker) {
             const offscreen = (this.canvas as any).transferControlToOffscreen();
-            const offscreen2 = (this.canvas2 as any).transferControlToOffscreen();
             this.sendToWorker({cmd: 'INIT', data: {
                     canvas: offscreen,
-                    offscreenCanvas: offscreen2,
                     visData: this.vdom.data,
                     safeMode: this.safeMode
                 }
-            }, [offscreen, offscreen2]);
+            }, [offscreen]);
         } else {
             this.renderer = new Canvasrenderer(this.vdom, this.canvas, this.safeMode, () => {});
         }
