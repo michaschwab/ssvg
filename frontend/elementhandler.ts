@@ -312,7 +312,15 @@ export default class Elementhandler {
     }
 
     getNodeSelector(node: any): string {
-        return this.getElementSelector(this.getElementFromNode(node));
+        if(node === this.vdom.data) {
+            return 'svg';
+        }
+        const element = this.getElementFromNode(node);
+        if(!element) {
+            console.error('could not find element for node ', node);
+            return '';
+        }
+        return this.getElementSelector(element);
     }
     
     getElementSelector(element: Element): string|null {
