@@ -87,7 +87,7 @@ export default class Elementhandler {
     
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2'];
     
-    private checkAttrName(parentSelector, attrName, useBuffer = false) {
+    private checkAttrName(parentSelector: string, attrName: string, useBuffer = false) {
         if(attrName === 'class') {
             attrName = 'className';
         }
@@ -100,7 +100,7 @@ export default class Elementhandler {
             if(!useBuffer || this.useSharedArrayFor.indexOf(attrName) === -1) {
                 this.setAttrQueue[parentSelector][attrName] = [];
             } else {
-                const length = 10000;
+                const length = this.vdom.getParentNodeFromSelector(parentSelector).children.length;
                 const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
                 
                 this.setAttrQueue[parentSelector][attrName] = buffer;
