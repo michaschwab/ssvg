@@ -69,6 +69,7 @@ export default class SSVG {
         this.replaceNativeCreateElement();
         this.replaceNativeAppend();
         this.replaceD3Attr();
+        this.replaceD3SelectAll();
         
         this.showFpsElement = document.createElement('div');
         this.showFpsElement.style.position = 'absolute';
@@ -175,6 +176,29 @@ export default class SSVG {
                 }
         
                 return originalOn.apply(this, arguments);
+            };
+        }
+    }
+    
+    private replaceD3SelectAll() {
+        if((window as any)['d3']) {
+            const me = this;
+            const d3 = (window as any)['d3'];
+            let origSelectAll = d3.selection.prototype.selectAll;
+    
+            d3.selection.prototype.selectAll = function(selector) {
+                const el = this._groups[0][0];
+                
+                const node = me.elementHandler.getVisNode(el);
+                const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
+                const childElements = childNodes.map(node => {
+                    return me.elementHandler.getElementFromNode(node);
+                });
+                
+                const returnValue = origSelectAll.apply(this, arguments);
+                returnValue._groups[0] = childElements;
+                
+                return returnValue;
             };
         }
     }
@@ -305,6 +329,8 @@ export default class SSVG {
             const node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);
             me.elementHandler.linkNodeToElement(node, el);
             me.elementHandler.addNodeToParent(parentNode, node);
+            
+            //console.log(parentNode, node);
     
             if(me.useWorker) {
                 me.sendToWorker({

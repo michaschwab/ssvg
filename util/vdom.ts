@@ -101,7 +101,7 @@ export default class VDom {
             }
         }
         
-        const selectedNodes: HTMLElement[] = [];
+        const selectedNodes: any[] = [];
         this.findMatchingChildren(this.data, selector, 0, selectedNodes);
         
         if(selectedNodes && selectedNodes.length === 1) {
@@ -115,6 +115,12 @@ export default class VDom {
             return el;
         }
         return null;
+    }
+    
+    public getVisNodesFromSelector(visNode, selector: string) {
+        const selectedNodes = [];
+        this.findMatchingChildren(visNode, selector, 0, selectedNodes);
+        return selectedNodes;
     }
     
     private findMatchingChildren(visNode: any, selector: string, matchIndex: number, selectedNodes: any[], selectedNodeSelectors: string[] = []) {

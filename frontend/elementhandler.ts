@@ -55,6 +55,10 @@ export default class Elementhandler {
     
     queueSetAttributeOnSelection(elements, attrName, value) {
         if(!elements.length) return;
+        if(!elements[0]) {
+            //console.error('selection elements not found', elements);
+            return;
+        }
         
         const parent = elements[0].parentNode;
         let parentSelector = parent === this.svg ? "svg" : parent['selector'];
@@ -141,7 +145,7 @@ export default class Elementhandler {
         return node[name];
     }
     
-    private getVisNode(element: Element): any|null {
+    getVisNode(element: Element): any|null {
         const selector = this.getElementSelector(element);
         
         return this.vdom.getVisNodeFromSelector(selector);
