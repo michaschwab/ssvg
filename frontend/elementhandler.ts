@@ -44,7 +44,7 @@ export default class Elementhandler {
             console.error('selector not found');
         }
     
-        attrName = this.checkAttrName(parentSelector, attrName);
+        attrName = this.checkAttrName(parentSelector, attrName, false);
         this.setAttrQueue[parentSelector][attrName][childIndex] = value;
     
         if(attrName === 'className') {
@@ -64,7 +64,7 @@ export default class Elementhandler {
             console.error('selector not found');
         }
 
-        attrName = this.checkAttrName(parentSelector, attrName);
+        attrName = this.checkAttrName(parentSelector, attrName, true);
         
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
@@ -87,7 +87,7 @@ export default class Elementhandler {
     
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2'];
     
-    private checkAttrName(parentSelector, attrName) {
+    private checkAttrName(parentSelector, attrName, useBuffer = false) {
         if(attrName === 'class') {
             attrName = 'className';
         }
@@ -97,7 +97,7 @@ export default class Elementhandler {
             this.sharedArrays[parentSelector] = {};
         }
         if(!this.setAttrQueue[parentSelector][attrName]) {
-            if(this.useSharedArrayFor.indexOf(attrName) === -1) {
+            if(!useBuffer || this.useSharedArrayFor.indexOf(attrName) === -1) {
                 this.setAttrQueue[parentSelector][attrName] = [];
             } else {
                 const length = 10000;
