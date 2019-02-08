@@ -4,6 +4,7 @@ import Elementhandler from "./elementhandler";
 import SvgToCanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
 import Webglrenderer from "../canvasworker/webglrenderer";
+import DrawingUtils from "../canvasworker/drawingUtils";
 
 export default class SSVG {
     private unassignedNodes: Node[] = [];
@@ -460,7 +461,18 @@ export default class SSVG {
     {
         if(visNode.type === 'circle')
         {
-            let distance = Math.sqrt(Math.pow(visNode.cx - x, 2) + Math.pow(visNode.cy - y, 2));
+            let cx = visNode.cx || 0;
+            let cy = visNode.cy || 0;
+            if(visNode.transform) {
+                const transform = DrawingUtils.parseTransform(visNode.transform);
+                if(transform.translateX) {
+                    cx += transform.translateX;
+                }
+                if(transform.translateY) {
+                    cy += transform.translateY;
+                }
+            }
+            let distance = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
             return distance < visNode.r;
         }
         return false;
