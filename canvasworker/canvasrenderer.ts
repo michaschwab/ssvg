@@ -122,8 +122,14 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                     
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillColor]) {
-                        this.ctx.moveTo(elData.cx + elData.r, elData.cy);
-                        this.ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
+                        const cx = elData.cx || 0;
+                        const cy = elData.cy || 0;
+                        this.ctx.save();
+                        this.applyTransform(elData.transform);
+                        this.ctx.moveTo(cx + elData.r, cy);
+                        this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
+                        this.ctx.restore();
+                        this.ctx.restore();
                     }
                     this.ctx.fill();
     
@@ -137,9 +143,9 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         if(mode === 'forcesingle') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
             if(!fill) fill = '#000';
-            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-            let cx = elData.cx || 0;
-            let cy = elData.cy || 0;
+            const stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            const cx = elData.cx || 0;
+            const cy = elData.cy || 0;
     
             this.ctx.beginPath();
             this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
@@ -216,7 +222,6 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     private applyTransform(transformString: string) {
         const transform = transformString ? DrawingUtils.parseTransform(transformString) : null;
         if(transform) {
-            
             if(transform.rotate) {
                 //console.log(transform.rotate);
             }
