@@ -187,7 +187,8 @@ export default class SSVG {
             let origSelectAll = d3.selection.prototype.selectAll;
     
             d3.selection.prototype.selectAll = function(selector) {
-                const el = this._groups[0][0];
+                const elements = this._groups ? this._groups[0] : this[0];
+                const el = elements[0];
                 
                 const node = me.elementHandler.getVisNode(el);
                 const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
@@ -196,8 +197,16 @@ export default class SSVG {
                 });
                 
                 const returnValue = origSelectAll.apply(this, arguments);
-                returnValue._groups[0] = childElements;
                 
+                if(returnValue._groups) {
+                    returnValue._groups[0] = childElements;
+                } else {
+                    // Older d3 versions
+                    const parentNode = returnValue[0].parentNode;
+                    returnValue[0] = childElements;
+                    returnValue[0].parentNode = parentNode;
+                }
+    
                 return returnValue;
             };
         }
