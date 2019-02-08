@@ -222,10 +222,10 @@ export default class Elementhandler {
         
         const checkNode = (currentNode: any, looseIndex = 0, strictIndex = 0): boolean => {
             const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
-            let partialMatch = false;
-
+            
             for(let childIndex = 0; childIndex < currentNode.children.length; childIndex++) {
                 const child = currentNode.children[childIndex];
+                let partialMatch = false;
                 if(selPart[0] === '.') {
                     if(selPart.substr(1) === child.className) {
                         partialMatch = true;
