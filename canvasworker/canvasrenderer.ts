@@ -86,6 +86,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             }
         }
         ctx.restore();
+        ctx.restore();
     }
     
     private drawSingleNode(elData: any, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
@@ -137,11 +138,13 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
             if(!fill) fill = '#000';
             let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            let cx = elData.cx || 0;
+            let cy = elData.cy || 0;
     
             this.ctx.beginPath();
             this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
             this.ctx.strokeStyle = stroke;
-            this.ctx.arc(elData.cx, elData.cy, elData.r, 0, 2 * Math.PI);
+            this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
             this.ctx.fill();
             if(stroke) {
                 this.ctx.stroke();
