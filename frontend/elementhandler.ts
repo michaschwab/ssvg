@@ -265,6 +265,11 @@ export default class Elementhandler {
                             this.checkAttrName(parentSelector, 'style;fill-opacity');
                             this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] = rule.style['fill-opacity'];
                         }
+                        if(rule.style['fill']) {
+                            //child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
+                            this.checkAttrName(parentSelector, 'style;fill');
+                            this.setAttrQueue[parentSelector]['style;fill'][childIndex] = rule.style['fill'];
+                        }
                     }
                 }
             }
