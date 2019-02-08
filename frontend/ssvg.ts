@@ -168,9 +168,16 @@ export default class SSVG {
     
             d3.selection.prototype.on = function()
             {
-                const el = this._parents && this._parents.length ? this._parents[0] : null;
+                let el = this._parents && this._parents.length ? this._parents[0] : null;
+                let isWithinSvg = false;
+                while(el && el.parentNode) {
+                    if(el === me.svg) {
+                        isWithinSvg = true;
+                    }
+                    el = el.parentNode;
+                }
                 
-                if(el && me.interactionSelections.indexOf(el) === -1)
+                if(el && isWithinSvg && me.interactionSelections.indexOf(el) === -1)
                 {
                     me.interactionSelections.push(el); // This one works for native get/setAttribute
                     //interactionSelections.push(this); // This one works for d3 .attr.
@@ -431,8 +438,9 @@ export default class SSVG {
         for(let interactionSel of this.interactionSelections)
         {
             let parentSelector = this.elementHandler.getElementSelector(interactionSel);
+            safeLog(interactionSel, parentSelector);
             let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
-            //console.log(parentNode);
+            
             //let matchingVisParent = selectedNodes[i];
             let j = 1;
             
