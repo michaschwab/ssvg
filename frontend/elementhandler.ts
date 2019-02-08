@@ -67,17 +67,18 @@ export default class Elementhandler {
             safeLog(elements, parent);
             console.error('selector not found');
         }
-
+        
         attrName = this.checkAttrName(parentSelector, attrName, true);
         
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
+            const indexOfParent = svgEl.childIndex;
             
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
             if(this.useSharedArrayFor.indexOf(attrName) === -1) {
-                this.setAttrQueue[parentSelector][attrName][i] = evaluatedValue;
+                this.setAttrQueue[parentSelector][attrName][indexOfParent] = evaluatedValue;
             } else {
-                this.sharedArrays[parentSelector][attrName][i] = evaluatedValue * 10; // For precision.
+                this.sharedArrays[parentSelector][attrName][indexOfParent] = evaluatedValue * 10; // For precision.
             }
             
             //safeLog(attrName, this.setAttrQueue[parentSelector][attrName][i])
