@@ -109,6 +109,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             return;
         }
         if(mode === 'end') {
+            //safeLog(this.circlesByColor);
             for(let fillColor in this.circlesByColor) {
                 if(this.circlesByColor.hasOwnProperty(fillColor)) {
                     this.ctx.fillStyle = fillColor;
@@ -163,8 +164,12 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         let p = new Path2D(elData.d);
         this.ctx.fillStyle = fill;
         if(stroke !== 'none') {
-            this.ctx.lineWidth = strokeWidth;
-            this.ctx.strokeStyle = strokeWidth + ' ' + stroke;
+            if(strokeWidth) {
+                this.ctx.lineWidth = strokeWidth;
+                this.ctx.strokeStyle = strokeWidth + ' ' + stroke;
+            } else {
+                this.ctx.strokeStyle = stroke;
+            }
             this.ctx.stroke(p);
         }
     }
@@ -218,5 +223,22 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             this.ctx.rotate(transform.rotate * Math.PI / 180);
             //console.log(transform.rotate);
         }
+    }
+}
+
+
+let safeLogCount = 0;
+function safeLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.log(...logContents);
+    }
+}
+function safeErrorLog(...logContents) {
+    
+    if(safeLogCount < 50) {
+        safeLogCount++;
+        console.error(...logContents);
     }
 }
