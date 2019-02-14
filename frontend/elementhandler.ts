@@ -73,7 +73,7 @@ export default class Elementhandler {
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
             const indexOfParent = svgEl.childIndex;
-            
+
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
             if(this.useSharedArrayFor.indexOf(attrName) === -1) {
                 this.setAttrQueue[parentSelector][attrName][indexOfParent] = evaluatedValue;
@@ -246,29 +246,34 @@ export default class Elementhandler {
                         //safeLog(selectorString, parentSelector);
 
                         if(rule.style.stroke) {
-                            //child.style.stroke = rule.style.stroke;
                             this.checkAttrName(parentSelector, 'style;stroke');
-                            this.setAttrQueue[parentSelector]['style;stroke'][childIndex] = rule.style.stroke;
+                            if(!this.setAttrQueue[parentSelector]['style;stroke'][childIndex] && !child.style.stroke) {
+                                this.setAttrQueue[parentSelector]['style;stroke'][childIndex] = rule.style.stroke;
+                            }
                         }
                         if(rule.style['stroke-opacity']) {
-                            //child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
                             this.checkAttrName(parentSelector, 'style;stroke-opacity');
-                            this.setAttrQueue[parentSelector]['style;stroke-opacity'][childIndex] = rule.style['stroke-opacity'];
+                            if(!this.setAttrQueue[parentSelector]['style;stroke-opacity'][childIndex] && !child.style['stroke-opacity']) {
+                                this.setAttrQueue[parentSelector]['style;stroke-opacity'][childIndex] = rule.style['stroke-opacity'];
+                            }
                         }
                         if(rule.style['stroke-width']) {
-                            //child.style['stroke-width'] = parseFloat(rule.style['stroke-width']);
                             this.checkAttrName(parentSelector, 'style;stroke-width');
-                            this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = rule.style['stroke-width'];
+                            if(!this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] && !child.style['stroke-width']) {
+                                this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = rule.style['stroke-width'];
+                            }
                         }
                         if(rule.style['fill-opacity']) {
-                            //child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
                             this.checkAttrName(parentSelector, 'style;fill-opacity');
-                            this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] = rule.style['fill-opacity'];
+                            if(!this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] && !child.style['fill-opacity']) {
+                                this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] = rule.style['fill-opacity'];
+                            }
                         }
                         if(rule.style['fill']) {
-                            //child.style['stroke-opacity'] = parseFloat(rule.style['stroke-opacity']);
                             this.checkAttrName(parentSelector, 'style;fill');
-                            this.setAttrQueue[parentSelector]['style;fill'][childIndex] = rule.style['fill'];
+                            if(!this.setAttrQueue[parentSelector]['style;fill'][childIndex] && !child.style['fill']) {
+                                this.setAttrQueue[parentSelector]['style;fill'][childIndex] = rule.style['fill'];
+                            }
                         }
                     }
                 }

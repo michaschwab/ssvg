@@ -34,7 +34,7 @@ self.onmessage = function(e: MessageEvent) {
                 });*/
                 break;
             case 'UPDATE_NODES':
-                //console.log('UPDATE', data.queue, data.parentNodeSelectors);
+                //console.log('UPDATE', msg.data.queue, msg.data.parentNodeSelectors);
                 if(worker.updatePropertiesFromQueue) {
                     worker.updatePropertiesFromQueue(msg.data.queue);
                 } else {
