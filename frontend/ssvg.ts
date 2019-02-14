@@ -165,10 +165,10 @@ export default class SSVG {
             const d3 = (window as any)['d3'];
             const originalOn = d3.selection.prototype.on;
             const me = this;
-    
+
             d3.selection.prototype.on = function()
             {
-                const el = this._parents && this._parents.length ? this._parents[0] : null;
+                const el = this._parents && this._parents.length ? this._parents[0] : this[0].parentNode;
                 let parentEl = el;
                 let isWithinSvg = false;
 
@@ -178,7 +178,7 @@ export default class SSVG {
                     }
                     parentEl = parentEl.parentNode;
                 }
-                
+
                 if(el && isWithinSvg && me.interactionSelections.indexOf(el) === -1)
                 {
                     me.interactionSelections.push(el); // This one works for native get/setAttribute
