@@ -168,13 +168,15 @@ export default class SSVG {
     
             d3.selection.prototype.on = function()
             {
-                let el = this._parents && this._parents.length ? this._parents[0] : null;
+                const el = this._parents && this._parents.length ? this._parents[0] : null;
+                let parentEl = el;
                 let isWithinSvg = false;
-                while(el && el.parentNode) {
-                    if(el === me.svg) {
+
+                while(parentEl && parentEl.parentNode) {
+                    if(parentEl === me.svg) {
                         isWithinSvg = true;
                     }
-                    el = el.parentNode;
+                    parentEl = parentEl.parentNode;
                 }
                 
                 if(el && isWithinSvg && me.interactionSelections.indexOf(el) === -1)
@@ -434,11 +436,10 @@ export default class SSVG {
     
     private propagateEvent(new_event: MouseEvent|WheelEvent): void {
         this.svg.dispatchEvent(new_event); // for EasyPZ
-    
+
         for(let interactionSel of this.interactionSelections)
         {
             let parentSelector = this.elementHandler.getElementSelector(interactionSel);
-            safeLog(interactionSel, parentSelector);
             let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
             
             //let matchingVisParent = selectedNodes[i];
