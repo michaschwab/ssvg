@@ -194,31 +194,41 @@ export default class SSVG {
         if((window as any)['d3']) {
             const me = this;
             const d3 = (window as any)['d3'];
-            let origSelectAll = d3.selection.prototype.selectAll;
-    
-            d3.selection.prototype.selectAll = function(selector) {
-                const elements = this._groups ? this._groups[0] : this[0];
-                const el = elements[0];
-                
-                const node = me.elementHandler.getVisNode(el);
-                const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
-                const childElements = childNodes.map(node => {
-                    return me.elementHandler.getElementFromNode(node);
-                });
-                
-                const returnValue = origSelectAll.apply(this, arguments);
-                
-                if(returnValue._groups) {
-                    returnValue._groups[0] = childElements;
-                } else {
-                    // Older d3 versions
-                    const parentNode = returnValue[0].parentNode;
-                    returnValue[0] = childElements;
-                    returnValue[0].parentNode = parentNode;
+
+            const getReplacement = (original) => {
+                return function(selector) {
+                    if(typeof selector === 'string') {
+                        const element = this._groups ? this._groups[0][0] : this[0][0];
+
+                        const node = me.elementHandler.getVisNode(element);
+                        const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
+                        const childElements = childNodes.map(node => {
+                            return me.elementHandler.getElementFromNode(node);
+                        });
+
+                        const returnValue = original.apply(this, arguments);
+
+                        if(returnValue._groups) {
+                            returnValue._groups[0] = childElements;
+                        } else {
+                            // Older d3 versions
+                            const parentNode = returnValue[0].parentNode;
+                            returnValue[0] = childElements;
+                            returnValue[0].parentNode = parentNode;
+                        }
+
+                        return returnValue;
+                    }
+
+                    return original.apply(this, arguments);
                 }
-    
-                return returnValue;
             };
+
+            let origSelectAll = d3.selection.prototype.selectAll;
+            d3.selection.prototype.selectAll = getReplacement(origSelectAll);
+
+            let origSelect = d3.selection.prototype.select;
+            d3.selection.prototype.select = getReplacement(origSelect);
         }
     }
     
@@ -253,7 +263,12 @@ export default class SSVG {
                         }
                     }
                     if(elements.length === 1) {
-                        me.elementHandler.queueSetAttributeOnElement(elements[0], prefix + name, value);
+                        const element = elements[0];
+                        if(!element) {
+                            console.warn('element not found', this, name, value);
+                            return this;
+                        }
+                        me.elementHandler.queueSetAttributeOnElement(element, prefix + name, value);
                     } else {
                         me.elementHandler.queueSetAttributeOnSelection(elements, prefix + name, value);
                     }

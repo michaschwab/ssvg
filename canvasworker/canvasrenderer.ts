@@ -152,7 +152,10 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
             this.ctx.strokeStyle = stroke;
             this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
-            this.ctx.fill();
+            if(fill !== 'none'){
+                this.ctx.fill();
+            }
+
             if(stroke) {
                 this.ctx.stroke();
             }

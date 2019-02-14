@@ -147,7 +147,7 @@ export default class VDom {
             console.error(visNode, selector, matchIndex, selectedNodes, selectedNodeSelectors);
             throw Error('undefined selector');
         }
-        
+
         let selParts = selector.split('>').map(s => s.trim());
         let selPart = selParts[matchIndex];
         
@@ -194,7 +194,7 @@ export default class VDom {
     {
         if(selPart.substr(0,1) === '.')
         {
-            return node => (node.class === selPart.substr(1));
+            return node => (node.className === selPart.substr(1));
         }
         else if(selPart.indexOf(':nth-child(') !== -1)
         {
