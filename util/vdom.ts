@@ -26,6 +26,7 @@ export default class VDom {
                 console.error(parentNode, parentNodeSelector);
             }
         }
+        this.applyParentStyles(parentNode, nodeData);
         
         if(!parentNode || !parentNode.children) {
             console.error('parent node not found or no children: ', parentNode, parentNodeSelector, this.data);
@@ -33,6 +34,14 @@ export default class VDom {
         
         parentNode.children.push(nodeData);
         return nodeData;
+    }
+
+    applyParentStyles(parentNode: any, childNode: any) {
+        for(const style in parentNode.style) {
+            if(!childNode.style[style]) {
+                childNode.style[style] = parentNode.style[style];
+            }
+        }
     }
     
     getParentNodeFromSelector(parentSelector: string) {
@@ -50,6 +59,16 @@ export default class VDom {
             console.error(parentNode, parentSelector);
         }
         return parentNode;
+    }
+
+    applyStyleToNodeAndChildren(node: any, styleName: string, styleValue: string) {
+        node['style'][styleName] = styleValue;
+
+        if(node.children) {
+            for(let child of node.children) {
+                this.applyStyleToNodeAndChildren(child, styleName, styleValue);
+            }
+        }
     }
     
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueue) {
@@ -77,7 +96,7 @@ export default class VDom {
                     const value = factor ? factor * values[childIndex] : values[childIndex];
                     if(attrNameStart === 'style;') {
                         const attrNameEnd = attrName.substr('style;'.length);
-                        childNode['style'][attrNameEnd] = value;
+                        this.applyStyleToNodeAndChildren(childNode, attrNameEnd, value);
                     } else {
                         childNode[attrName] = value;
                     }

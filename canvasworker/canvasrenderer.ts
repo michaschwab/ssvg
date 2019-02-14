@@ -19,6 +19,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         
         setTimeout(() => {
             console.log(this.vdom.data);
+            this.draw();
         }, 1000);
     }
     
@@ -55,7 +56,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     
     private drawNodeAndChildren(elData: any) {
         const ctx = this.ctx;
-        
+
         ctx.save();
         this.applyTransform(elData.transform);
         
