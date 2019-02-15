@@ -182,6 +182,10 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         this.ctx.fillStyle = elData.style.fill ? elData.style.fill : elData.fill;
         this.ctx.fillRect(elData.x, elData.y, elData.width, elData.height);
     }
+
+    private drawText(elData) {
+        console.warn('Text rendering not yet implemented');
+    }
     
     private drawPath(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
