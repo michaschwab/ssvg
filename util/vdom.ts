@@ -47,7 +47,7 @@ export default class VDom {
         }
 
         parentNode.children.splice(childIndex, 1);
-        this.cachedListSelections = {};
+        this.cachedListSelections = {}; //TODO only remove relevant cache.
     }
 
     applyParentStyles(parentNode: any, childNode: any) {

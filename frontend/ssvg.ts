@@ -317,13 +317,28 @@ export default class SSVG {
             return el;
         }
     }
+
+    private updateChildSelectors(node, parentSelector) {
+        for(let i = 0; i < node.children.length; i++) {
+            const childNode = node.children[i];
+            const childElement = this.elementHandler.getElementFromNode(childNode);
+            if(!childElement) {
+                console.error('element not found', childNode, node.children.length);
+            }
+            childElement['childIndex'] = i;
+            childElement['parentSelector'] = parentSelector;
+            childElement['selector'] = '';
+            childElement['selector'] = this.elementHandler.getNodeSelector(childNode);
+
+            this.updateChildSelectors(childNode, childElement['selector']);
+        }
+    }
     
     private getNewAppend(origAppend) {
         const me = this;
         
         return function<T extends Node>(this: Element, el: T) {
     
-            //todo make sure el is within svg, or if this.svg doesn't exist, that it is the svg.
             if(!me.svgAssignedAndSizeSet) {
                 if(!me.svg && el['tagName'] === 'svg') {
                     const appended = origAppend.apply(this, arguments);
@@ -367,20 +382,9 @@ export default class SSVG {
                 });
 
                 me.elementHandler.removeNodeFromParent(<Element> <any> el, node);
-                //me.vdom.removeNode(el['childIndex'], el['parentSelector']);
 
-                // Fix child indeces of all children.
-                for(let i = 0; i < parentNode.children.length; i++) {
-                    const childNode = parentNode.children[i];
-                    const childElement = me.elementHandler.getElementFromNode(childNode);
-                    if(!childElement) {
-                        console.error('element not found', childNode, parentNode.children.length);
-                    }
-                    childElement['childIndex'] = i;
-                    childElement['selector'] = '';
-                    childElement['selector'] = me.elementHandler.getNodeSelector(childNode);
-                    //console.log(i, childElement['selector'], childElement, childNode);
-                }
+                // Fix child indices of all children.
+                me.updateChildSelectors(parentNode, el['parentSelector']);
 
                 delete el['selector'];
             } else {
@@ -388,10 +392,7 @@ export default class SSVG {
             }
 
             (el as any)['parentSelector'] = parentSelector;
-            const selector = me.elementHandler.getElementSelector(<Element><any> el);
-
-            //console.log(this, parentSelector);
-            (el as any)['selector'] = selector;
+            (el as any)['selector'] = me.elementHandler.getElementSelector(<Element><any> el);
             (el as any)['childIndex'] = parentNode.children.length;
     
             Object.defineProperty(el, 'parentNode', {
@@ -401,9 +402,8 @@ export default class SSVG {
     
             me.elementHandler.linkNodeToElement(node, el);
             me.elementHandler.addNodeToParent(parentNode, node);
+            me.updateChildSelectors(node, el['parentSelector']);
             
-            //console.log(parentNode, node);
-    
             if(me.useWorker) {
                 me.sendToWorker({
                     cmd: 'ADD_NODE',
