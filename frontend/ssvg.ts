@@ -356,8 +356,14 @@ export default class SSVG {
                 }
             }
             
-            //todo check if outside of the svg element
+            if(!me.isWithinSvg(this)) {
+                return origAppend.apply(this, arguments);
+            }
 
+            Object.defineProperty(el, 'ownerSVGElement', {
+                writable: true,
+                value: me.svg
+            });
             el['appendChild'] = <T extends Node>(el2: T) => {
                 return me.getNewAppend(origAppend).call(el, el2);
             };
