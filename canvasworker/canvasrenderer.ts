@@ -86,7 +86,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                 this.drawNodeAndChildren(elData.children[i]);
             }
         }
-        ctx.restore();
+        //ctx.restore();
         ctx.restore();
     }
     

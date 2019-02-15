@@ -498,6 +498,24 @@ export default class SSVG {
             }
             let distance = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
             return distance < visNode.r;
+        } else if(visNode.type === 'g') {
+            if(visNode.transform) {
+                const transform = DrawingUtils.parseTransform(visNode.transform);
+                if(transform.translateX) {
+                    x -= transform.translateX;
+                }
+                if(transform.translateY) {
+                    y -= transform.translateY;
+                }
+            }
+
+            let matchAny = false;
+            for(let i = 0; i < visNode.children.length; i++) {
+                if(this.nodeAtPosition(visNode.children[i], x, y)) {
+                    matchAny = true;
+                }
+            }
+            return matchAny;
         }
         return false;
     }
