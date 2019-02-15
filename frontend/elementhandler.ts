@@ -43,10 +43,11 @@ export default class Elementhandler {
             safeLog(element, parent);
             console.error('selector not found');
         }
-    
+
         attrName = this.checkAttrName(parentSelector, attrName, false);
-        this.setAttrQueue[parentSelector][attrName][childIndex] = value;
-    
+        const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, childIndex) : value;
+        this.setAttrQueue[parentSelector][attrName][childIndex] = evaluatedValue;
+
         if(attrName === 'className') {
             this.onUpdateNeeded();
             // To apply classes immediately so styles can be applied correctly.

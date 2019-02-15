@@ -262,6 +262,7 @@ export default class SSVG {
                             elements.push(me.elementHandler.getElementFromNode(child));
                         }
                     }
+                    elements = elements.filter(element => element); // Remove nulls etc
                     if(elements.length === 1) {
                         const element = elements[0];
                         if(!element) {
