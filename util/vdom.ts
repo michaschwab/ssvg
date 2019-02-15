@@ -36,6 +36,20 @@ export default class VDom {
         return nodeData;
     }
 
+    removeNode(childIndex: number, parentNodeSelector: string) {
+        let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
+        if(!parentNode) {
+            if(parentNodeSelector === "") {
+                parentNode = this.data;
+            } else {
+                console.error(parentNode, parentNodeSelector);
+            }
+        }
+
+        parentNode.children.splice(childIndex, 1);
+        this.cachedListSelections = {};
+    }
+
     applyParentStyles(parentNode: any, childNode: any) {
         for(const style in parentNode.style) {
             if(!childNode.style[style]) {

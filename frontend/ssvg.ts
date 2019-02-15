@@ -336,9 +336,6 @@ export default class SSVG {
             }
             
             //todo check if outside of the svg element
-            if(el['tagName'] === 'CANVAS') {
-                return origAppend.apply(this, arguments);
-            }
 
             el['appendChild'] = <T extends Node>(el2: T) => {
                 return me.getNewAppend(origAppend).call(el, el2);
@@ -347,10 +344,52 @@ export default class SSVG {
             if(parentSelector === null) {
                 return origAppend.apply(this, arguments);
             }
-            (el as any)['parentSelector'] = parentSelector;
-    
-            const selector = me.elementHandler.getElementSelector(<Element><any> el);
+
             const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
+            let node;
+
+            if(el['parentSelector']) {
+                node = me.elementHandler.getVisNode(<Element> <any> el);
+
+                // Remove from current parent first.
+                Object.defineProperty(el, 'parentNode', {
+                    writable: true,
+                    value: undefined
+                });
+
+                //console.log('remove')
+                me.sendToWorker({
+                    cmd: 'REMOVE_NODE',
+                    data: {
+                        childIndex: el['childIndex'],
+                        parentNodeSelector: parentSelector
+                    },
+                });
+
+                me.elementHandler.removeNodeFromParent(<Element> <any> el, node);
+                //me.vdom.removeNode(el['childIndex'], el['parentSelector']);
+
+                // Fix child indeces of all children.
+                for(let i = 0; i < parentNode.children.length; i++) {
+                    const childNode = parentNode.children[i];
+                    const childElement = me.elementHandler.getElementFromNode(childNode);
+                    if(!childElement) {
+                        console.error('element not found', childNode, parentNode.children.length);
+                    }
+                    childElement['childIndex'] = i;
+                    childElement['selector'] = '';
+                    childElement['selector'] = me.elementHandler.getNodeSelector(childNode);
+                    //console.log(i, childElement['selector'], childElement, childNode);
+                }
+
+                delete el['selector'];
+            } else {
+                node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);
+            }
+
+            (el as any)['parentSelector'] = parentSelector;
+            const selector = me.elementHandler.getElementSelector(<Element><any> el);
+
             //console.log(this, parentSelector);
             (el as any)['selector'] = selector;
             (el as any)['childIndex'] = parentNode.children.length;
@@ -360,7 +399,6 @@ export default class SSVG {
                 value: this
             });
     
-            const node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);
             me.elementHandler.linkNodeToElement(node, el);
             me.elementHandler.addNodeToParent(parentNode, node);
             

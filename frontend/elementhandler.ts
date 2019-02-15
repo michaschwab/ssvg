@@ -140,7 +140,7 @@ export default class Elementhandler {
         const node = this.getVisNode(element);
         
         if(!node) {
-            return console.error('trying to get attribute for unfit selection', node);
+            return console.error('trying to get attribute for unfit selection', node, element, name);
         }
         
         return node[name];
@@ -286,6 +286,17 @@ export default class Elementhandler {
         return checkNode(this.vdom.data);
     }
 
+    removeNodeFromParent(element: Element, node: any) {
+        this.vdom.removeNode(element['childIndex'], element['parentSelector']);
+        let index = this.nodesToElements.nodes.indexOf(node);
+        if(index === -1) {
+            return console.error('node not found', node);
+        }
+
+        this.nodesToElements.nodes.splice(this.nodesToElements.nodes.indexOf(node), 1);
+        this.nodesToElements.elements.splice(this.nodesToElements.elements.indexOf(element), 1);
+    }
+
     addNodeToParent(parentNode, node) {
         parentNode.children.push(node);
         this.addedNodesWithoutApplyingStyles = true;
@@ -337,10 +348,10 @@ export default class Elementhandler {
             console.error('could not find element for node ', node);
             return '';
         }
-        return this.getElementSelector(element);
+        return this.getElementSelector(element, node);
     }
     
-    getElementSelector(element: Element): string|null {
+    getElementSelector(element: Element, node?: any): string|null {
         let sel = (element as any)['selector'];
         
         if(sel)
@@ -355,15 +366,18 @@ export default class Elementhandler {
                 let parentSelector = (element as any)['parentSelector'] ?
                     (element as any)['parentSelector'] as string : '';
                 
-                let node = this.vdom.getVisNodeFromSelector(parentSelector);
-                if(!node) {
-                    console.warn('Element not found', parentSelector, parentSelector.length, this.vdom.data);
+                let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
+                if(!parentNode) {
+                    console.warn('Element not found', element, parentSelector, parentSelector.length, this.vdom.data);
                     return null;
                 }
-                const index = node.children.length + 1;
+                let index = parentNode.children.length + 1;
+                if(node && parentNode.children.indexOf(node) !== -1) {
+                    index = parentNode.children.indexOf(node) + 1;
+                }
                 let name = element.localName;
                 if (!name) {
-                    console.error(node);
+                    console.error(parentNode);
                     throw Error('name is null');
                 }
                 name = name.toLowerCase();
@@ -381,7 +395,15 @@ export default class Elementhandler {
 
     getElementFromNode(node) {
         const nodeIndex = this.nodesToElements.nodes.indexOf(node);
+        if(nodeIndex === -1) {
+            console.error('node not found', node, this.nodesToElements.nodes, this.nodesToElements.nodes.length);
+        }
         return this.nodesToElements.elements[nodeIndex];
+    }
+
+    getNodeFromElement(element: Element) {
+        const elementIndex = this.nodesToElements.elements.indexOf(element);
+        return this.nodesToElements.nodes[elementIndex];
     }
 }
 

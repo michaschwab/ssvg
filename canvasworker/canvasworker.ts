@@ -49,6 +49,9 @@ self.onmessage = function(e: MessageEvent) {
                     worker.addNode(node);
                 }
                 break;
+            case 'REMOVE_NODE':
+                vdom.removeNode(msg.data.childIndex, msg.data.parentNodeSelector);
+                break;
             default:
                 console.error('did not find command ', msg.cmd);
         }
