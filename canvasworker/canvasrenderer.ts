@@ -60,7 +60,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         ctx.save();
         this.applyTransform(elData.transform);
         
-        if(elData.type && elData.type !== 'g') {
+        if(elData.type && elData.type !== 'g' && (!elData.style.display || elData.style.display !== 'none')) {
             if(elData.type === 'title') {
                 return;
             }
