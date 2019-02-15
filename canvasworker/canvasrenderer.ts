@@ -180,8 +180,24 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     }
     
     private drawRect(elData) {
-        this.ctx.fillStyle = elData.style.fill ? elData.style.fill : elData.fill;
-        this.ctx.fillRect(elData.x, elData.y, elData.width, elData.height);
+        let fill = elData.style.fill ? elData.style.fill : elData.fill;
+        if(fill) {
+            fill = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
+        }
+
+        if(fill && fill !== 'none') {
+            this.ctx.fillStyle = elData.style.fill ? elData.style.fill : elData.fill;
+            this.ctx.fillRect(elData.x, elData.y, elData.width, elData.height);
+        }
+
+        let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+        if(stroke) {
+            stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
+            this.ctx.strokeStyle = stroke;
+            this.ctx.beginPath();
+            this.ctx.rect(elData.x, elData.y, elData.width, elData.height);
+            this.ctx.stroke();
+        }
     }
 
     private drawText(elData) {
