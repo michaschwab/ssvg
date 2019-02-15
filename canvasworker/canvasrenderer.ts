@@ -117,9 +117,15 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                     this.ctx.fillStyle = fillColor;
     
                     let sampleData = this.circlesByColor[fillColor][0];
-                    let stroke = sampleData.style.stroke ? sampleData.style.stroke : sampleData.stroke;
-                    this.ctx.lineWidth = sampleData.strokeWidth;
+                    let stroke = sampleData.style.stroke ? sampleData.style.stroke : elData.stroke;
+                    if(stroke) {
+                        stroke = DrawingUtils.colorToRgba(stroke, sampleData.style['stroke-opacity']);
+                    }
+                    this.ctx.lineWidth = sampleData.style['stroke-width'] ?
+                        parseFloat(sampleData.style['stroke-width']) : sampleData.strokeWidth;
                     this.ctx.strokeStyle = stroke;
+                    let fill = sampleData.style.fill ? sampleData.style.fill : sampleData.fill;
+                    if(!fill) fill = '#000';
                     
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillColor]) {
@@ -132,7 +138,9 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                         this.ctx.restore();
                         this.ctx.restore();
                     }
-                    this.ctx.fill();
+                    if(fill !== 'none'){
+                        this.ctx.fill();
+                    }
     
                     if(stroke) {
                         this.ctx.stroke();
@@ -144,13 +152,19 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         if(mode === 'forcesingle') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
             if(!fill) fill = '#000';
-            const stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            if(stroke) {
+                stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
+            }
+
             const cx = elData.cx || 0;
             const cy = elData.cy || 0;
-    
+
             this.ctx.beginPath();
             this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
             this.ctx.strokeStyle = stroke;
+            this.ctx.lineWidth = elData.style['stroke-width'] ?
+                parseFloat(elData.style['stroke-width']) : elData.strokeWidth;
             this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
             if(fill !== 'none'){
                 this.ctx.fill();

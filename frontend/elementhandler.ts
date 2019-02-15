@@ -276,6 +276,8 @@ export default class Elementhandler {
                             }
                         }
                     }
+                } else {
+                    checkNode(child, looseIndex, strictIndex);
                 }
             }
             return false;
