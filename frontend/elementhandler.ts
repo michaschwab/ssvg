@@ -234,8 +234,17 @@ export default class Elementhandler {
                         partialMatch = true;
                     }
                 } else {
-                    if(selPart === child.type) {
-                        partialMatch = true;
+                    if(selPart.indexOf('.') === -1) {
+                        if(selPart === child.type) {
+                            partialMatch = true;
+                        }
+                    } else {
+                        const cutoff = selPart.indexOf('.');
+                        const typeName = selPart.substr(0, cutoff);
+                        const className = selPart.substr(cutoff + 1);
+                        if(typeName === child.type && className === child.className) {
+                            partialMatch = true;
+                        }
                     }
                 }
                 if(partialMatch) {
