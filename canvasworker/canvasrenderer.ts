@@ -18,7 +18,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         this.draw();
         
         setTimeout(() => {
-            console.log(this.vdom.data);
+            console.log(this.forceSingle, this.vdom.data);
             this.draw();
         }, 1000);
     }
@@ -133,10 +133,11 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                     for(let elData of this.circlesByColor[fillColor]) {
                         const cx = elData.cx || 0;
                         const cy = elData.cy || 0;
+                        const r = parseFloat(elData.r);
                         this.ctx.save();
                         this.applyTransform(elData.transform);
-                        this.ctx.moveTo(cx + elData.r, cy);
-                        this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
+                        this.ctx.moveTo(cx + r, cy);
+                        this.ctx.arc(cx, cy, r, 0, 2 * Math.PI);
                         this.ctx.restore();
                         //this.ctx.restore();
                     }
