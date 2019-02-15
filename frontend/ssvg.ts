@@ -159,6 +159,19 @@ export default class SSVG {
         
         this.svgAssignedAndSizeSet = true;
     }
+
+    private isWithinSvg(element: Element) {
+        let isWithinSvg = false;
+        let parentEl = element;
+
+        while(parentEl && parentEl.parentNode) {
+            if(parentEl === this.svg) {
+                isWithinSvg = true;
+            }
+            parentEl = <Element> parentEl.parentNode;
+        }
+        return isWithinSvg;
+    }
     
     private captureD3On() {
         if((window as any)['d3']) {
@@ -169,15 +182,7 @@ export default class SSVG {
             d3.selection.prototype.on = function()
             {
                 const el = this._parents && this._parents.length ? this._parents[0] : this[0].parentNode;
-                let parentEl = el;
-                let isWithinSvg = false;
-
-                while(parentEl && parentEl.parentNode) {
-                    if(parentEl === me.svg) {
-                        isWithinSvg = true;
-                    }
-                    parentEl = parentEl.parentNode;
-                }
+                let isWithinSvg = me.isWithinSvg(el);
 
                 if(el && isWithinSvg && me.interactionSelections.indexOf(el) === -1)
                 {
@@ -456,7 +461,9 @@ export default class SSVG {
             if(name === 'class') {
                 origSetAttr.apply(this, arguments);
             }
-            //me.updateDataFromElementAttr(this, name, value);
+            if(!me.isWithinSvg(this)) {
+                return origSetAttr.apply(this, arguments);
+            }
             me.elementHandler.queueSetAttributeOnElement(this, name, value);
         };
         //TODO: Figure out how to access the element when setting a style property.
