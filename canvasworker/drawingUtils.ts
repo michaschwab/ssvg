@@ -55,11 +55,11 @@ export default class DrawingUtils {
         if(color[0] === '#') {
             let c; // From https://stackoverflow.com/questions/21646738/convert-hex-to-rgba
             if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(color)){
-                c= color.substring(1).split('');
-                if(c.length== 3){
-                    c= [c[0], c[0], c[1], c[1], c[2], c[2]];
+                c = color.substring(1);
+                if(c.length == 3){
+                    c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
                 }
-                c= '0x'+c.join('');
+                c = '0x' + c;
                 return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+',' + opacity + ')';
             }
             throw new Error('Bad Hex');

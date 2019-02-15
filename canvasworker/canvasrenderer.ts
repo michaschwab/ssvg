@@ -59,6 +59,10 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
 
         ctx.save();
         this.applyTransform(elData.transform);
+
+        if(elData.transform) {
+            this.forceSingle = true;
+        }
         
         if(elData.type && elData.type !== 'g' && (!elData.style.display || elData.style.display !== 'none')) {
             if(elData.type === 'title') {
@@ -115,7 +119,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             for(let fillColor in this.circlesByColor) {
                 if(this.circlesByColor.hasOwnProperty(fillColor)) {
                     this.ctx.fillStyle = fillColor;
-    
+
                     let sampleData = this.circlesByColor[fillColor][0];
                     let stroke = sampleData.style.stroke ? sampleData.style.stroke : elData.stroke;
                     if(stroke) {
@@ -124,9 +128,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                     this.ctx.lineWidth = sampleData.style['stroke-width'] ?
                         parseFloat(sampleData.style['stroke-width']) : sampleData.strokeWidth;
                     this.ctx.strokeStyle = stroke;
-                    let fill = sampleData.style.fill ? sampleData.style.fill : sampleData.fill;
-                    if(!fill) fill = '#000';
-                    
+
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillColor]) {
                         const cx = elData.cx || 0;
@@ -136,9 +138,9 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                         this.ctx.moveTo(cx + elData.r, cy);
                         this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
                         this.ctx.restore();
-                        this.ctx.restore();
+                        //this.ctx.restore();
                     }
-                    if(fill !== 'none'){
+                    if(fillColor !== 'none'){
                         this.ctx.fill();
                     }
     
