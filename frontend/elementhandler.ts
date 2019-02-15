@@ -96,22 +96,24 @@ export default class Elementhandler {
         if(attrName === 'class') {
             attrName = 'className';
         }
-    
+
         if(!this.setAttrQueue[parentSelector]) {
             this.setAttrQueue[parentSelector] = {};
             this.sharedArrays[parentSelector] = {};
         }
-        if(!this.setAttrQueue[parentSelector][attrName]) {
-            if(!useBuffer || this.useSharedArrayFor.indexOf(attrName) === -1) {
+
+        if(!useBuffer || this.useSharedArrayFor.indexOf(attrName) === -1) {
+            if(!this.setAttrQueue[parentSelector][attrName]) {
                 this.setAttrQueue[parentSelector][attrName] = [];
-            } else {
+            }
+        } else {
+            if(!this.sharedArrays[parentSelector][attrName]) {
                 const length = this.vdom.getParentNodeFromSelector(parentSelector).children.length;
                 const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
-                
+
                 this.setAttrQueue[parentSelector][attrName] = buffer;
                 this.sharedArrays[parentSelector][attrName] = new Int32Array(buffer);
             }
-            
         }
 
         return attrName;
