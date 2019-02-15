@@ -196,6 +196,9 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             fill = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
         }
         let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+        if(stroke) {
+            stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
+        }
         let strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
     
         let p = new Path2D(elData.d);

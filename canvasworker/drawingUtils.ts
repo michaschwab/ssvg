@@ -59,9 +59,9 @@ export default class DrawingUtils {
         return transformObject;
     }
     
-    static colorToRgba(color: string, opacity = 1) {
+    static colorToRgba(color: string|{r: number, g: number, b: number}, opacity = 1): string {
         color = DrawingUtils.CssNamedColorToHex(color);
-        if(color[0] === '#') {
+        if(typeof color === 'string' && color[0] === '#') {
             let c; // From https://stackoverflow.com/questions/21646738/convert-hex-to-rgba
             if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(color)){
                 c = color.substring(1);
@@ -72,11 +72,13 @@ export default class DrawingUtils {
                 return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+',' + opacity + ')';
             }
             throw new Error('Bad Hex');
+        } else if(typeof color === 'object' && Object.keys(color).length === 3) {
+            return 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')';
         }
-        return color;
+        return <string> color;
     }
 
-    static CssNamedColorToHex(color: string) {
+    static CssNamedColorToHex(color: any) {
         if(color === 'steelblue') {
             return '#4682b4';
         }
