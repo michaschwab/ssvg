@@ -60,6 +60,7 @@ export default class DrawingUtils {
     }
     
     static colorToRgba(color: string, opacity = 1) {
+        color = DrawingUtils.CssNamedColorToHex(color);
         if(color[0] === '#') {
             let c; // From https://stackoverflow.com/questions/21646738/convert-hex-to-rgba
             if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(color)){
@@ -72,6 +73,14 @@ export default class DrawingUtils {
             }
             throw new Error('Bad Hex');
         }
+        return color;
+    }
+
+    static CssNamedColorToHex(color: string) {
+        if(color === 'steelblue') {
+            return '#4682b4';
+        }
+        //TODO add more colors.
         return color;
     }
 }

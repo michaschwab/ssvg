@@ -192,12 +192,15 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
         
         let fill = elData.style.fill ? elData.style.fill : elData.fill;
+        if(fill) {
+            fill = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
+        }
         let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
         let strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
     
         let p = new Path2D(elData.d);
         this.ctx.fillStyle = fill;
-        if(stroke !== 'none') {
+        if(stroke && stroke !== 'none') {
             if(strokeWidth) {
                 this.ctx.lineWidth = strokeWidth;
                 this.ctx.strokeStyle = strokeWidth + ' ' + stroke;
@@ -205,6 +208,9 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                 this.ctx.strokeStyle = stroke;
             }
             this.ctx.stroke(p);
+        }
+        if(fill && fill !== 'none') {
+            this.ctx.fill(p);
         }
     }
     
