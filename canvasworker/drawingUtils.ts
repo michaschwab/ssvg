@@ -1,12 +1,20 @@
 export default class DrawingUtils {
-    static parseTransform(transform: string) {
+    static parseTransform(transform: string|{}) {
         const transformObject = {translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotate: 0, translateBeforeScale: false};
         
         if (transform) {
-            transform = transform.replace(/ /g, '');
+            if(typeof transform !== "string") {
+                transformObject.scaleX = transform['k'];
+                transformObject.scaleY = transform['k'];
+                transformObject.translateX = transform['x'];
+                transformObject.translateY = transform['y'];
+                return transformObject;
+            }
+            let transformString = <string> transform;
+            transformString = transformString.replace(/ /g, '');
             
             //let translate  = /translate\((\d+),(\d+)\)/.exec(transform);
-            const translate = /\s*translate\(([-0-9.]+),([-0-9.]+)\)/.exec(transform);
+            const translate = /\s*translate\(([-0-9.]+),([-0-9.]+)\)/.exec(transformString);
             if (translate) {
                 transformObject.translateX = parseFloat(translate[1]);
                 transformObject.translateY = parseFloat(translate[2]);
@@ -15,7 +23,7 @@ export default class DrawingUtils {
                 //console.error('no translate found', transform);
             }
             
-            const scale = /\s*scale\(([-0-9.]+)\)/.exec(transform);
+            const scale = /\s*scale\(([-0-9.]+)\)/.exec(transformString);
             if (scale) {
                 transformObject.scaleX = parseFloat(scale[1]);
                 transformObject.scaleY = parseFloat(scale[1]);
@@ -24,7 +32,7 @@ export default class DrawingUtils {
                 //console.error('no scale found', transform);
             }
             
-            const rotate = /\s*rotate\(([-0-9.]+)\)/.exec(transform);
+            const rotate = /\s*rotate\(([-0-9.]+)\)/.exec(transformString);
             if (rotate) {
                 transformObject.rotate = parseFloat(rotate[1]);
             }
@@ -32,12 +40,12 @@ export default class DrawingUtils {
                 //console.error('no rotate found', transform);
             }
             
-            const translateScale = /\s*translate\(([-0-9.]+),([-0-9.]+)\)scale\(([-0-9.]+)\)/.exec(transform);
+            const translateScale = /\s*translate\(([-0-9.]+),([-0-9.]+)\)scale\(([-0-9.]+)\)/.exec(transformString);
             if (translateScale) {
                 transformObject.translateBeforeScale = true;
             }
             
-            const matrix = /\s*matrix\(([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+)\)/.exec(transform);
+            const matrix = /\s*matrix\(([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+)\)/.exec(transformString);
             if(matrix) {
                 transformObject.scaleX = parseFloat(matrix[1]);
                 // 2 is horizontal skewing
