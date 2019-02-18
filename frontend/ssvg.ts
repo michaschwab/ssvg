@@ -64,11 +64,13 @@ export default class SSVG {
         this.canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('mousemove', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
+        this.canvas.addEventListener('click', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
 
+        this.replaceNativeRemoveChild();
         this.replaceNativeAttribute();
         this.replaceNativeCreateElement();
-        this.replaceNativeAppend();
+        this.replaceNativeAppendChild();
         this.replaceD3Attr();
         this.replaceD3SelectAll();
         
@@ -314,7 +316,7 @@ export default class SSVG {
                 //return el;
             };*/
     
-            el.appendChild = me.getNewAppend(el.appendChild);
+            el.appendChild = me.getNewAppendChild(el.appendChild);
             
             me.unassignedNodes.push(el);
     
@@ -339,8 +341,46 @@ export default class SSVG {
             this.updateChildSelectors(childNode, childElement['selector']);
         }
     }
+
+    private getNewRemoveChild() {
+        const me = this;
+
+        return function<T extends Node>(this: Element, el: T) {
+            const parentSelector = me.elementHandler.getElementSelector(this);
+            const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
+            const node = me.elementHandler.getVisNode(<Element> <any> el);
+
+            // Remove from current parent first.
+            Object.defineProperty(el, 'parentNode', {
+                writable: true,
+                value: undefined
+            });
+
+            //console.log('remove')
+            me.sendToWorker({
+                cmd: 'REMOVE_NODE',
+                data: {
+                    childIndex: el['childIndex'],
+                    parentNodeSelector: parentSelector
+                },
+            });
+
+            me.elementHandler.removeNodeFromParent(<Element> <any> el, node);
+
+            // Fix child indices of all children.
+            me.updateChildSelectors(parentNode, el['parentSelector']);
+
+            delete el['selector'];
+
+            return el;
+        };
+    }
+
+    private replaceNativeRemoveChild() {
+        Element.prototype.removeChild = this.getNewRemoveChild();
+    }
     
-    private getNewAppend(origAppend) {
+    private getNewAppendChild(origAppend) {
         const me = this;
         
         return function<T extends Node>(this: Element, el: T) {
@@ -365,7 +405,7 @@ export default class SSVG {
                 value: me.svg
             });
             el['appendChild'] = <T extends Node>(el2: T) => {
-                return me.getNewAppend(origAppend).call(el, el2);
+                return me.getNewAppendChild(origAppend).call(el, el2);
             };
             const parentSelector = me.elementHandler.getElementSelector(this);
             if(parentSelector === null) {
@@ -378,27 +418,7 @@ export default class SSVG {
             if(el['parentSelector']) {
                 node = me.elementHandler.getVisNode(<Element> <any> el);
 
-                // Remove from current parent first.
-                Object.defineProperty(el, 'parentNode', {
-                    writable: true,
-                    value: undefined
-                });
-
-                //console.log('remove')
-                me.sendToWorker({
-                    cmd: 'REMOVE_NODE',
-                    data: {
-                        childIndex: el['childIndex'],
-                        parentNodeSelector: parentSelector
-                    },
-                });
-
-                me.elementHandler.removeNodeFromParent(<Element> <any> el, node);
-
-                // Fix child indices of all children.
-                me.updateChildSelectors(parentNode, el['parentSelector']);
-
-                delete el['selector'];
+                me.getNewRemoveChild().call(this, el);
             } else {
                 node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);
             }
@@ -439,9 +459,9 @@ export default class SSVG {
         };
     }
     
-    private replaceNativeAppend() {
+    private replaceNativeAppendChild() {
         const origAppendChild = Element.prototype.appendChild;
-        const newAppend = this.getNewAppend(origAppendChild);
+        const newAppend = this.getNewAppendChild(origAppendChild);
     
         Element.prototype.appendChild = newAppend;
         Element.prototype.insertBefore = function<T extends Node>(newChild: T, refChild: Node|null) {
