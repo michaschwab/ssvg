@@ -1,4 +1,4 @@
-# ssvg
+# SSVG: Scalable Scalable Vector Graphics
 Library to speed up interactive svg-based data visualizations by transforming them into canvases.
 
 # Installation
@@ -20,3 +20,7 @@ You need to have npm, webpack and webpack-cli installed (`npm i --global webpack
   }
 </script>
 ```
+
+# Update
+
+`git pull && webpack`
