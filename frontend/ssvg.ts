@@ -486,9 +486,18 @@ export default class SSVG {
             me.elementHandler.queueSetAttributeOnElement(this, 'style;' + name, value);
         };*/
         Element.prototype.setAttributeNS = function(name: string, value: any) {
-            console.log('setAttrNS!!');
-
-            origSetAttrNS.apply(this, arguments);
+            if(name === 'easypz' || me.unassignedNodes.indexOf(this) !== -1) {
+                // Update the original SVG
+                origSetAttrNS.apply(this, arguments);
+                return;
+            }
+            if(name === 'class') {
+                origSetAttrNS.apply(this, arguments);
+            }
+            if(!me.isWithinSvg(this)) {
+                return origSetAttrNS.apply(this, arguments);
+            }
+            me.elementHandler.queueSetAttributeOnElement(this, name, value);
         };
     
         Element.prototype.getAttribute = function(name) {
