@@ -204,8 +204,10 @@ export default class Elementhandler {
         
             for (let j = 0; j < rules.length; j++) {
                 const rule = rules[j] as any;
-            
                 const selector = rule.selectorText as string;
+                if(!selector) {
+                    continue; // Skip @imports etc.
+                }
                 this.applyRuleToMatchingNodes(selector, rule); //TODO
             }
         }
