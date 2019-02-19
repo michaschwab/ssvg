@@ -1,9 +1,8 @@
 import VDom from "../util/vdom";
-import CanvasWorkerMessage from "../util/canvas-worker-message"
+import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message"
 import Elementhandler from "./elementhandler";
 import SvgToCanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
-import Webglrenderer from "../canvasworker/webglrenderer";
 import DrawingUtils from "../canvasworker/drawingUtils";
 
 export default class SSVG {
@@ -22,7 +21,9 @@ export default class SSVG {
     private lastTenCanvasDrawTimes: number[] = [];
     
     private showFpsElement: HTMLElement;
-    
+    private enterExitQueue: ({ cmd: 'ENTER', node: any, parentNodeSelector: string }|
+        { cmd: 'EXIT', childIndex: number, parentNodeSelector: string })[] = [];
+
     constructor(private safeMode = false, private maxPixelRatio?: number|undefined, private useWorker = true) {
         this.canvas = document.createElement('canvas');
         if(!('OffscreenCanvas' in window)) {
@@ -116,12 +117,7 @@ export default class SSVG {
                     requestAnimationFrame(() => this.updateCanvas());
                     return;
                 }
-                this.sendToWorker({
-                    cmd: 'UPDATE_NODES',
-                    data: {
-                        queue: queue,
-                    },
-                });
+                this.sendUpdateToWorker(queue);
             });
         } else {
             this.elementHandler.useAttrQueue(queue => {
@@ -357,12 +353,10 @@ export default class SSVG {
             });
 
             //console.log('remove')
-            me.sendToWorker({
-                cmd: 'REMOVE_NODE',
-                data: {
-                    childIndex: el['childIndex'],
-                    parentNodeSelector: parentSelector
-                },
+            me.enterExitQueue.push({
+                cmd: 'EXIT',
+                childIndex: el['childIndex'],
+                parentNodeSelector: parentSelector
             });
 
             me.elementHandler.removeNodeFromParent(<Element> <any> el, node);
@@ -437,12 +431,10 @@ export default class SSVG {
             me.updateChildSelectors(node, el['parentSelector']);
             
             if(me.useWorker) {
-                me.sendToWorker({
-                    cmd: 'ADD_NODE',
-                    data: {
-                        node: node,
-                        parentNodeSelector: parentSelector
-                    },
+                me.enterExitQueue.push({
+                    cmd: 'ENTER',
+                    node: node,
+                    parentNodeSelector: parentSelector
                 });
             } else {
                 if(me.renderer.addNode) {
@@ -607,7 +599,21 @@ export default class SSVG {
             this.showFpsElement.innerText = fps + ' FPS';
         }
     }
-    
+
+    private sendUpdateToWorker(queue) {
+        const msg: CanvasUpdateWorkerMessage = {
+            cmd: 'UPDATE_NODES',
+            data: {
+                enterExit: this.enterExitQueue,
+                update: queue,
+            }
+        };
+
+        this.sendToWorker(msg);
+
+        this.enterExitQueue = [];
+    }
+
     private sendToWorker(msg: CanvasWorkerMessage, data?: any) {
         this.worker.postMessage(msg, data);
         //console.log(roughSizeOfObject(msg));

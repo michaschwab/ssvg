@@ -1,8 +1,6 @@
 import VDom from "../util/vdom";
-import CanvasWorkerMessage from "../util/canvas-worker-message"
+import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message"
 import Canvasrenderer from "./canvasrenderer";
-import Webglrenderer from "./webglrenderer";
-import Twojsrenderer from "./twojsrenderer";
 
 export default interface SvgToCanvasWorker {
     draw(): void;
@@ -34,23 +32,31 @@ self.onmessage = function(e: MessageEvent) {
                 });*/
                 break;
             case 'UPDATE_NODES':
+                const data = msg as CanvasUpdateWorkerMessage;
                 //console.log('UPDATE', msg.data.queue, msg.data.parentNodeSelectors);
+
+                for(let operation of data.data.enterExit) {
+                    if(operation.cmd === 'ENTER') {
+                        const node = vdom.addNode(operation.node, operation.parentNodeSelector);
+                        if(worker.addNode) {
+                            worker.addNode(node);
+                        }
+                    }
+                }
+
                 if(worker.updatePropertiesFromQueue) {
-                    worker.updatePropertiesFromQueue(msg.data.queue);
+                    worker.updatePropertiesFromQueue(data.data.update);
                 } else {
-                    vdom.updatePropertiesFromQueue(msg.data.queue);
+                    vdom.updatePropertiesFromQueue(data.data.update);
                 }
+
+                for(let operation of data.data.enterExit) {
+                    if(operation.cmd === 'EXIT') {
+                        vdom.removeNode(operation.childIndex, operation.parentNodeSelector);
+                    }
+                }
+
                 worker.draw();
-                break;
-            case 'ADD_NODE':
-                //console.log('ADD', data.node, data.parentNodeSelector);
-                const node = vdom.addNode(msg.data.node, msg.data.parentNodeSelector);
-                if(worker.addNode) {
-                    worker.addNode(node);
-                }
-                break;
-            case 'REMOVE_NODE':
-                vdom.removeNode(msg.data.childIndex, msg.data.parentNodeSelector);
                 break;
             default:
                 console.error('did not find command ', msg.cmd);
