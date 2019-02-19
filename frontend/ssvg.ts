@@ -4,6 +4,7 @@ import Elementhandler from "./elementhandler";
 import SvgToCanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
 import DrawingUtils from "../canvasworker/drawingUtils";
+import CanvasWorker from '../canvasworker';
 
 export default class SSVG {
     private unassignedNodes: Node[] = [];
@@ -31,12 +32,7 @@ export default class SSVG {
         }
         
         if(this.useWorker) {
-            const scripts = Array.from(document.getElementsByTagName("script"));
-            const thisScript = scripts.filter(script => script.src.indexOf('ssvg') !== -1 &&
-                script.src.indexOf('frontend.js') !== -1);
-            const path = thisScript[0].src.substr(0, thisScript[0].src.length - 'frontend.js'.length);
-    
-            this.worker = new Worker(path + 'canvasworker.js');
+            this.worker = new CanvasWorker();
     
             this.worker.onmessage = e => {
                 if(e.data && e.data.msg && e.data.msg === 'DRAWN') {

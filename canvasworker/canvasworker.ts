@@ -9,9 +9,10 @@ export default interface SvgToCanvasWorker {
 }
 
 let worker: SvgToCanvasWorker;
+const workerContext: Worker = self as any;
 let vdom: VDom;
 
-self.onmessage = function(e: MessageEvent) {
+workerContext.onmessage = function(e: MessageEvent) {
     
     const msg: CanvasWorkerMessage = e.data;
     
@@ -22,7 +23,7 @@ self.onmessage = function(e: MessageEvent) {
                 vdom = new VDom(msg.data.visData);
                 const safeMode = !!msg.data.safeMode;
                 worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode, () => {
-                    postMessage({msg: 'DRAWN'});
+                    workerContext.postMessage({msg: 'DRAWN'});
                 });
                 /*worker = new Twojsrenderer(vdom, msg.data.canvas, msg.data.offscreenCanvas, () => {
                     postMessage({msg: 'DRAWN'});
