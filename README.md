@@ -9,7 +9,7 @@ Just add this after loading d3:
 
 If you want to toggle SSVG on and off using a hash, use this:
 ```
-<script src="https://ssvg.surge.sh/ssvg-auto.js"></script>
+<script src="https://ssvg.surge.sh/ssvg.js"></script>
 <script>
   if(window.location.hash) {
     new SSVG();
