@@ -173,6 +173,7 @@ export default class Elementhandler {
             transform: el.getAttribute('transform'),
             d: el.getAttribute('d'),
             className: el.getAttribute('class'),
+            id: el.getAttribute('id'),
             r: getRoundedAttr(el, 'r'),
             fill: el.getAttribute('fill'),
             cx: getRoundedAttr(el, 'cx'),
@@ -333,6 +334,7 @@ export default class Elementhandler {
                 //console.log(node);
                 
                 parentNode.children.push(node);
+                this.linkNodeToElement(node, el);
                 
                 if(el.childNodes)
                 {

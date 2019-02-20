@@ -32,6 +32,8 @@ export type VdomNode = {
     height?: number,
     textAlign?: string,
     text?: string,
+    className?: string,
+    id?: string,
 }
 
 export class VdomManager {
@@ -189,12 +191,10 @@ export class VdomManager {
         let selParts = selector.split('>').map(s => s.trim());
         let selPart = selParts[matchIndex];
         
-        if(matchIndex === 0 && selPart === 'svg')
-        {
+        if(matchIndex === 0 && selPart === 'svg') {
             matchIndex++;
             selPart = selParts[matchIndex];
-            if(matchIndex === selParts.length)
-            {
+            if(matchIndex === selParts.length) {
                 selectedNodes.push(visNode);
                 selectedNodeSelectors.push(selector);
                 return;
@@ -203,44 +203,35 @@ export class VdomManager {
         
         const checker = this.checkIfMatching(selPart);
         
-        for(let i = 0; i < visNode.children.length; i++)
-        {
+        for(let i = 0; i < visNode.children.length; i++) {
             let node = visNode.children[i];
             let matching = false;
             
-            if(checker(node, i))
-            {
-                if(matchIndex === selParts.length - 1)
-                {
+            if(checker(node, i)) {
+                if(matchIndex === selParts.length - 1) {
                     selectedNodes.push(node);
                     selectedNodeSelectors.push(selector);
-                }
-                else
-                {
+                } else {
                     matching = true;
                 }
             }
             
-            if(node.children && (matching || selParts.length < 2) && matchIndex + 1 < selParts.length)
-            {
+            if(node.children && (matching || selParts.length < 2) && matchIndex + 1 < selParts.length) {
                 this.findMatchingChildren(node, selector, matchIndex + 1, selectedNodes, selectedNodeSelectors);
             }
         }
     }
     
-    private checkIfMatching(selPart: string): ((node: VdomNode, index?: number) => boolean)
-    {
-        if(selPart.substr(0,1) === '.')
-        {
-            return node => (node['className'] && node['className'] === selPart.substr(1));
-        }
-        else if(selPart.indexOf(':nth-child(') !== -1)
-        {
+    private checkIfMatching(selPart: string): ((node: VdomNode, index?: number) => boolean) {
+        if(selPart.substr(0,1) === '.') {
+            return node => (node.className && node.className === selPart.substr(1));
+        } else if(selPart.substr(0,1) === '#') {
+            return node => (node.id && node.id === selPart.substr(1));
+        } else if(selPart.indexOf(':nth-child(') !== -1) {
             let type = 'any';
             let indexPart = selPart;
             
-            if(selPart[0] !== ':')
-            {
+            if(selPart[0] !== ':') {
                 type = selPart.substr(0, selPart.indexOf(':'));
                 indexPart = selPart.substr(selPart.indexOf(':'));
             }
@@ -248,12 +239,10 @@ export class VdomManager {
             let targetIndex = parseInt(indexPart.substr(':nth-child('.length));
             
             return (node, i) => (i === targetIndex - 1 && (type === 'any' || node.type === type));
-        }
-        else if(selPart === '') {
+        } else if(selPart === '') {
             console.log('node class?'); //TODO remove if not used
-            return node => (node['class '] === 'svg');
-        }
-        else {
+            return node => (node['class'] === 'svg');
+        } else {
             return node => node.type === selPart;
         }
     }
@@ -261,14 +250,12 @@ export class VdomManager {
 
 let safeLogCount = 0;
 function safeLog(...logContents) {
-    
     if(safeLogCount < 50) {
         safeLogCount++;
         console.log(...logContents);
     }
 }
 function safeErrorLog(...logContents) {
-    
     if(safeLogCount < 50) {
         safeLogCount++;
         console.error(...logContents);

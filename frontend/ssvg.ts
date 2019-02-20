@@ -70,7 +70,7 @@ export default class SSVG {
         this.replaceNativeCreateElement();
         this.replaceNativeAppendChild();
         this.replaceD3Attr();
-        this.replaceD3SelectAll();
+        this.replaceD3Select();
         
         this.showFpsElement = document.createElement('div');
         this.showFpsElement.style.position = 'absolute';
@@ -190,7 +190,7 @@ export default class SSVG {
         }
     }
     
-    private replaceD3SelectAll() {
+    private replaceD3Select() {
         if((window as any)['d3']) {
             const me = this;
             const d3 = (window as any)['d3'];
@@ -375,7 +375,6 @@ export default class SSVG {
         const me = this;
         
         return function<T extends Node>(this: Element, el: T) {
-    
             if(!me.svgAssignedAndSizeSet) {
                 if(!me.svg && el['tagName'] === 'svg') {
                     const appended = origAppend.apply(this, arguments);
