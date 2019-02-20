@@ -583,8 +583,8 @@ export default class SSVG {
     {
         if(visNode.type === 'circle')
         {
-            let cx = parseFloat(visNode.cx) || 0;
-            let cy = parseFloat(visNode.cy) || 0;
+            let cx = visNode.cx || 0;
+            let cy = visNode.cy || 0;
             if(visNode.transform) {
                 const transform = DrawingUtils.parseTransform(visNode.transform);
                 if(transform.translateX) {
@@ -595,7 +595,7 @@ export default class SSVG {
                 }
             }
             let distance = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
-            return distance < parseFloat(visNode.r);
+            return distance < visNode.r;
         } else if(visNode.type === 'g') {
             if(visNode.transform) {
                 const transform = DrawingUtils.parseTransform(visNode.transform);

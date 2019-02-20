@@ -131,9 +131,9 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
 
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillColor]) {
-                        const cx = elData.cx ? parseFloat(elData.cx) : 0;
-                        const cy = elData.cy ? parseFloat(elData.cy) : 0;
-                        const r = parseFloat(elData.r);
+                        const cx = elData.cx ? elData.cx : 0;
+                        const cy = elData.cy ? elData.cy : 0;
+                        const r = elData.r;
                         this.ctx.save();
                         this.applyTransform(elData.transform);
                         this.ctx.moveTo(cx + r, cy);
@@ -160,15 +160,15 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                 stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
             }
 
-            const cx = parseFloat(elData.cx) || 0;
-            const cy = parseFloat(elData.cy) || 0;
+            const cx = elData.cx || 0;
+            const cy = elData.cy || 0;
 
             this.ctx.beginPath();
             this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
             this.ctx.strokeStyle = stroke;
             this.ctx.lineWidth = elData.style['stroke-width'] ?
                 parseFloat(elData.style['stroke-width']) : parseFloat(elData.strokeWidth);
-            this.ctx.arc(cx, cy, parseFloat(elData.r), 0, 2 * Math.PI);
+            this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
             if(fill !== 'none'){
                 this.ctx.fill();
             }
@@ -187,8 +187,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
 
         if(fill && fill !== 'none') {
             this.ctx.fillStyle = elData.style.fill ? elData.style.fill : elData.fill;
-            this.ctx.fillRect(parseFloat(elData.x), parseFloat(elData.y), parseFloat(elData.width),
-                parseFloat(elData.height));
+            this.ctx.fillRect(elData.x, elData.y, elData.width, elData.height);
         }
 
         let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
@@ -196,8 +195,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
             this.ctx.strokeStyle = stroke;
             this.ctx.beginPath();
-            this.ctx.rect(parseFloat(elData.x), parseFloat(elData.y), parseFloat(elData.width),
-                parseFloat(elData.height));
+            this.ctx.rect(elData.x, elData.y, elData.width, elData.height);
             this.ctx.stroke();
         }
     }
@@ -242,7 +240,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         this.ctx.fillStyle = "#000000";
         const textAlign = <CanvasTextAlign> (elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor);
         this.ctx.textAlign = textAlign;
-        this.ctx.fillText(elData.text, parseFloat(elData.x), parseFloat(elData.y));
+        this.ctx.fillText(elData.text, elData.x, elData.y);
     }
     
     private drawLine(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {

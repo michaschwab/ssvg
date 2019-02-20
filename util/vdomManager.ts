@@ -12,24 +12,26 @@ export type VDOM = {
     scale: number;
 } & VdomNode;
 
+export type VdomNodeType = 'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'text';
+
 export type VdomNode = {
     style: {[styleName: string]: string},
-    type: 'svg'|'g'|'rect'|'circle'|'path'|'title',
+    type: VdomNodeType,
     children: VdomNode[],
-    transform: string|undefined,
-    fill: string|undefined,
-    d: string|undefined,
-    stroke: string|undefined,
-    strokeWidth: string|undefined,
-    cx: string|undefined,
-    cy: string|undefined,
-    r: string|undefined,
-    x: string|undefined,
-    y: string|undefined,
-    width: string|undefined,
-    height: string|undefined,
-    textAlign: string|undefined,
-    text: string|undefined,
+    transform?: string,
+    fill?: string,
+    d?: string,
+    stroke?: string,
+    strokeWidth?: string,
+    cx?: number,
+    cy?: number,
+    r?: number,
+    x?: number,
+    y?: number,
+    width?: number,
+    height?: number,
+    textAlign?: string,
+    text?: string,
 }
 
 export class VdomManager {

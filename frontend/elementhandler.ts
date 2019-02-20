@@ -1,4 +1,4 @@
-import {VdomManager, VdomNode} from "../util/vdomManager";
+import {VdomManager, VdomNode, VdomNodeType} from "../util/vdomManager";
 
 export default class Elementhandler {
     
@@ -20,7 +20,7 @@ export default class Elementhandler {
         this.svg.style.display = 'none';
         
         window.setTimeout(() => {
-            this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data.children);
+            this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
         }, 100);
     }
     
@@ -160,18 +160,18 @@ export default class Elementhandler {
         return this.vdom.getVisNodeFromSelector(selector);
     }
     
-    getNodeDataFromEl(el: HTMLElement): {type: string; [attr: string]: any} {
+    getNodeDataFromEl(el: HTMLElement): VdomNode {
         const getRoundedAttr = (el: Element, attrName: string) => {
             const val = el.getAttribute(attrName);
             return val ? parseFloat(val) : null;
         };
         
         const node = {
-            type: el.tagName.toLowerCase(),
+            type: el.tagName.toLowerCase() as VdomNodeType,
             transform: el.getAttribute('transform'),
             d: el.getAttribute('d'),
             className: el.getAttribute('class'),
-            r: el.getAttribute('r'),
+            r: getRoundedAttr(el, 'r'),
             fill: el.getAttribute('fill'),
             cx: getRoundedAttr(el, 'cx'),
             cy: getRoundedAttr(el, 'cy'),
@@ -321,7 +321,7 @@ export default class Elementhandler {
         this.addedNodesWithoutApplyingStyles = true;
     }
     
-    private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, childrenData: any): void {
+    private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, parentNode: VdomNode): void {
         
         for(let i  = 0; i < childEls.length; i++) {
             let el = childEls[i] as HTMLElement;
@@ -331,11 +331,11 @@ export default class Elementhandler {
                 const node = this.getNodeDataFromEl(el);
                 //console.log(node);
                 
-                childrenData.push(node);
+                parentNode.children.push(node);
                 
                 if(el.childNodes)
                 {
-                    this.addChildNodesToVisData(el.childNodes, node.children);
+                    this.addChildNodesToVisData(el.childNodes, node);
                 }
                 if(node.type === 'tspan')
                 {
