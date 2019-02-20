@@ -1,4 +1,4 @@
-import VDom from "../util/vdom";
+import {VdomManager, VdomNode} from "../util/vdomManager";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message"
 import Elementhandler from "./elementhandler";
 import SvgToCanvasWorker from "../canvasworker/canvasworker";
@@ -10,7 +10,7 @@ export default class SSVG {
     private unassignedNodes: Node[] = [];
     private worker: Worker;
     private elementHandler: Elementhandler;
-    private vdom: VDom;
+    private vdom: VdomManager;
     private interactionSelections: HTMLElement[] = [];
     
     private renderer: SvgToCanvasWorker;
@@ -22,7 +22,7 @@ export default class SSVG {
     private lastTenCanvasDrawTimes: number[] = [];
     
     private showFpsElement: HTMLElement;
-    private enterExitQueue: ({ cmd: 'ENTER', node: any, parentNodeSelector: string }|
+    private enterExitQueue: ({ cmd: 'ENTER', node: VdomNode, parentNodeSelector: string }|
         { cmd: 'EXIT', childIndex: number, parentNodeSelector: string })[] = [];
 
     constructor(private safeMode = false, private maxPixelRatio?: number|undefined, private useWorker = true) {
@@ -526,11 +526,15 @@ export default class SSVG {
         };
     
         Element.prototype.getAttribute = function(name) {
-        
             if(me.unassignedNodes.indexOf(this) !== -1) {
                 return origGetAttr.apply(this, arguments);
             } else {
-                return me.elementHandler.getAttributeFromSelector(this, name);
+                try {
+                    return me.elementHandler.getAttributeFromSelector(this, name);
+                } catch(e) {
+                    console.error(e);
+                    return origGetAttr.apply(this, arguments);
+                }
             }
         };
     }
@@ -575,12 +579,12 @@ export default class SSVG {
         }
     }
     
-    private nodeAtPosition(visNode: any, x: number, y: number): boolean
+    private nodeAtPosition(visNode: VdomNode, x: number, y: number): boolean
     {
         if(visNode.type === 'circle')
         {
-            let cx = visNode.cx || 0;
-            let cy = visNode.cy || 0;
+            let cx = parseFloat(visNode.cx) || 0;
+            let cy = parseFloat(visNode.cy) || 0;
             if(visNode.transform) {
                 const transform = DrawingUtils.parseTransform(visNode.transform);
                 if(transform.translateX) {
@@ -591,7 +595,7 @@ export default class SSVG {
                 }
             }
             let distance = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
-            return distance < visNode.r;
+            return distance < parseFloat(visNode.r);
         } else if(visNode.type === 'g') {
             if(visNode.transform) {
                 const transform = DrawingUtils.parseTransform(visNode.transform);

@@ -1,4 +1,4 @@
-import VDom, {SetPropertyQueue} from "../util/vdom";
+import {VdomManager, SetPropertyQueue} from "../util/vdomManager";
 import SvgToCanvasWorker from "./canvasworker";
 //importScripts("https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js");
 //importScripts("https://raw.github.com/jonobr1/two.js/master/build/two.min.js");
@@ -19,7 +19,7 @@ export default class Twojsrenderer implements SvgToCanvasWorker {
     private lines;
     private linesData;
     
-    constructor(private vdom: VDom, private canvas: HTMLCanvasElement,
+    constructor(private vdom: VdomManager, private canvas: HTMLCanvasElement,
                 private offscreenCanvas: HTMLCanvasElement, private onDrawn = () => {}) {
         const Two = (self as any)['Two'];
         

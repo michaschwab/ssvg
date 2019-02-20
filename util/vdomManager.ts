@@ -6,18 +6,39 @@ export class SetPropertyQueue {
     }
 }
 
-export default class VDom {
+export type VDOM = {
+    width: number;
+    height: number;
+    scale: number;
+} & VdomNode;
+
+export type VdomNode = {
+    style: {[styleName: string]: string},
+    type: 'svg'|'g'|'rect'|'circle'|'path'|'title',
+    children: VdomNode[],
+    transform: string|undefined,
+    fill: string|undefined,
+    d: string|undefined,
+    stroke: string|undefined,
+    strokeWidth: string|undefined,
+    cx: string|undefined,
+    cy: string|undefined,
+    r: string|undefined,
+    x: string|undefined,
+    y: string|undefined,
+    width: string|undefined,
+    height: string|undefined,
+    textAlign: string|undefined,
+    text: string|undefined,
+}
+
+export class VdomManager {
     
-    constructor(public data: {
-        width: number,
-        height: number,
-        scale: number,
-        children: any[]
-    }) {
+    constructor(public data: VDOM) {
         //console.log(data);
     }
     
-    addNode(nodeData: any, parentNodeSelector: string) {
+    addNode(nodeData: VdomNode, parentNodeSelector: string) {
         let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
         if(!parentNode) {
             if(parentNodeSelector === "") {
@@ -50,7 +71,7 @@ export default class VDom {
         this.cachedListSelections = {}; //TODO only remove relevant cache.
     }
 
-    applyParentStyles(parentNode: any, childNode: any) {
+    applyParentStyles(parentNode: VdomNode, childNode: VdomNode) {
         for(const style in parentNode.style) {
             if(!childNode.style[style]) {
                 childNode.style[style] = parentNode.style[style];
@@ -75,7 +96,7 @@ export default class VDom {
         return parentNode;
     }
 
-    applyStyleToNodeAndChildren(node: any, styleName: string, styleValue: string) {
+    applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string) {
         node['style'][styleName] = styleValue;
 
         if(node.children) {
@@ -119,8 +140,8 @@ export default class VDom {
         }
     }
     
-    private cachedListSelections: {[selector: string]: {[index: number]: HTMLElement}} = {};
-    public getVisNodeFromSelector(selector: string): any|null {
+    private cachedListSelections: {[selector: string]: {[index: number]: VdomNode}} = {};
+    public getVisNodeFromSelector(selector: string): VdomNode|null {
         const lastSplitPos = selector.lastIndexOf('>');
         const selectorWithoutLast = selector.substr(0, lastSplitPos);
         const lastPart = selector.substr(lastSplitPos + 1);
@@ -134,7 +155,7 @@ export default class VDom {
             }
         }
         
-        const selectedNodes: any[] = [];
+        const selectedNodes: VdomNode[] = [];
         this.findMatchingChildren(this.data, selector, 0, selectedNodes);
         
         if(selectedNodes && selectedNodes.length === 1) {
@@ -156,7 +177,8 @@ export default class VDom {
         return selectedNodes;
     }
     
-    private findMatchingChildren(visNode: any, selector: string, matchIndex: number, selectedNodes: any[], selectedNodeSelectors: string[] = []) {
+    private findMatchingChildren(visNode: VdomNode, selector: string, matchIndex: number, selectedNodes: VdomNode[],
+                                 selectedNodeSelectors: string[] = []) {
         if(!selector && selector !== '') {
             console.error(visNode, selector, matchIndex, selectedNodes, selectedNodeSelectors);
             throw Error('undefined selector');
@@ -204,11 +226,11 @@ export default class VDom {
         }
     }
     
-    private checkIfMatching(selPart: string): ((node: any, index?: number) => boolean)
+    private checkIfMatching(selPart: string): ((node: VdomNode, index?: number) => boolean)
     {
         if(selPart.substr(0,1) === '.')
         {
-            return node => (node.className === selPart.substr(1));
+            return node => (node['className'] && node['className'] === selPart.substr(1));
         }
         else if(selPart.indexOf(':nth-child(') !== -1)
         {
@@ -226,7 +248,8 @@ export default class VDom {
             return (node, i) => (i === targetIndex - 1 && (type === 'any' || node.type === type));
         }
         else if(selPart === '') {
-            return node => (node.class === 'svg');
+            console.log('node class?'); //TODO remove if not used
+            return node => (node['class '] === 'svg');
         }
         else {
             return node => node.type === selPart;

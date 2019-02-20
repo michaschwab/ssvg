@@ -59,7 +59,7 @@ export default class DrawingUtils {
         return transformObject;
     }
     
-    static colorToRgba(color: string|{r: number, g: number, b: number}, opacity = 1): string {
+    static colorToRgba(color: string|{r: number, g: number, b: number}, opacity: string|number = 1): string {
         color = DrawingUtils.CssNamedColorToHex(color);
         if(typeof color === 'string' && color[0] === '#') {
             let c; // From https://stackoverflow.com/questions/21646738/convert-hex-to-rgba

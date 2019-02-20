@@ -1,4 +1,4 @@
-import VDom from "../util/vdom";
+import { VdomManager } from "../util/vdomManager";
 import SvgToCanvasWorker from "./canvasworker";
 if('importScripts' in self) {
     importScripts("https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js");
@@ -11,7 +11,7 @@ export default class Webglrenderer implements SvgToCanvasWorker {
     private lines;
     private linesData;
     
-    constructor(private vdom: VDom, private canvas: HTMLCanvasElement, private onDrawn = () => {}) {
+    constructor(private vdom: VdomManager, private canvas: HTMLCanvasElement, private onDrawn = () => {}) {
         
         const Stardust = (self as any)['Stardust'];
         

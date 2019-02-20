@@ -1,12 +1,12 @@
-import VDom from "../util/vdom";
+import {VdomManager, VdomNode} from "../util/vdomManager";
 
 export default class Elementhandler {
     
-    private vdom: VDom;
+    private vdom: VdomManager;
     private sharedArrays: {[parentSelector: string]: { [attrName: string]: Int32Array}} = {};
     private setAttrQueue: {[parentSelector: string]: { [attrName: string]: (string[]|SharedArrayBuffer)}} = {};
     private addedNodesWithoutApplyingStyles = false;
-    private nodesToElements: { nodes: any[], elements: any[]} = { nodes: [], elements: []};
+    private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     
     constructor(private svg: SVGElement, private onUpdateNeeded: () => void) {
         const visData: any = {
@@ -16,7 +16,7 @@ export default class Elementhandler {
             children: []
         };
     
-        this.vdom = new VDom(visData);
+        this.vdom = new VdomManager(visData);
         this.svg.style.display = 'none';
         
         window.setTimeout(() => {
@@ -29,7 +29,7 @@ export default class Elementhandler {
     }
     
     queueSetAttributeOnElement(element: Element, attrName: string, value: any) {
-        //TODO: merge with updatePropertiesFromQueue from VDom?
+        //TODO: merge with updatePropertiesFromQueue from VdomManager?
         const parent = element.parentNode;
         let parentSelector = parent === this.svg ? "svg" : (element as any)['parentSelector'] as string;
         let childIndex = (element as any)['childIndex'];
@@ -143,7 +143,8 @@ export default class Elementhandler {
         const node = this.getVisNode(element);
         
         if(!node) {
-            return console.error('trying to get attribute for unfit selection', node, element, name);
+            throw Error('element not found');
+            //return console.error('trying to get attribute for unfit selection', node, element, name);
         }
         
         return node[name];
@@ -151,6 +152,10 @@ export default class Elementhandler {
     
     getVisNode(element: Element): any|null {
         const selector = this.getElementSelector(element);
+
+        if(selector === null) {
+            return null;
+        }
         
         return this.vdom.getVisNodeFromSelector(selector);
     }
@@ -404,7 +409,7 @@ export default class Elementhandler {
 
     linkNodeToElement(node, element: Node) {
         this.nodesToElements.nodes.push(node);
-        this.nodesToElements.elements.push(element);
+        this.nodesToElements.elements.push(element as Element);
     }
 
     getElementFromNode(node) {

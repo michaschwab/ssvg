@@ -1,4 +1,4 @@
-import VDom from "../util/vdom";
+import {VdomManager, VdomNode} from "../util/vdomManager";
 import DrawingUtils from "./drawingUtils";
 import SvgToCanvasWorker from "./canvasworker";
 
@@ -6,7 +6,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     
     private ctx: CanvasRenderingContext2D;
     
-    constructor(private vdom: VDom, private canvas: HTMLCanvasElement,
+    constructor(private vdom: VdomManager, private canvas: HTMLCanvasElement,
                 private forceSingle = false, private onDrawn = () => {}) {
         const ctx = canvas.getContext('2d');
         if(!ctx) throw new Error('could not create canvas context');
@@ -23,7 +23,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         }, 1000);
     }
     
-    private lastDrawn: any = null;
+    private lastDrawn: VdomNode = null;
     private lastFullSecond = 0;
     private countSinceLastFullSecond = 0;
     
@@ -54,7 +54,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         this.countSinceLastFullSecond++;
     }
     
-    private drawNodeAndChildren(elData: any) {
+    private drawNodeAndChildren(elData: VdomNode) {
         const ctx = this.ctx;
 
         ctx.save();
@@ -94,13 +94,13 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         ctx.restore();
     }
     
-    private drawSingleNode(elData: any, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawSingleNode(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         const type: string = elData.type;
         this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)](elData, mode);
     }
     
-    private circlesByColor: {[color: string]: any} = {};
-    private drawCircle(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private circlesByColor: {[color: string]: VdomNode[]} = {};
+    private drawCircle(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         if(mode === 'normal') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
             if(!fill) fill = '#000';
@@ -126,13 +126,13 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                         stroke = DrawingUtils.colorToRgba(stroke, sampleData.style['stroke-opacity']);
                     }
                     this.ctx.lineWidth = sampleData.style['stroke-width'] ?
-                        parseFloat(sampleData.style['stroke-width']) : sampleData.strokeWidth;
+                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
                     this.ctx.strokeStyle = stroke;
 
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillColor]) {
-                        const cx = elData.cx || 0;
-                        const cy = elData.cy || 0;
+                        const cx = elData.cx ? parseFloat(elData.cx) : 0;
+                        const cy = elData.cy ? parseFloat(elData.cy) : 0;
                         const r = parseFloat(elData.r);
                         this.ctx.save();
                         this.applyTransform(elData.transform);
@@ -160,15 +160,15 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                 stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
             }
 
-            const cx = elData.cx || 0;
-            const cy = elData.cy || 0;
+            const cx = parseFloat(elData.cx) || 0;
+            const cy = parseFloat(elData.cy) || 0;
 
             this.ctx.beginPath();
             this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
             this.ctx.strokeStyle = stroke;
             this.ctx.lineWidth = elData.style['stroke-width'] ?
-                parseFloat(elData.style['stroke-width']) : elData.strokeWidth;
-            this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
+                parseFloat(elData.style['stroke-width']) : parseFloat(elData.strokeWidth);
+            this.ctx.arc(cx, cy, parseFloat(elData.r), 0, 2 * Math.PI);
             if(fill !== 'none'){
                 this.ctx.fill();
             }
@@ -179,7 +179,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         }
     }
     
-    private drawRect(elData) {
+    private drawRect(elData: VdomNode) {
         let fill = elData.style.fill ? elData.style.fill : elData.fill;
         if(fill) {
             fill = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
@@ -187,7 +187,8 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
 
         if(fill && fill !== 'none') {
             this.ctx.fillStyle = elData.style.fill ? elData.style.fill : elData.fill;
-            this.ctx.fillRect(elData.x, elData.y, elData.width, elData.height);
+            this.ctx.fillRect(parseFloat(elData.x), parseFloat(elData.y), parseFloat(elData.width),
+                parseFloat(elData.height));
         }
 
         let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
@@ -195,16 +196,17 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
             this.ctx.strokeStyle = stroke;
             this.ctx.beginPath();
-            this.ctx.rect(elData.x, elData.y, elData.width, elData.height);
+            this.ctx.rect(parseFloat(elData.x), parseFloat(elData.y), parseFloat(elData.width),
+                parseFloat(elData.height));
             this.ctx.stroke();
         }
     }
 
-    private drawText(elData) {
+    private drawText(elData: VdomNode) {
         console.warn('Text rendering not yet implemented');
     }
     
-    private drawPath(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawPath(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
         
         let fill = elData.style.fill ? elData.style.fill : elData.fill;
@@ -233,13 +235,14 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         }
     }
     
-    private drawTspan(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawTspan(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
         
         this.ctx.font = "10px Arial";
         this.ctx.fillStyle = "#000000";
-        this.ctx.textAlign = elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor;
-        this.ctx.fillText(elData.text, elData.x, elData.y);
+        const textAlign = <CanvasTextAlign> (elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor);
+        this.ctx.textAlign = textAlign;
+        this.ctx.fillText(elData.text, parseFloat(elData.x), parseFloat(elData.y));
     }
     
     private drawLine(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {

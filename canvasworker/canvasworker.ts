@@ -1,4 +1,4 @@
-import VDom from "../util/vdom";
+import { VdomManager } from "../util/vdomManager";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message"
 import Canvasrenderer from "./canvasrenderer";
 
@@ -10,7 +10,7 @@ export default interface SvgToCanvasWorker {
 
 let worker: SvgToCanvasWorker;
 const workerContext: Worker = self as any;
-let vdom: VDom;
+let vdom: VdomManager;
 
 workerContext.onmessage = function(e: MessageEvent) {
     
@@ -20,7 +20,7 @@ workerContext.onmessage = function(e: MessageEvent) {
         switch(msg.cmd) {
             case 'INIT':
                 //console.log('init');
-                vdom = new VDom(msg.data.visData);
+                vdom = new VdomManager(msg.data.visData);
                 const safeMode = !!msg.data.safeMode;
                 worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode, () => {
                     workerContext.postMessage({msg: 'DRAWN'});
