@@ -18,9 +18,11 @@ export default class Elementhandler {
     
         this.vdom = new VdomManager(visData);
         this.svg.style.display = 'none';
-        
+
+        this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
+
         window.setTimeout(() => {
-            this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
+            this.addedNodesWithoutApplyingStyles = true; // Re-do the styles.
         }, 100);
     }
     
@@ -322,7 +324,6 @@ export default class Elementhandler {
     }
     
     private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, parentNode: VdomNode): void {
-        
         for(let i  = 0; i < childEls.length; i++) {
             let el = childEls[i] as HTMLElement;
             
@@ -353,9 +354,10 @@ export default class Elementhandler {
                 //console.log(e);
                 //console.log(el);
             }
-            
         }
-        this.addedNodesWithoutApplyingStyles = true;
+        if(childEls.length) {
+            this.addedNodesWithoutApplyingStyles = true;
+        }
     }
 
     getNodeSelector(node: any): string {
