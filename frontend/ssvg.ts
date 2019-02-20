@@ -66,6 +66,7 @@ export default class SSVG {
 
         this.replaceNativeRemoveChild();
         this.replaceNativeAttribute();
+        this.replaceNativePathFunctions();
         this.replaceNativeCreateElement();
         this.replaceNativeAppendChild();
         this.replaceD3Attr();
@@ -459,9 +460,33 @@ export default class SSVG {
             return newChild;
         };
     }
-    
+
+    private replaceNativePathFunctions() {
+        const me = this;
+        const origGetPointAtLength = SVGPathElement.prototype.getPointAtLength;
+        const origGetTotalLength = SVGPathElement.prototype.getTotalLength;
+
+        SVGPathElement.prototype.getPointAtLength = function() {
+            if(me.isWithinSvg(this)) {
+                const d = this.getAttribute('d');
+                me.origSetAttribute.apply(this, 'd', d);
+            }
+            return origGetPointAtLength.apply(this, arguments);
+        };
+        SVGPathElement.prototype.getTotalLength = function() {
+            if(me.isWithinSvg(this)) {
+                const d = this.getAttribute('d');
+                me.origSetAttribute.apply(this, 'd', d);
+            }
+            return origGetTotalLength.apply(this, arguments);
+        };
+    }
+
+    private origSetAttribute;
+
     private replaceNativeAttribute() {
         const origSetAttr = Element.prototype.setAttribute;
+        this.origSetAttribute = origSetAttr;
         const origSetAttrNS = Element.prototype.setAttributeNS;
         const origGetAttr = Element.prototype.getAttribute;
         const me = this;
