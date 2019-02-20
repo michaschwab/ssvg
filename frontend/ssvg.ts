@@ -286,13 +286,39 @@ export default class SSVG {
     
         if((window as any)['d3']) {
             const d3 = (window as any)['d3'];
-    
-            let origSelectionAttr = d3.selection.prototype.attr;
+
+            const origSelectionAttr = d3.selection.prototype.attr;
             d3.selection.prototype.attr = getReplacement(origSelectionAttr);
-    
-            let origSelectionStyle = d3.selection.prototype.style;
+
+            const origSelectionStyle = d3.selection.prototype.style;
             d3.selection.prototype.style = getReplacement(origSelectionStyle, 'style;');
-            
+
+            const originalClassed = d3.selection.prototype.classed;
+            d3.selection.prototype.classed = function(className: string,
+                                                      value?: boolean|((data: any, index: number) => boolean)) {
+                if(value !== undefined) {
+                    let elements = this._groups ? this._groups[0] : this[0];
+                    let i = 0;
+                    for(let element of elements) {
+                        const indexOfParent = element.childIndex;
+                        const parentSelector = element['parentSelector'];
+                        const parent = me.vdom.getParentNodeFromSelector(parentSelector);
+                        const node = parent.children[indexOfParent];
+                        const prevClassNames = node.className || '';
+                        const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
+                        if(evaluatedValue === true) {
+                            const newClassNames = prevClassNames === '' ? className : prevClassNames + ' ' + className;
+                            me.elementHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+
+                        } else if(evaluatedValue === false) {
+                            const newClassNames = prevClassNames.replace(className, '').replace('  ', ' ');
+                            me.elementHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+                        }
+                        i++;
+                    }
+                }
+                return originalClassed.apply(this, arguments);
+            }
         }
     }
     
