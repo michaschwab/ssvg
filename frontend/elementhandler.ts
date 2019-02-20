@@ -44,6 +44,7 @@ export default class Elementhandler {
         if(!parentSelector) {
             safeLog(element, parent);
             console.error('selector not found');
+            return;
         }
 
         attrName = this.checkAttrName(parentSelector, attrName, false);
@@ -325,14 +326,19 @@ export default class Elementhandler {
     }
     
     private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, parentNode: VdomNode): void {
+        const parentEl = this.getElementFromNode(parentNode);
+
         for(let i  = 0; i < childEls.length; i++) {
             let el = childEls[i] as HTMLElement;
             
             try
             {
                 const node = this.getNodeDataFromEl(el);
-                //console.log(node);
-                
+
+                (el as any)['parentSelector'] = this.getElementSelector(parentEl);
+                (el as any)['selector'] = this.getElementSelector(<Element><any> el);
+                (el as any)['childIndex'] = parentNode.children.length;
+
                 parentNode.children.push(node);
                 this.linkNodeToElement(node, el);
                 
@@ -417,6 +423,9 @@ export default class Elementhandler {
     }
 
     getElementFromNode(node) {
+        if(node === this.vdom.data) {
+            return this.svg;
+        }
         const nodeIndex = this.nodesToElements.nodes.indexOf(node);
         if(nodeIndex === -1) {
             console.error('node not found', node, this.nodesToElements.nodes, this.nodesToElements.nodes.length);
