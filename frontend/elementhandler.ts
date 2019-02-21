@@ -8,15 +8,16 @@ export default class Elementhandler {
     private addedNodesWithoutApplyingStyles = false;
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     
-    constructor(private svg: SVGElement) {
+    constructor(private svg: SVGElement, useWorker: boolean) {
         const visData: any = {
             width: this.svg.getAttribute('width'),
             height: this.svg.getAttribute('height'),
             scale: 1,
             children: []
         };
-    
-        this.vdom = new VdomManager(visData, true);
+
+        const ignoreDesign = useWorker;
+        this.vdom = new VdomManager(visData, ignoreDesign);
         this.svg.style.display = 'none';
 
         this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
