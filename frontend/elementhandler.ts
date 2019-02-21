@@ -188,7 +188,8 @@ export default class Elementhandler {
             "stroke-width": getRoundedAttr(el, 'stroke-width'),
             text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : undefined,
             style: {},
-            children: []
+            children: [],
+            globalElementIndex: -1,
         };
         
         const clean = obj => {
@@ -419,20 +420,17 @@ export default class Elementhandler {
         }
     }
 
-    linkNodeToElement(node, element: Node) {
+    linkNodeToElement(node: VdomNode, element: Node) {
         this.nodesToElements.nodes.push(node);
+        node.globalElementIndex = this.nodesToElements.elements.length;
         this.nodesToElements.elements.push(element as Element);
     }
 
-    getElementFromNode(node) {
+    getElementFromNode(node: VdomNode) {
         if(node === this.vdom.data) {
             return this.svg;
         }
-        const nodeIndex = this.nodesToElements.nodes.indexOf(node);
-        if(nodeIndex === -1) {
-            console.error('node not found', node, this.nodesToElements.nodes, this.nodesToElements.nodes.length);
-        }
-        return this.nodesToElements.elements[nodeIndex];
+        return this.nodesToElements.elements[node.globalElementIndex];
     }
 
     getNodeFromElement(element: Element) {

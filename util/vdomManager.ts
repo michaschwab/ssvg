@@ -18,6 +18,7 @@ export type VdomNode = {
     style: {[styleName: string]: string},
     type: VdomNodeType,
     children: VdomNode[],
+    globalElementIndex: number,
     transform?: string,
     fill?: string,
     d?: string,
