@@ -321,20 +321,23 @@ export default class SSVG {
                     let elements = this._groups ? this._groups[0] : this[0];
                     let i = 0;
                     for(let element of elements) {
-                        const indexOfParent = element.childIndex;
-                        const parentSelector = element['parentSelector'];
-                        const parent = me.vdom.getParentNodeFromSelector(parentSelector);
-                        const node = parent.children[indexOfParent];
-                        const prevClassNames = node.className || '';
-                        const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
-                        if(evaluatedValue === true) {
-                            const newClassNames = prevClassNames === '' ? className : prevClassNames + ' ' + className;
-                            me.elementHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+                        if(element !== undefined) {
+                            const indexOfParent = element.childIndex;
+                            const parentSelector = element['parentSelector'];
+                            const parent = me.vdom.getParentNodeFromSelector(parentSelector);
+                            const node = parent.children[indexOfParent];
+                            const prevClassNames = node.className || '';
+                            const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
+                            if(evaluatedValue === true) {
+                                const newClassNames = prevClassNames === '' ? className : prevClassNames + ' ' + className;
+                                me.elementHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
 
-                        } else if(evaluatedValue === false) {
-                            const newClassNames = prevClassNames.replace(className, '').replace('  ', ' ');
-                            me.elementHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+                            } else if(evaluatedValue === false) {
+                                const newClassNames = prevClassNames.replace(className, '').replace('  ', ' ');
+                                me.elementHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+                            }
                         }
+
                         i++;
                     }
                 }
