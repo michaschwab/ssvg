@@ -112,7 +112,8 @@ export default class SSVG {
         if(this.useWorker) {
             this.elementHandler.useAttrQueue(queue => {
                 if(Object.keys(queue).length === 0) {
-                    requestAnimationFrame(() => this.updateCanvas());
+                    //requestAnimationFrame(() => this.updateCanvas());
+                    setTimeout(() => this.updateCanvas(), 4);
                     return;
                 }
                 this.sendUpdateToWorker(queue);
