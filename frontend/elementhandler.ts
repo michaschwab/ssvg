@@ -8,7 +8,7 @@ export default class Elementhandler {
     private addedNodesWithoutApplyingStyles = false;
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     
-    constructor(private svg: SVGElement, private onUpdateNeeded: () => void) {
+    constructor(private svg: SVGElement) {
         const visData: any = {
             width: this.svg.getAttribute('width'),
             height: this.svg.getAttribute('height'),
@@ -52,8 +52,9 @@ export default class Elementhandler {
         this.setAttrQueue[parentSelector][attrName][childIndex] = evaluatedValue;
 
         if(attrName === 'className') {
-            this.onUpdateNeeded();
-            // To apply classes immediately so styles can be applied correctly.
+            // Apply classes immediately so styles can be applied correctly.
+            const node = this.getNodeFromElement(element);
+            node.className = evaluatedValue;
         }
     }
     
@@ -89,8 +90,12 @@ export default class Elementhandler {
         }
 
         if(attrName === 'className') {
-            this.onUpdateNeeded();
-            // To apply classes immediately so styles can be applied correctly.
+            // Apply classes immediately so styles can be applied correctly.
+            for(let i = 0; i < elements.length; i++) {
+                const node = this.getNodeFromElement(elements[i]);
+                const evaluatedValue = typeof value === "function" ? value(elements[i].__data__, i) : value;
+                node.className = evaluatedValue;
+            }
         }
     }
     
@@ -234,7 +239,7 @@ export default class Elementhandler {
         
         const selectorPartsLooseStrict = selector.split(' ')
             .map(part => part.split('>'));
-        
+
         const checkNode = (currentNode: any, looseIndex = 0, strictIndex = 0): boolean => {
             const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
             
