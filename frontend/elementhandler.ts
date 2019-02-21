@@ -78,7 +78,7 @@ export default class Elementhandler {
                 console.error('selector not found');
             }
 
-            const useSharedArray = 'SharedArrayBuffer' in window;
+            const useSharedArray = 'SharedArrayBuffer' in self;
             attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
 
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
