@@ -132,7 +132,8 @@ export class VdomManager {
                 let values;
                 let factor;
                 
-                if(setAttrQueue[parentSelector][attrName] instanceof SharedArrayBuffer) {
+                if('SharedArrayBuffer' in window &&
+                    setAttrQueue[parentSelector][attrName] instanceof SharedArrayBuffer) {
                     values = new Int32Array(<ArrayBuffer> setAttrQueue[parentSelector][attrName]);
                     factor = 0.1;
                 } else {

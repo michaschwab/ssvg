@@ -77,10 +77,11 @@ export default class Elementhandler {
                 console.error('selector not found');
             }
 
-            attrName = this.checkAttrName(parentSelector, attrName, true);
+            const useSharedArray = 'SharedArrayBuffer' in window;
+            attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
 
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
-            if(this.useSharedArrayFor.indexOf(attrName) === -1) {
+            if(this.useSharedArrayFor.indexOf(attrName) === -1 || !useSharedArray) {
                 this.setAttrQueue[parentSelector][attrName][indexOfParent] = evaluatedValue;
             } else {
                 this.sharedArrays[parentSelector][attrName][indexOfParent] = evaluatedValue * 10; // For precision.
