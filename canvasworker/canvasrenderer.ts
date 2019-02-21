@@ -115,7 +115,6 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             return;
         }
         if(mode === 'end') {
-            //safeLog(this.circlesByColor);
             for(let fillColor in this.circlesByColor) {
                 if(this.circlesByColor.hasOwnProperty(fillColor)) {
                     this.ctx.fillStyle = fillColor;
@@ -242,29 +241,55 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         this.ctx.textAlign = textAlign;
         this.ctx.fillText(elData.text, elData.x, elData.y);
     }
-    
+
+    private linesByColor: {[color: string]: VdomNode[]} = {};
     private drawLine(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         if(this.vdom.data.scale > 1) {
             mode = 'forcesingle';
             // In my tests, drawing a long connected path is very slow for high DPI devices.
         }
         if(mode === 'normal') {
-            this.ctx.moveTo(elData.x1, elData.y1);
-            this.ctx.lineTo(elData.x2, elData.y2);
+            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            if(stroke) {
+                let opacity = elData.style['stroke-opacity'] === undefined ? elData.style['opacity']
+                    : elData.style['stroke-opacity'];
+                if(opacity === undefined) {
+                    opacity = elData['stroke-opacity'] === undefined ? elData['opacity'] : elData['stroke-opacity'];
+                }
+
+                stroke = DrawingUtils.colorToRgba(stroke, opacity);
+            }
+            if(!this.linesByColor[stroke]) {
+                this.linesByColor[stroke] = [];
+            }
+            this.linesByColor[stroke].push(elData);
         }
         if(mode === 'start') {
-            this.ctx.beginPath();
+            this.linesByColor = {};
             return;
         }
         if(mode === 'end') {
-            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-            if(stroke) {
-                const opacity = elData.style['stroke-opacity'] === undefined ? elData.style['opacity']
-                    : elData.style['stroke-opacity'];
-                stroke = DrawingUtils.colorToRgba(stroke, opacity);
+            for(let strokeColor in this.linesByColor) {
+                if(this.linesByColor.hasOwnProperty(strokeColor)) {
+                    this.ctx.strokeStyle = strokeColor;
+
+                    let sampleData = this.linesByColor[strokeColor][0];
+                    this.ctx.lineWidth = sampleData.style['stroke-width'] ?
+                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
+
+                    this.ctx.beginPath();
+                    for(let elData of this.linesByColor[strokeColor]) {
+                        this.ctx.save();
+                        this.applyTransform(elData.transform);
+                        this.ctx.moveTo(elData.x1, elData.y1);
+                        this.ctx.lineTo(elData.x2, elData.y2);
+                        this.ctx.restore();
+                        //this.ctx.restore();
+                    }
+
+                    this.ctx.stroke();
+                }
             }
-            this.ctx.strokeStyle = stroke;
-            this.ctx.stroke();
             return;
         }
         if(mode === 'forcesingle') {
