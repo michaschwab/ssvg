@@ -257,7 +257,13 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             return;
         }
         if(mode === 'end') {
-            this.ctx.strokeStyle = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            if(stroke) {
+                const opacity = elData.style['stroke-opacity'] === undefined ? elData.style['opacity']
+                    : elData.style['stroke-opacity'];
+                stroke = DrawingUtils.colorToRgba(stroke, opacity);
+            }
+            this.ctx.strokeStyle = stroke;
             this.ctx.stroke();
             return;
         }
@@ -265,7 +271,19 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             this.ctx.beginPath();
             this.ctx.moveTo(elData.x1, elData.y1);
             this.ctx.lineTo(elData.x2, elData.y2);
-            this.ctx.strokeStyle = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            if(stroke) {
+                let opacity = elData.style['stroke-opacity'] === undefined ? elData.style['opacity']
+                    : elData.style['stroke-opacity'];
+                if(opacity === undefined) {
+                    opacity = elData['stroke-opacity'] === undefined ? elData['opacity'] : elData['stroke-opacity'];
+                }
+
+                stroke = DrawingUtils.colorToRgba(stroke, opacity);
+            }
+
+            this.ctx.strokeStyle = stroke;
+            //safeLog(stroke, this.ctx.strokeStyle);
             this.ctx.stroke();
         }
     }

@@ -508,21 +508,20 @@ export default class SSVG {
 
     private replaceNativePathFunctions() {
         const me = this;
-        const origGetPointAtLength = SVGPathElement.prototype.getPointAtLength;
+        //const origGetPointAtLength = SVGPathElement.prototype.getPointAtLength;
         const origGetTotalLength = SVGPathElement.prototype.getTotalLength;
 
-        SVGPathElement.prototype.getPointAtLength = function() {
+        /*SVGPathElement.prototype.getPointAtLength = function() {
             if(me.isWithinSvg(this)) {
                 const d = this.getAttribute('d');
-                me.origSetAttribute.apply(this, 'd', d);
+                me.origSetAttribute.call(this, 'd', d);
             }
             return origGetPointAtLength.apply(this, arguments);
-        };
+        };*/
         SVGPathElement.prototype.getTotalLength = function() {
             if(me.isWithinSvg(this)) {
                 const d = this.getAttribute('d');
-                me.origSetAttribute.apply(this, 'd', d);
-                console.log(d, origGetTotalLength.apply(this, arguments))
+                me.origSetAttribute.call(this, 'd', d);
             }
 
             return origGetTotalLength.apply(this, arguments);

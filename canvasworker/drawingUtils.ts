@@ -77,6 +77,9 @@ export default class DrawingUtils {
             throw new Error('Bad Hex');
         } else if(typeof color === 'object' && Object.keys(color).length === 3) {
             return 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')';
+        } else if(typeof color === 'string' && color.substr(0, 4) === 'rgb(') {
+            return color.substr(0, color.length - 1).replace('rgb','rgba') +
+                ', ' + opacity + ')';
         }
         return <string> color;
     }
