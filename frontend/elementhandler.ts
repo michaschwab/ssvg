@@ -16,7 +16,7 @@ export default class Elementhandler {
             children: []
         };
     
-        this.vdom = new VdomManager(visData);
+        this.vdom = new VdomManager(visData, true);
         this.svg.style.display = 'none';
 
         this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
@@ -85,8 +85,6 @@ export default class Elementhandler {
             } else {
                 this.sharedArrays[parentSelector][attrName][indexOfParent] = evaluatedValue * 10; // For precision.
             }
-            
-            //safeLog(attrName, this.setAttrQueue[parentSelector][attrName][i])
         }
 
         if(attrName === 'className') {

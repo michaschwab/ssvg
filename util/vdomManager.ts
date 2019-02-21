@@ -1,3 +1,5 @@
+import DrawingUtils from "../canvasworker/drawingUtils";
+
 export class SetPropertyQueue {
     [parentSelector: string]: {
         [attrName: string]:
@@ -43,7 +45,7 @@ export type VdomNode = {
 
 export class VdomManager {
     
-    constructor(public data: VDOM) {
+    constructor(public data: VDOM, private ignoreDesign = false) {
         //console.log(data);
     }
     
@@ -114,13 +116,18 @@ export class VdomManager {
             }
         }
     }
-    
+
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueue) {
         for(let parentSelector in setAttrQueue) {
             const parentNode = this.getParentNodeFromSelector(parentSelector);
                 
             for(let attrName in setAttrQueue[parentSelector]) {
                 const attrNameStart = attrName.substr(0, 'style;'.length);
+
+                if(this.ignoreDesign && (attrNameStart === 'style;' ||
+                    ['fill', 'stroke', 'opacity', 'x1', 'x2', 'y1', 'y2'].indexOf(attrName) !== -1)) {
+                    continue;
+                }
                 
                 let values;
                 let factor;
@@ -139,12 +146,29 @@ export class VdomManager {
                     }
                     const value = factor ? factor * values[childIndex] : values[childIndex];
                     if(attrNameStart === 'style;') {
-                        const attrNameEnd = attrName.substr('style;'.length);
-                        this.applyStyleToNodeAndChildren(childNode, attrNameEnd, value);
+                        const styleName = attrName.substr('style;'.length);
+                        this.applyStyleToNodeAndChildren(childNode, styleName, value);
+                        this.updateDeducedStyles(childNode, styleName, value);
                     } else {
                         childNode[attrName] = value;
+                        this.updateDeducedStyles(childNode, attrName, value);
                     }
                 }
+            }
+        }
+    }
+
+    updateDeducedStyles(node: VdomNode, attrName: string, value: string) {
+        if(['opacity', 'fill-opacity', 'stroke-opacity', 'stroke', 'fill'].indexOf(attrName) !== -1) {
+            let stroke = node.style.stroke ? node.style.stroke : node.stroke;
+            if(stroke) {
+                let strokeOpacity = node.style['stroke-opacity'] === undefined ? node.style['opacity']
+                    : node.style['stroke-opacity'];
+                if(strokeOpacity === undefined) {
+                    strokeOpacity = node['stroke-opacity'] === undefined ? node['opacity'] : node['stroke-opacity'];
+                }
+
+                node.style['stroke-rgba'] = DrawingUtils.colorToRgba(stroke, strokeOpacity);
             }
         }
     }
