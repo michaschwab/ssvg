@@ -240,22 +240,24 @@ export default class Elementhandler {
             for(let childIndex = 0; childIndex < currentNode.children.length; childIndex++) {
                 const child = currentNode.children[childIndex];
                 let partialMatch = false;
-                if(selPart[0] === '.') {
+                if(selPart[0] === '.') { // Example: .className
                     if(selPart.substr(1) === child.className) {
                         partialMatch = true;
                     }
-                } else {
-                    if(selPart.indexOf('.') === -1) {
-                        if(selPart === child.type) {
-                            partialMatch = true;
-                        }
-                    } else {
-                        const cutoff = selPart.indexOf('.');
-                        const typeName = selPart.substr(0, cutoff);
-                        const className = selPart.substr(cutoff + 1);
-                        if(typeName === child.type && className === child.className) {
-                            partialMatch = true;
-                        }
+                } else if(selPart[0] === '#') { // Example: #id
+                    if(selPart.substr(1) === child.id) {
+                        partialMatch = true;
+                    }
+                } else if(selPart.indexOf('.') === -1) { // Example: rect
+                    if(selPart === child.type) {
+                        partialMatch = true;
+                    }
+                } else { // Example: rect.className
+                    const cutoff = selPart.indexOf('.');
+                    const typeName = selPart.substr(0, cutoff);
+                    const className = selPart.substr(cutoff + 1);
+                    if(typeName === child.type && className === child.className) {
+                        partialMatch = true;
                     }
                 }
                 if(partialMatch) {
