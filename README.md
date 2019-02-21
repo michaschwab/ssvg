@@ -4,12 +4,12 @@ Library to speed up interactive svg-based data visualizations by transforming th
 # Simple Usage
 Just add this after loading d3:
 ```
-<script src="https://ssvg.surge.sh/ssvg-auto.js"></script>
+<script src="https://intervis-projects.ccs.neu.edu/ssvg/ssvg-auto.js"></script>
 ```
 
 If you want to toggle SSVG on and off using a hash, use this:
 ```
-<script src="https://ssvg.surge.sh/ssvg.js"></script>
+<script src="https://intervis-projects.ccs.neu.edu/ssvg/ssvg.js"></script>
 <script>
   if(window.location.hash) {
     new SSVG();
