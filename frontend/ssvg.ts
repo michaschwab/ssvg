@@ -97,7 +97,7 @@ export default class SSVG {
         
         this.svg = svg;
         this.svg.parentElement.appendChild(this.canvas);
-        this.elementHandler = new Elementhandler(this.svg, () => this.updateCanvas());
+        this.elementHandler = new Elementhandler(this.svg, () => {});
         this.vdom = this.elementHandler.getVDom();
 
         this.setCanvasSize();
