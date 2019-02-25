@@ -16,16 +16,36 @@ export default class SSVG {
     private renderer: SvgToCanvasWorker;
 
     private svg: SVGElement|undefined;
-    private canvas: HTMLCanvasElement;
+    private readonly canvas: HTMLCanvasElement;
     private svgAssignedAndSizeSet = false;
     
     private lastTenCanvasDrawTimes: number[] = [];
     
-    private showFpsElement: HTMLElement;
     private enterExitQueue: ({ cmd: 'ENTER', node: VdomNode, parentNodeSelector: string }|
         { cmd: 'EXIT', childIndex: number, parentNodeSelector: string })[] = [];
 
-    constructor(private safeMode = false, private maxPixelRatio?: number|undefined, private useWorker = true) {
+    private readonly safeMode: boolean = false;
+    private readonly maxPixelRatio: number|undefined;
+    private readonly useWorker: boolean = true;
+    private readonly getFps: (fps: number) => void = () => {};
+
+    constructor(options?: {
+        safeMode?: boolean,
+        maxPixelRatio?: number,
+        useWorker?: boolean,
+        getFps?: (fps: number) => void
+    }) {
+        if(options.safeMode !== undefined) {
+            this.safeMode = options.safeMode;
+        }
+        this.maxPixelRatio = options.maxPixelRatio;
+        if(options.useWorker !== undefined) {
+            this.useWorker = options.useWorker;
+        }
+        if(options.getFps !== undefined) {
+            this.getFps = options.getFps;
+        }
+
         this.canvas = document.createElement('canvas');
         if(!('OffscreenCanvas' in window)) {
             this.useWorker = false;
@@ -72,15 +92,6 @@ export default class SSVG {
         this.replaceD3Attr();
         this.replaceNativeSelect();
         this.replaceD3Select();
-        
-        this.showFpsElement = document.createElement('div');
-        this.showFpsElement.style.position = 'absolute';
-        this.showFpsElement.style.top = '30px';
-        this.showFpsElement.style.right = '30px';
-        this.showFpsElement.style.opacity = '0.2';
-        this.showFpsElement.style.fontSize = '50px';
-        
-        document.body.appendChild(this.showFpsElement);
     }
     
     private setupElementsIfSvgExists(svgEl?: SVGElement) {
@@ -671,7 +682,7 @@ export default class SSVG {
     private logDrawn() {
         this.lastTenCanvasDrawTimes.push(Date.now());
         
-        if(this.lastTenCanvasDrawTimes.length > 10) {
+        if(this.lastTenCanvasDrawTimes.length > 100) {
             this.lastTenCanvasDrawTimes.shift(); // Remove first item
         }
     }
@@ -680,7 +691,7 @@ export default class SSVG {
         if(this.lastTenCanvasDrawTimes.length) {
             const timeForTenDrawsMs = Date.now() - this.lastTenCanvasDrawTimes[0];
             const fps = Math.round(this.lastTenCanvasDrawTimes.length / timeForTenDrawsMs * 1000);
-            this.showFpsElement.innerText = fps + ' FPS';
+            this.getFps(fps);
         }
     }
 
