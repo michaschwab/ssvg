@@ -355,7 +355,24 @@ export default class SSVG {
                     }
                 }
                 return originalClassed.apply(this, arguments);
-            }
+            };
+
+            const originalText = d3.selection.prototype.text;
+            d3.selection.prototype.text = function(value?: boolean|((data: any, index: number) => boolean)) {
+                if(value !== undefined) {
+                    let elements = this._groups ? this._groups[0] : this[0];
+                    let i = 0;
+                    for(let element of elements) {
+                        if(element !== undefined) {
+                            const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
+                            me.elementHandler.queueSetAttributeOnElement(element, 'text', evaluatedValue);
+                        }
+
+                        i++;
+                    }
+                }
+                return originalText.apply(this, arguments);
+            };
         }
     }
     

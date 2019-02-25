@@ -192,6 +192,8 @@ export default class Elementhandler {
             y2: getRoundedAttr(el, 'y2'),
             "stroke-width": getRoundedAttr(el, 'stroke-width'),
             text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : undefined,
+            'font-size': el.getAttribute('font-size'),
+            'text-anchor': el.getAttribute('text-anchor'),
             style: {},
             children: [],
             globalElementIndex: -1,

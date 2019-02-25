@@ -197,7 +197,15 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     }
 
     private drawText(elData: VdomNode) {
-        console.warn('Text rendering not yet implemented');
+        const fontFamily = 'Arial';
+        const fontSize = elData['font-size'] ? elData['font-size'] + 'px' : '30px';
+        if(elData['text-anchor']) {
+            const align = elData['text-anchor'] === 'middle' ? 'center' : elData['text-anchor'];
+            this.ctx.textAlign = align;
+        }
+        this.ctx.font = fontSize + ' ' + fontFamily;
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillText(elData.text, elData.x, elData.y);
     }
     
     private drawPath(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
