@@ -35,15 +35,17 @@ export default class SSVG {
         useWorker?: boolean,
         getFps?: (fps: number) => void
     }) {
-        if(options.safeMode !== undefined) {
-            this.safeMode = options.safeMode;
-        }
-        this.maxPixelRatio = options.maxPixelRatio;
-        if(options.useWorker !== undefined) {
-            this.useWorker = options.useWorker;
-        }
-        if(options.getFps !== undefined) {
-            this.getFps = options.getFps;
+        if(options) {
+            if(options.safeMode !== undefined) {
+                this.safeMode = options.safeMode;
+            }
+            this.maxPixelRatio = options.maxPixelRatio;
+            if(options.useWorker !== undefined) {
+                this.useWorker = options.useWorker;
+            }
+            if(options.getFps !== undefined) {
+                this.getFps = options.getFps;
+            }
         }
 
         this.canvas = document.createElement('canvas');
