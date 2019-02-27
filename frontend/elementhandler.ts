@@ -5,8 +5,8 @@ export default class Elementhandler {
     private vdom: VdomManager;
     private sharedArrays: {[parentSelector: string]: { [attrName: string]: Int32Array}} = {};
     private setAttrQueue: {[parentSelector: string]: { [attrName: string]: (string[]|SharedArrayBuffer)}} = {};
-    private addedNodesWithoutApplyingStyles = false;
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
+    private nodesToRestyle: VdomNode[] = [];
     
     constructor(private svg: SVGElement, useWorker: boolean) {
         const visData: any = {
@@ -23,7 +23,7 @@ export default class Elementhandler {
         this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
 
         window.setTimeout(() => {
-            this.addedNodesWithoutApplyingStyles = true; // Re-do the styles.
+            this.nodesToRestyle = [this.vdom.data]; // Re-do the styles.
         }, 100);
     }
     
@@ -129,8 +129,7 @@ export default class Elementhandler {
     }
     
     useAttrQueue(cb: (data) => void = () => {}) {
-        if(this.addedNodesWithoutApplyingStyles) {
-            this.addedNodesWithoutApplyingStyles = false;
+        if(this.nodesToRestyle) {
             this.applyStyles();
         }
         
@@ -228,9 +227,35 @@ export default class Elementhandler {
                 this.applyRuleToMatchingNodes(selector, rule); //TODO
             }
         }
+
+        this.nodesToRestyle = [];
     }
 
-    private applyRuleToMatchingNodes(selectorString: string, rule: any): boolean {
+    private static isCssRulePartialMatch(cssRuleSelectorPart: string, node: VdomNode): boolean {
+        if(cssRuleSelectorPart[0] === '.') { // Example: .className
+            if(cssRuleSelectorPart.substr(1) === node.className) {
+                return true;
+            }
+        } else if(cssRuleSelectorPart[0] === '#') { // Example: #id
+            if(cssRuleSelectorPart.substr(1) === node.id) {
+                return true;
+            }
+        } else if(cssRuleSelectorPart.indexOf('.') === -1) { // Example: rect
+            if(cssRuleSelectorPart === node.type) {
+                return true;
+            }
+        } else { // Example: rect.className
+            const cutoff = cssRuleSelectorPart.indexOf('.');
+            const typeName = cssRuleSelectorPart.substr(0, cutoff);
+            const className = cssRuleSelectorPart.substr(cutoff + 1);
+            if(typeName === node.type && className === node.className) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private applyRuleToMatchingNodes(selectorString: string, rule: {style: {[settingName: string]: string}}): boolean {
 
         selectorString = selectorString.trim();
 
@@ -242,41 +267,32 @@ export default class Elementhandler {
         const selectorPartsLooseStrict = selector.split(' ')
             .map(part => part.split('>'));
 
+
+        const parentsOfInterest = [];
+        for(const nodeToBeStyled of this.nodesToRestyle) {
+            const parent = this.getNodeParent(nodeToBeStyled);
+            while(parent && parentsOfInterest.indexOf(parent) === -1) {
+                parentsOfInterest.push(parent);
+            }
+        }
+
         const checkNode = (currentNode: any, looseIndex = 0, strictIndex = 0): boolean => {
             const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
-            
+
             for(let childIndex = 0; childIndex < currentNode.children.length; childIndex++) {
                 const child = currentNode.children[childIndex];
-                let partialMatch = false;
-                if(selPart[0] === '.') { // Example: .className
-                    if(selPart.substr(1) === child.className) {
-                        partialMatch = true;
-                    }
-                } else if(selPart[0] === '#') { // Example: #id
-                    if(selPart.substr(1) === child.id) {
-                        partialMatch = true;
-                    }
-                } else if(selPart.indexOf('.') === -1) { // Example: rect
-                    if(selPart === child.type) {
-                        partialMatch = true;
-                    }
-                } else { // Example: rect.className
-                    const cutoff = selPart.indexOf('.');
-                    const typeName = selPart.substr(0, cutoff);
-                    const className = selPart.substr(cutoff + 1);
-                    if(typeName === child.type && className === child.className) {
-                        partialMatch = true;
-                    }
+                if(parentsOfInterest.indexOf(child) === -1 && this.nodesToRestyle.indexOf(child) === -1) {
+                    continue;
                 }
+                let partialMatch = Elementhandler.isCssRulePartialMatch(selPart, child);
+
                 if(partialMatch) {
-                    
                     if(selectorPartsLooseStrict[looseIndex].length > strictIndex + 1) {
                         checkNode(child, looseIndex, strictIndex + 1);
                     } else if(selectorPartsLooseStrict.length > looseIndex + 1) {
                         checkNode(child, looseIndex + 1, strictIndex);
                     } else {
                         const parentSelector = this.getNodeSelector(currentNode);
-                        //safeLog(selectorString, parentSelector);
 
                         if(rule.style.stroke) {
                             this.checkAttrName(parentSelector, 'style;stroke');
@@ -337,7 +353,7 @@ export default class Elementhandler {
 
     addNodeToParent(parentNode, node) {
         parentNode.children.push(node);
-        this.addedNodesWithoutApplyingStyles = true;
+        this.nodesToRestyle.push(node);
     }
     
     private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, parentNode: VdomNode): void {
@@ -356,6 +372,7 @@ export default class Elementhandler {
 
                 parentNode.children.push(node);
                 this.linkNodeToElement(node, el);
+                this.nodesToRestyle.push(node);
                 
                 if(el.childNodes)
                 {
@@ -377,9 +394,6 @@ export default class Elementhandler {
                 //console.log(e);
                 //console.log(el);
             }
-        }
-        if(childEls.length) {
-            this.addedNodesWithoutApplyingStyles = true;
         }
     }
 
@@ -434,6 +448,18 @@ export default class Elementhandler {
 
     combineElementSelectors(parentSelector: string, elementType: string, childIndex: number) {
         return parentSelector + ' > ' + elementType + ':nth-child(' + childIndex + ')';
+    }
+
+    getNodeParent(node:VdomNode) {
+        if(node === this.vdom.data) {
+            return null;
+        }
+        const el = this.getElementFromNode(node);
+        if(!el) {
+            return null;
+        }
+        const parentEl = el.parentNode as Element;
+        return this.getNodeFromElement(parentEl);
     }
 
     linkNodeToElement(node: VdomNode, element: Node) {
