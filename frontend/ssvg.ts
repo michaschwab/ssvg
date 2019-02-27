@@ -94,6 +94,7 @@ export default class SSVG {
         this.replaceD3Attr();
         this.replaceNativeSelect();
         this.replaceD3Select();
+        this.replaceD3Remove();
     }
     
     private setupElementsIfSvgExists(svgEl?: SVGElement) {
@@ -375,6 +376,33 @@ export default class SSVG {
             };
         }
     }
+
+    private replaceD3Remove() {
+        if(window['d3']) {
+            const d3 = window['d3'];
+            const me = this;
+
+            const newRemove = this.getNewRemoveChild(true);
+            d3.selection.prototype.remove = function() {
+                let elements = this._groups ? this._groups[0] : this[0];
+
+                if(elements.length) {
+                    let parentNode = null;
+                    for(let i = elements.length - 1; i > -1; i--) {
+                        const element = elements[i];
+                        if(element) {
+                            parentNode = element.parentNode;
+                            newRemove.call(parentNode, element);
+                        }
+
+                    }
+                    if(parentNode) {
+                        me.updateChildSelectors(parentNode);
+                    }
+                }
+            }
+        }
+    }
     
     private replaceNativeCreateElement() {
         const origCreate = document.createElementNS;
@@ -399,29 +427,29 @@ export default class SSVG {
         }
     }
 
-    private updateChildSelectors(node, parentSelector) {
-        for(let i = 0; i < node.children.length; i++) {
-            const childNode = node.children[i];
+    private updateChildSelectors(parentNode) {
+        const parentSelector = parentNode['selector'];
+        for(let i = 0; i < parentNode.children.length; i++) {
+            const childNode: VdomNode = parentNode.children[i];
             const childElement = this.elementHandler.getElementFromNode(childNode);
             if(!childElement) {
-                console.error('element not found', childNode, node.children.length);
+                console.error('element not found', childNode, parentNode.children.length, i);
             }
             childElement['childIndex'] = i;
             childElement['parentSelector'] = parentSelector;
-            childElement['selector'] = '';
-            childElement['selector'] = this.elementHandler.getNodeSelector(childNode);
+            childElement['selector'] = this.elementHandler.combineElementSelectors(parentSelector, childNode.type, i+1);
 
-            this.updateChildSelectors(childNode, childElement['selector']);
+            this.updateChildSelectors(childNode);
         }
     }
 
-    private getNewRemoveChild() {
+    private getNewRemoveChild(skipUpdateSelectors = false) {
         const me = this;
 
         return function<T extends Node>(this: Element, el: T) {
-            const parentSelector = me.elementHandler.getElementSelector(this);
-            const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
-            const node = me.elementHandler.getVisNode(<Element> <any> el);
+            const parentNode = me.elementHandler.getNodeFromElement(<Element> <any> this);
+            const parentSelector = this['selector'];
+            const node = me.elementHandler.getNodeFromElement(<Element> <any> el);
 
             // Remove from current parent first.
             Object.defineProperty(el, 'parentNode', {
@@ -439,7 +467,9 @@ export default class SSVG {
             me.elementHandler.removeNodeFromParent(<Element> <any> el, node);
 
             // Fix child indices of all children.
-            me.updateChildSelectors(parentNode, el['parentSelector']);
+            if(!skipUpdateSelectors) {
+                me.updateChildSelectors(parentNode);
+            }
 
             delete el['selector'];
 
@@ -504,7 +534,7 @@ export default class SSVG {
     
             me.elementHandler.linkNodeToElement(node, el);
             me.elementHandler.addNodeToParent(parentNode, node);
-            me.updateChildSelectors(node, el['parentSelector']);
+            me.updateChildSelectors(node);
             
             if(me.useWorker) {
                 me.enterExitQueue.push({

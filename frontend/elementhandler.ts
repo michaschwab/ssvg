@@ -319,15 +319,20 @@ export default class Elementhandler {
         return checkNode(this.vdom.data);
     }
 
-    removeNodeFromParent(element: Element, node: any) {
+    removeNodeFromParent(element: Element, node: VdomNode) {
         this.vdom.removeNode(element['childIndex'], element['parentSelector']);
         let index = this.nodesToElements.nodes.indexOf(node);
         if(index === -1) {
             return console.error('node not found', node);
         }
 
-        this.nodesToElements.nodes.splice(this.nodesToElements.nodes.indexOf(node), 1);
-        this.nodesToElements.elements.splice(this.nodesToElements.elements.indexOf(element), 1);
+        this.nodesToElements.nodes.splice(index, 1);
+        this.nodesToElements.elements.splice(index, 1);
+
+        // Update indices
+        for(let i = index; i < this.nodesToElements.nodes.length; i++) {
+            this.nodesToElements.nodes[i].globalElementIndex = i;
+        }
     }
 
     addNodeToParent(parentNode, node) {
@@ -378,7 +383,7 @@ export default class Elementhandler {
         }
     }
 
-    getNodeSelector(node: any): string {
+    getNodeSelector(node: VdomNode): string {
         if(node === this.vdom.data) {
             return 'svg';
         }
@@ -390,7 +395,7 @@ export default class Elementhandler {
         return this.getElementSelector(element, node);
     }
     
-    getElementSelector(element: Element, node?: any): string|null {
+    getElementSelector(element: Element, node?: VdomNode): string|null {
         let sel = (element as any)['selector'];
         
         if(sel)
@@ -420,11 +425,15 @@ export default class Elementhandler {
                     throw Error('name is null');
                 }
                 name = name.toLowerCase();
-                sel = parentSelector + ' > ' + name + ':nth-child(' + index + ')';
+                sel = this.combineElementSelectors(parentSelector, name, index);
             }
             
             return sel;
         }
+    }
+
+    combineElementSelectors(parentSelector: string, elementType: string, childIndex: number) {
+        return parentSelector + ' > ' + elementType + ':nth-child(' + childIndex + ')';
     }
 
     linkNodeToElement(node: VdomNode, element: Node) {
