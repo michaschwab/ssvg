@@ -19,6 +19,7 @@ export default class Elementhandler {
         const ignoreDesign = useWorker;
         this.vdom = new VdomManager(visData, ignoreDesign);
         this.svg.style.display = 'none';
+        this.svg['selector'] = 'svg';
 
         this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
 
@@ -149,7 +150,7 @@ export default class Elementhandler {
     }
     
     getAttributeFromSelector(element: Element, name: string) {
-        const node = this.getVisNode(element);
+        const node = this.getNodeFromElement(element);
         
         if(!node) {
             throw Error('element not found');
@@ -478,6 +479,9 @@ export default class Elementhandler {
     }
 
     getNodeFromElement(element: Element): VdomNode {
+        if(element === this.svg) {
+            return this.vdom.data;
+        }
         const elementIndex = this.nodesToElements.elements.indexOf(element);
         return this.nodesToElements.nodes[elementIndex];
     }

@@ -240,11 +240,44 @@ export default class SSVG {
                 }
             };
 
-            let origSelectAll = d3.selection.prototype.selectAll;
+            const origSelectAll = d3.selection.prototype.selectAll;
             d3.selection.prototype.selectAll = getReplacement(origSelectAll);
 
-            let origSelect = d3.selection.prototype.select;
+            const origSelect = d3.selection.prototype.select;
             d3.selection.prototype.select = getReplacement(origSelect);
+
+            const origFilter = d3.selection.prototype.filter;
+            d3.selection.prototype.filter = function(selectorString: string) {
+                const elements = this[0];
+                const nodes = elements.map(element => me.elementHandler.getNodeFromElement(element));
+
+                const selectors = selectorString.split(',').map(sel => sel.trim());
+                const filteredNodes = [];
+
+                for(const selector of selectors) {
+                    const matchingNodes = me.vdom.filterNodesBySelector(nodes, selector);
+
+                    for(const node of matchingNodes) {
+                        if(filteredNodes.indexOf(node) === -1) {
+                            filteredNodes.push(node);
+                        }
+                    }
+                }
+
+                const filteredElements = filteredNodes.map(node => me.elementHandler.getElementFromNode(node));
+
+                const returnValue = origFilter.apply(this, arguments);
+
+                if(returnValue._groups) {
+                    returnValue._groups[0] = filteredElements;
+                } else {
+                    // Older d3 versions
+                    const parentNode = returnValue[0].parentNode;
+                    returnValue[0] = filteredElements;
+                    returnValue[0].parentNode = parentNode;
+                }
+                return returnValue;
+            }
         }
     }
 
@@ -434,6 +467,7 @@ export default class SSVG {
             const childElement = this.elementHandler.getElementFromNode(childNode);
             if(!childElement) {
                 console.error('element not found', childNode, parentNode.children.length, i);
+                continue;
             }
             childElement['childIndex'] = i;
             childElement['parentSelector'] = parentSelector;
@@ -468,6 +502,9 @@ export default class SSVG {
 
             // Fix child indices of all children.
             if(!skipUpdateSelectors) {
+                if(!parentSelector) {
+                    console.error('parent not found', parentNode, parentSelector, this, el);
+                }
                 me.updateChildSelectors(parentNode);
             }
 

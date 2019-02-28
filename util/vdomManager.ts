@@ -210,6 +210,11 @@ export class VdomManager {
         this.findMatchingChildren(visNode, selector, 0, selectedNodes);
         return selectedNodes;
     }
+
+    public filterNodesBySelector(nodes: VdomNode[], selector: string) {
+        const checker = this.checkIfMatching(selector);
+        return nodes.filter(node => checker(node));
+    }
     
     private findMatchingChildren(visNode: VdomNode, selector: string, matchIndex: number, selectedNodes: VdomNode[],
                                  selectedNodeSelectors: string[] = []) {
@@ -253,6 +258,13 @@ export class VdomManager {
     }
     
     private checkIfMatching(selPart: string): ((node: VdomNode, index?: number) => boolean) {
+
+        if(selPart.substr(0, 5) === ':not(') {
+            const newSelPart = selPart.substr(0, selPart.length - 1).substr(5);
+
+            return node => !this.checkIfMatching(newSelPart)(node);
+        }
+
         if(selPart.substr(0,1) === '.') {
             return node => (node.className && node.className === selPart.substr(1));
         } else if(selPart.substr(0,1) === '#') {
