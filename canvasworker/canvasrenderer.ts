@@ -203,8 +203,10 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             const align = elData['text-anchor'] === 'middle' ? 'center' : elData['text-anchor'];
             this.ctx.textAlign = align;
         }
+        let fill = elData['fill'] ? elData['fill'] : elData.style['fill'];
+        if(!fill) fill = '#000';
         this.ctx.font = fontSize + ' ' + fontFamily;
-        this.ctx.fillStyle = '#000';
+        this.ctx.fillStyle = fill;
         this.ctx.fillText(elData.text, elData.x, elData.y);
     }
     
