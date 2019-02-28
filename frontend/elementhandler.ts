@@ -8,7 +8,7 @@ export default class Elementhandler {
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
     
-    constructor(private svg: SVGElement, useWorker: boolean) {
+    constructor(private svg: SVGElement, useWorker: boolean, ignoreDesign = false) {
         const visData: any = {
             width: this.svg.getAttribute('width'),
             height: this.svg.getAttribute('height'),
@@ -16,7 +16,6 @@ export default class Elementhandler {
             children: []
         };
 
-        const ignoreDesign = useWorker;
         this.vdom = new VdomManager(visData, ignoreDesign);
         this.svg.style.display = 'none';
         this.svg['selector'] = 'svg';
