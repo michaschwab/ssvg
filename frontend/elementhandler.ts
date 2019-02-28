@@ -23,7 +23,7 @@ export default class Elementhandler {
         this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
 
         window.setTimeout(() => {
-            this.nodesToRestyle = [this.vdom.data]; // Re-do the styles.
+            this.nodesToRestyle = this.nodesToElements.nodes; // Re-do the styles.
         }, 100);
     }
     
@@ -56,6 +56,7 @@ export default class Elementhandler {
             // Apply classes immediately so styles can be applied correctly.
             const node = this.getNodeFromElement(element);
             node.className = evaluatedValue;
+            this.nodesToRestyle.push(node);
         }
     }
     
@@ -95,6 +96,7 @@ export default class Elementhandler {
                 const node = this.getNodeFromElement(elements[i]);
                 const evaluatedValue = typeof value === "function" ? value(elements[i].__data__, i) : value;
                 node.className = evaluatedValue;
+                this.nodesToRestyle.push(node);
             }
         }
     }
@@ -450,7 +452,7 @@ export default class Elementhandler {
         return parentSelector + ' > ' + elementType + ':nth-child(' + childIndex + ')';
     }
 
-    getNodeParent(node:VdomNode) {
+    getNodeParent(node:VdomNode): VdomNode|null {
         if(node === this.vdom.data) {
             return null;
         }
@@ -468,14 +470,14 @@ export default class Elementhandler {
         this.nodesToElements.elements.push(element as Element);
     }
 
-    getElementFromNode(node: VdomNode) {
+    getElementFromNode(node: VdomNode): Element {
         if(node === this.vdom.data) {
             return this.svg;
         }
         return this.nodesToElements.elements[node.globalElementIndex];
     }
 
-    getNodeFromElement(element: Element) {
+    getNodeFromElement(element: Element): VdomNode {
         const elementIndex = this.nodesToElements.elements.indexOf(element);
         return this.nodesToElements.nodes[elementIndex];
     }
