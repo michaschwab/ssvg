@@ -103,8 +103,9 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     private drawCircle(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         if(mode === 'normal') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
+            let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
             if(!fill) fill = '#000';
-            const fillRgba = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
+            const fillRgba = DrawingUtils.colorToRgba(fill, fillOpacity);
             if(!this.circlesByColor[fillRgba]) {
                 this.circlesByColor[fillRgba] = [];
             }
@@ -151,6 +152,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         if(mode === 'forcesingle') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
             if(!fill) fill = '#000';
+            let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
             let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
             if(stroke) {
                 stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
@@ -160,7 +162,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             const cy = elData.cy || 0;
 
             this.ctx.beginPath();
-            this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
+            this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, fillOpacity);
             this.ctx.strokeStyle = stroke;
             this.ctx.lineWidth = elData.style['stroke-width'] ?
                 parseFloat(elData.style['stroke-width']) : parseFloat(elData.strokeWidth);

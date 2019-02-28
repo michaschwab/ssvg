@@ -91,6 +91,9 @@ export default class DrawingUtils {
         if(color === 'steelblue') {
             return '#4682b4';
         }
+        if(color === 'black') {
+            return '#000000';
+        }
         //TODO add more colors.
         return color;
     }

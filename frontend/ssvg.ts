@@ -335,7 +335,7 @@ export default class SSVG {
                     let elements = this._groups ? this._groups[0] : this[0];
                     let i = 0;
                     for(let element of elements) {
-                        if(element !== undefined) {
+                        if(element) {
                             const indexOfParent = element.childIndex;
                             const parentSelector = element['parentSelector'];
                             const parent = me.vdom.getParentNodeFromSelector(parentSelector);
