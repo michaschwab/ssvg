@@ -311,7 +311,7 @@ export default class Elementhandler {
                         if(rule.style['stroke-width']) {
                             this.checkAttrName(parentSelector, 'style;stroke-width');
                             if(!this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] && !child.style['stroke-width']) {
-                                this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = rule.style['stroke-width'];
+                                this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = parseInt(rule.style['stroke-width']);
                             }
                         }
                         if(rule.style['fill-opacity']) {
