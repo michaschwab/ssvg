@@ -251,7 +251,10 @@ export default class SSVG {
 
             const origFilter = d3.selection.prototype.filter;
             d3.selection.prototype.filter = function(selectorString: string) {
-                const elements = this[0];
+                const elements = this._groups ? this._groups[0] : this[0];
+                if(typeof selectorString !== 'string') {
+                    return origFilter.apply(this, arguments);
+                }
                 const nodes = elements.map(element => me.elementHandler.getNodeFromElement(element));
 
                 const selectors = selectorString.split(',').map(sel => sel.trim());
