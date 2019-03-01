@@ -8,8 +8,10 @@ export interface CanvasWorkerMessage {
 export interface CanvasUpdateWorkerMessage {
     cmd: 'UPDATE_NODES';
     data: {
-        enterExit: ({ cmd: 'ENTER', node: VdomNode, parentNodeSelector: string }|
-            { cmd: 'EXIT', childIndex: number, parentNodeSelector: string })[],
+        enterExit: CanvasUpdateData[],
         update: any
     };
 }
+
+export type CanvasUpdateData = ({ cmd: 'ENTER', node: VdomNode, parentNodeSelector: string, keepChildren: boolean }|
+    { cmd: 'EXIT', childIndex: number, parentNodeSelector: string });

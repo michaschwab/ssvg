@@ -1,5 +1,5 @@
 import {VdomManager, VdomNode} from "../util/vdomManager";
-import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message"
+import {CanvasWorkerMessage, CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker-message"
 import Elementhandler from "./elementhandler";
 import SvgToCanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
@@ -21,8 +21,7 @@ export default class SSVG {
     
     private lastTenCanvasDrawTimes: number[] = [];
     
-    private enterExitQueue: ({ cmd: 'ENTER', node: VdomNode, parentNodeSelector: string }|
-        { cmd: 'EXIT', childIndex: number, parentNodeSelector: string })[] = [];
+    private enterExitQueue: CanvasUpdateData[] = [];
 
     private readonly safeMode: boolean = false;
     private readonly maxPixelRatio: number|undefined;
@@ -464,8 +463,12 @@ export default class SSVG {
         }
     }
 
-    private updateChildSelectors(parentNode) {
-        const parentSelector = parentNode['selector'];
+    private updateChildSelectors(parentNode: VdomNode) {
+        const parentElement = this.elementHandler.getElementFromNode(parentNode);
+        const parentSelector = parentElement['selector'];
+        if(!parentSelector) {
+            console.error('this node has no selector', parentNode)
+        }
         for(let i = 0; i < parentNode.children.length; i++) {
             const childNode: VdomNode = parentNode.children[i];
             const childElement = this.elementHandler.getElementFromNode(childNode);
@@ -555,11 +558,13 @@ export default class SSVG {
 
             const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
             let node;
+            let keepChildren = false;
 
             if(el['parentSelector']) {
                 node = me.elementHandler.getVisNode(<Element> <any> el);
 
                 me.getNewRemoveChild().call(this, el);
+                keepChildren = true; // If the element is being moved around, keep children.
             } else {
                 node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);
             }
@@ -581,7 +586,8 @@ export default class SSVG {
                 me.enterExitQueue.push({
                     cmd: 'ENTER',
                     node: node,
-                    parentNodeSelector: parentSelector
+                    parentNodeSelector: parentSelector,
+                    keepChildren: keepChildren
                 });
             } else {
                 if(me.renderer.addNode) {
