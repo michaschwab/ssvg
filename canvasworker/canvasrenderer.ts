@@ -96,7 +96,15 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
     
     private drawSingleNode(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         const type: string = elData.type;
-        this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)](elData, mode);
+        const drawFct = this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)];
+        if(!drawFct) {
+            return console.error('no draw function yet for ', type);
+        }
+        drawFct.call(this, elData, mode);
+    }
+
+    private drawClippath(elData: VdomNode) {
+        console.warn('clippaths can not be rendered yet.')
     }
     
     private circlesByColor: {[color: string]: VdomNode[]} = {};

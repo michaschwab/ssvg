@@ -463,12 +463,12 @@ export default class SSVG {
         }
     }
 
-    private updateChildSelectors(parentNode: VdomNode) {
-        const parentElement = this.elementHandler.getElementFromNode(parentNode);
+    private updateChildSelectors(parentElement: Element) {
         const parentSelector = parentElement['selector'];
         if(!parentSelector) {
-            console.error('this node has no selector', parentNode)
+            console.error('this node has no selector', parentElement)
         }
+        const parentNode = this.vdom.getParentNodeFromSelector(parentSelector);
         for(let i = 0; i < parentNode.children.length; i++) {
             const childNode: VdomNode = parentNode.children[i];
             const childElement = this.elementHandler.getElementFromNode(childNode);
@@ -480,7 +480,7 @@ export default class SSVG {
             childElement['parentSelector'] = parentSelector;
             childElement['selector'] = this.elementHandler.combineElementSelectors(parentSelector, childNode.type, i+1);
 
-            this.updateChildSelectors(childNode);
+            this.updateChildSelectors(childElement);
         }
     }
 
@@ -512,7 +512,7 @@ export default class SSVG {
                 if(!parentSelector) {
                     console.error('parent not found', parentNode, parentSelector, this, el);
                 }
-                me.updateChildSelectors(parentNode);
+                me.updateChildSelectors(this);
             }
 
             delete el['selector'];
@@ -557,7 +557,7 @@ export default class SSVG {
             }
 
             const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
-            let node;
+            let node: VdomNode;
             let keepChildren = false;
 
             if(el['parentSelector']) {
@@ -580,7 +580,7 @@ export default class SSVG {
     
             me.elementHandler.linkNodeToElement(node, el);
             me.elementHandler.addNodeToParent(parentNode, node);
-            me.updateChildSelectors(node);
+            me.updateChildSelectors(el as unknown as Element);
             
             if(me.useWorker) {
                 me.enterExitQueue.push({
