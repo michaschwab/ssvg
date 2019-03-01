@@ -206,6 +206,7 @@ export default class Elementhandler {
             "stroke-width": getRoundedAttr(el, 'stroke-width'),
             text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : undefined,
             'font-size': el.getAttribute('font-size'),
+            'font': el.getAttribute('font'),
             'text-anchor': el.getAttribute('text-anchor'),
             style: {},
             children: [],
@@ -336,6 +337,12 @@ export default class Elementhandler {
                             this.checkAttrName(parentSelector, 'style;fill');
                             if(!this.setAttrQueue[parentSelector]['style;fill'][childIndex] && !child.style['fill']) {
                                 this.setAttrQueue[parentSelector]['style;fill'][childIndex] = rule.style['fill'];
+                            }
+                        }
+                        if(rule.style['font']) {
+                            this.checkAttrName(parentSelector, 'style;font');
+                            if(!this.setAttrQueue[parentSelector]['style;font'][childIndex] && !child.style['font']) {
+                                this.setAttrQueue[parentSelector]['style;font'][childIndex] = rule.style['font'];
                             }
                         }
                     }
