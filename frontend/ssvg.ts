@@ -428,6 +428,9 @@ export default class SSVG {
                         const element = elements[i];
                         if(element) {
                             parentNode = element.parentNode;
+                            if(!parentNode) {
+                                console.error('element has no parent node', element);
+                            }
                             newRemove.call(parentNode, element);
                         }
 
@@ -488,6 +491,10 @@ export default class SSVG {
         const me = this;
 
         return function<T extends Node>(this: Element, el: T) {
+            if(!this) {
+                console.error('context not defined');
+                return el;
+            }
             const parentNode = me.elementHandler.getNodeFromElement(<Element> <any> this);
             const parentSelector = this['selector'];
             const node = me.elementHandler.getNodeFromElement(<Element> <any> el);
@@ -557,6 +564,9 @@ export default class SSVG {
             }
 
             const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
+            if(!parentNode) {
+                return console.error('parent node not found', parentSelector, this);
+            }
             let node: VdomNode;
             let keepChildren = false;
 

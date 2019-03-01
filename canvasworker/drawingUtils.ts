@@ -63,10 +63,10 @@ export default class DrawingUtils {
         if(color === 'none') {
             return color;
         }
+        color = DrawingUtils.CssNamedColorToHex(color);
         if(opacity === 1 && typeof color === 'string') {
             return color;
         }
-        color = DrawingUtils.CssNamedColorToHex(color);
         if(typeof color === 'string' && color[0] === '#') {
             let c; // From https://stackoverflow.com/questions/21646738/convert-hex-to-rgba
             if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(color)){
