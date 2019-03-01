@@ -38,6 +38,7 @@ workerContext.onmessage = function(e: MessageEvent) {
 
                 for(let operation of data.data.enterExit) {
                     if(operation.cmd === 'ENTER') {
+                        operation.node.children = [];
                         const node = vdom.addNode(operation.node, operation.parentNodeSelector);
                         if(worker.addNode) {
                             worker.addNode(node);

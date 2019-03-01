@@ -95,6 +95,10 @@ export default class SSVG {
         this.replaceNativeSelect();
         this.replaceD3Select();
         this.replaceD3Remove();
+
+        setTimeout(() => {
+            console.log(this.vdom.data);
+        }, 1000);
     }
     
     private setupElementsIfSvgExists(svgEl?: SVGElement) {

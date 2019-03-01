@@ -123,7 +123,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                     let sampleData = this.circlesByColor[fillColor][0];
                     this.ctx.lineWidth = sampleData.style['stroke-width'] ?
                         parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
-                    this.ctx.strokeStyle = elData.style['stroke-rgba'];
+                    this.ctx.strokeStyle = this.getStrokeStyle(elData);
 
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillColor]) {
@@ -158,7 +158,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
 
             this.ctx.beginPath();
             this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, fillOpacity);
-            this.ctx.strokeStyle = elData.style['stroke-rgba'];
+            this.ctx.strokeStyle = this.getStrokeStyle(elData);
             this.ctx.lineWidth = elData.style['stroke-width'] ?
                 parseFloat(elData.style['stroke-width']) : parseFloat(elData.strokeWidth);
             this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
@@ -170,6 +170,23 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                 this.ctx.stroke();
             }
         }
+    }
+
+    private getStrokeStyle(node: VdomNode) {
+        if(node.style['stroke-rgba']) {
+            return node.style['stroke-rgba'];
+        }
+        let stroke = node.style.stroke ? node.style.stroke : node.stroke;
+        if(stroke) {
+            let strokeOpacity = node.style['stroke-opacity'] === undefined ? node.style['opacity']
+                : node.style['stroke-opacity'];
+            if(strokeOpacity === undefined) {
+                strokeOpacity = node['stroke-opacity'] === undefined ? node['opacity'] : node['stroke-opacity'];
+            }
+
+            node.style['stroke-rgba'] = DrawingUtils.colorToRgba(stroke, strokeOpacity);
+        }
+        return node.style['stroke-rgba'];
     }
     
     private drawRect(elData: VdomNode) {
