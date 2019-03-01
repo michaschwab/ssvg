@@ -52,11 +52,17 @@ export default class Elementhandler {
         const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, childIndex) : value;
         this.setAttrQueue[parentSelector][attrName][childIndex] = evaluatedValue;
 
-        if(attrName === 'className') {
+        if(attrName === 'className' || attrName.indexOf('style') !== -1) {
             // Apply classes immediately so styles can be applied correctly.
             const node = this.getNodeFromElement(element);
-            node.className = evaluatedValue;
-            this.nodesToRestyle.push(node);
+
+            if(attrName === 'className') {
+                node.className = evaluatedValue;
+                this.nodesToRestyle.push(node);
+            } else {
+                const styleName = attrName.substr(6);
+                node.style[styleName] = evaluatedValue;
+            }
         }
     }
     
@@ -90,13 +96,19 @@ export default class Elementhandler {
             }
         }
 
-        if(attrName === 'className') {
+        if(attrName === 'className' || attrName.indexOf('style') !== -1) {
             // Apply classes immediately so styles can be applied correctly.
             for(let i = 0; i < elements.length; i++) {
                 const node = this.getNodeFromElement(elements[i]);
                 const evaluatedValue = typeof value === "function" ? value(elements[i].__data__, i) : value;
-                node.className = evaluatedValue;
-                this.nodesToRestyle.push(node);
+
+                if(attrName === 'className') {
+                    node.className = evaluatedValue;
+                    this.nodesToRestyle.push(node);
+                } else {
+                    const styleName = attrName.substr(6);
+                    node.style[styleName] = evaluatedValue;
+                }
             }
         }
     }

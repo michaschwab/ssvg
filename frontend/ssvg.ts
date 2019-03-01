@@ -92,6 +92,7 @@ export default class SSVG {
         this.replaceNativeAppendChild();
         this.replaceD3Attr();
         this.replaceNativeSelect();
+        this.replaceNativeGetComputedStyle();
         this.replaceD3Select();
         this.replaceD3Remove();
 
@@ -285,6 +286,25 @@ export default class SSVG {
                 return returnValue;
             }
         }
+    }
+
+    private replaceNativeGetComputedStyle() {
+        const origGetComputedStyle = window.getComputedStyle;
+        const me = this;
+
+        window.getComputedStyle = function(element: HTMLElement) {
+            if(!me.isWithinSvg(element)) {
+                return origGetComputedStyle.apply(this, arguments);
+            }
+
+            const node = me.elementHandler.getNodeFromElement(element);
+            return {
+                getPropertyValue(propertyName: string): string {
+                    //console.log(propertyName, node, node.style[propertyName]);
+                    return node.style[propertyName];
+                }
+            } as CSSStyleDeclaration;
+        };
     }
 
     private replaceNativeSelect() {
