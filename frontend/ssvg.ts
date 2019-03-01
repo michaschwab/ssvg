@@ -605,7 +605,16 @@ export default class SSVG {
             (el as any)['parentSelector'] = parentSelector;
             (el as any)['selector'] = me.elementHandler.getElementSelector(<Element><any> el);
             (el as any)['childIndex'] = parentNode.children.length;
-    
+
+            Object.defineProperty(el, 'style', {
+                writable: true,
+                value: {
+                    setProperty: function(styleProp: string, value: string) {
+                        me.elementHandler.queueSetAttributeOnElement(el as any, 'style;' + styleProp, value);
+                    }
+                }
+            });
+
             Object.defineProperty(el, 'parentNode', {
                 writable: true,
                 value: this
