@@ -117,6 +117,8 @@ export class VdomManager {
         }
     }
 
+    private static ROUNDED_ATTRS = ['cx', 'cy'];
+
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueue) {
         for(let parentSelector in setAttrQueue) {
             const parentNode = this.getParentNodeFromSelector(parentSelector);
@@ -129,15 +131,15 @@ export class VdomManager {
                     continue;
                 }
                 
-                let values;
-                let factor;
+                let values: string[]|Int32Array;
+                let factor: number;
                 
                 if('SharedArrayBuffer' in self &&
                     setAttrQueue[parentSelector][attrName] instanceof SharedArrayBuffer) {
                     values = new Int32Array(<ArrayBuffer> setAttrQueue[parentSelector][attrName]);
                     factor = 0.1;
                 } else {
-                    values = setAttrQueue[parentSelector][attrName];
+                    values = setAttrQueue[parentSelector][attrName] as string[];
                 }
                 
                 for(let childIndex in values) {
@@ -145,14 +147,17 @@ export class VdomManager {
                     if(!childNode) {
                         continue;
                     }
-                    const value = factor ? factor * values[childIndex] : values[childIndex];
+                    let value = factor ? factor * <number> values[childIndex] : values[childIndex];
                     if(attrNameStart === 'style;') {
                         const styleName = attrName.substr('style;'.length);
-                        this.applyStyleToNodeAndChildren(childNode, styleName, value);
-                        this.updateDeducedStyles(childNode, styleName, value);
+                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value);
+                        this.updateDeducedStyles(childNode, styleName, <string> value);
                     } else {
+                        if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
+                            value = Math.round(<number> value);
+                        }
                         childNode[attrName] = value;
-                        this.updateDeducedStyles(childNode, attrName, value);
+                        this.updateDeducedStyles(childNode, attrName, <string> value);
                     }
                 }
             }
