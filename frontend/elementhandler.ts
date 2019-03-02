@@ -357,7 +357,9 @@ export default class Elementhandler {
     }
 
     removeNodeFromParent(element: Element, node: VdomNode) {
-        this.vdom.removeNode(element['childIndex'], element['parentSelector']);
+        const parentSelector = element['parentSelector'];
+        const childIndex = element['childIndex'];
+        this.vdom.removeNode(childIndex, parentSelector);
         let index = this.nodesToElements.nodes.indexOf(node);
         if(index === -1) {
             return console.error('node not found', node);
@@ -370,6 +372,12 @@ export default class Elementhandler {
         for(let i = index; i < this.nodesToElements.nodes.length; i++) {
             this.nodesToElements.nodes[i].globalElementIndex = i;
         }
+
+        /*for(let attrName in this.setAttrQueue[parentSelector]) {
+            for(let i = childIndex + 1; i < this.setAttrQueue[parentSelector][attrName].length; i++) {
+                this.setAttrQueue[parentSelector][attrName][i-1] = this.setAttrQueue[parentSelector][attrName][i];
+            }
+        }*/
     }
 
     addNodeToParent(parentNode, node) {
