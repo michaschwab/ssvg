@@ -247,30 +247,6 @@ export default class Elementhandler {
         this.nodesToRestyle = [];
     }
 
-    private static isCssRulePartialMatch(cssRuleSelectorPart: string, node: VdomNode): boolean {
-        if(cssRuleSelectorPart[0] === '.') { // Example: .className
-            if(cssRuleSelectorPart.substr(1) === node.className) {
-                return true;
-            }
-        } else if(cssRuleSelectorPart[0] === '#') { // Example: #id
-            if(cssRuleSelectorPart.substr(1) === node.id) {
-                return true;
-            }
-        } else if(cssRuleSelectorPart.indexOf('.') === -1) { // Example: rect
-            if(cssRuleSelectorPart === node.type) {
-                return true;
-            }
-        } else { // Example: rect.className
-            const cutoff = cssRuleSelectorPart.indexOf('.');
-            const typeName = cssRuleSelectorPart.substr(0, cutoff);
-            const className = cssRuleSelectorPart.substr(cutoff + 1);
-            if(typeName === node.type && className === node.className) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private applyRuleToMatchingNodes(selectorString: string, rule: {style: {[settingName: string]: string}}): boolean {
 
         selectorString = selectorString.trim();
@@ -300,7 +276,7 @@ export default class Elementhandler {
                 if(parentsOfInterest.indexOf(child) === -1 && this.nodesToRestyle.indexOf(child) === -1) {
                     continue;
                 }
-                let partialMatch = Elementhandler.isCssRulePartialMatch(selPart, child);
+                let partialMatch = VdomManager.isCssRulePartialMatch(selPart, child, currentNode);
 
                 if(partialMatch) {
                     if(selectorPartsLooseStrict[looseIndex].length > strictIndex + 1) {

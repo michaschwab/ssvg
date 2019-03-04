@@ -256,13 +256,14 @@ export default class SSVG {
                 if(typeof selectorString !== 'string') {
                     return origFilter.apply(this, arguments);
                 }
+                const parentNode = elements.length ? me.elementHandler.getNodeFromElement(elements[0].parentNode) : null;
                 const nodes = elements.map(element => me.elementHandler.getNodeFromElement(element));
 
                 const selectors = selectorString.split(',').map(sel => sel.trim());
                 const filteredNodes = [];
 
                 for(const selector of selectors) {
-                    const matchingNodes = me.vdom.filterNodesBySelector(nodes, selector);
+                    const matchingNodes = me.vdom.filterNodesBySelector(parentNode, nodes, selector);
 
                     for(const node of matchingNodes) {
                         if(filteredNodes.indexOf(node) === -1) {

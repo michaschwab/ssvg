@@ -216,9 +216,8 @@ export class VdomManager {
         return selectedNodes;
     }
 
-    public filterNodesBySelector(nodes: VdomNode[], selector: string) {
-        const checker = this.checkIfMatching(selector);
-        return nodes.filter(node => checker(node));
+    public filterNodesBySelector(parentNode: VdomNode, nodes: VdomNode[], selector: string) {
+        return nodes.filter(node => VdomManager.isCssRulePartialMatch(selector, node, parentNode));
     }
     
     private findMatchingChildren(visNode: VdomNode, selector: string, matchIndex: number, selectedNodes: VdomNode[],
@@ -241,13 +240,11 @@ export class VdomManager {
             }
         }
         
-        const checker = this.checkIfMatching(selPart);
-        
         for(let i = 0; i < visNode.children.length; i++) {
             let node = visNode.children[i];
             let matching = false;
             
-            if(checker(node, i)) {
+            if(VdomManager.isCssRulePartialMatch(selPart, node, visNode)) {
                 if(matchIndex === selParts.length - 1) {
                     selectedNodes.push(node);
                     selectedNodeSelectors.push(selector);
@@ -261,37 +258,48 @@ export class VdomManager {
             }
         }
     }
-    
-    private checkIfMatching(selPart: string): ((node: VdomNode, index?: number) => boolean) {
 
-        if(selPart.substr(0, 5) === ':not(') {
-            const newSelPart = selPart.substr(0, selPart.length - 1).substr(5);
-
-            return node => !this.checkIfMatching(newSelPart)(node);
+    public static isCssRulePartialMatch(cssRuleSelectorPart: string, node: VdomNode, parentNode: VdomNode): boolean {
+        if(cssRuleSelectorPart.substr(0, 5) === ':not(') {
+            const newSelPart = cssRuleSelectorPart.substr(0, cssRuleSelectorPart.length - 1).substr(5);
+            return !VdomManager.isCssRulePartialMatch(newSelPart, node, parentNode);
         }
-
-        if(selPart.substr(0,1) === '.') {
-            return node => (node.className && node.className === selPart.substr(1));
-        } else if(selPart.substr(0,1) === '#') {
-            return node => (node.id && node.id === selPart.substr(1));
-        } else if(selPart.indexOf(':nth-child(') !== -1) {
-            let type = 'any';
-            let indexPart = selPart;
-            
-            if(selPart[0] !== ':') {
-                type = selPart.substr(0, selPart.indexOf(':'));
-                indexPart = selPart.substr(selPart.indexOf(':'));
+        if(cssRuleSelectorPart[0] === '.') { // Example: .className
+            if(cssRuleSelectorPart.substr(1) === node.className) {
+                return true;
             }
-            
-            let targetIndex = parseInt(indexPart.substr(':nth-child('.length));
-            
-            return (node, i) => (i === targetIndex - 1 && (type === 'any' || node.type === type));
-        } else if(selPart === '') {
-            console.log('node class?'); //TODO remove if not used
-            return node => (node['class'] === 'svg');
-        } else {
-            return node => node.type === selPart;
+        } else if(cssRuleSelectorPart[0] === '#') { // Example: #id
+            if(cssRuleSelectorPart.substr(1) === node.id) {
+                return true;
+            }
+        } else if(cssRuleSelectorPart.match(/^[a-z]+$/)) { // Example: rect
+            if(cssRuleSelectorPart === node.type) {
+                return true;
+            }
+        } else if(cssRuleSelectorPart.indexOf(':nth-child(') !== -1) {
+            let type = 'any';
+            let indexPart = cssRuleSelectorPart;
+
+            if(cssRuleSelectorPart[0] !== ':') {
+                type = cssRuleSelectorPart.substr(0, cssRuleSelectorPart.indexOf(':'));
+                indexPart = cssRuleSelectorPart.substr(cssRuleSelectorPart.indexOf(':'));
+            }
+
+            const targetIndex = parseInt(indexPart.substr(':nth-child('.length));
+            const index = parentNode.children.indexOf(node);
+            console.log(targetIndex, index);
+
+            return (index === targetIndex - 1 && (type === 'any' || node.type === type));
         }
+        else if(cssRuleSelectorPart.indexOf('.') !== -1) { // Example: rect.className
+            const cutoff = cssRuleSelectorPart.indexOf('.');
+            const typeName = cssRuleSelectorPart.substr(0, cutoff);
+            const className = cssRuleSelectorPart.substr(cutoff + 1);
+            if(typeName === node.type && className === node.className) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
