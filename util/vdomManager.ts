@@ -287,7 +287,6 @@ export class VdomManager {
 
             const targetIndex = parseInt(indexPart.substr(':nth-child('.length));
             const index = parentNode.children.indexOf(node);
-            console.log(targetIndex, index);
 
             return (index === targetIndex - 1 && (type === 'any' || node.type === type));
         }
