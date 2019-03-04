@@ -424,7 +424,7 @@ export default class SSVG {
                     let elements = this._groups ? this._groups[0] : this[0];
                     let i = 0;
                     for(let element of elements) {
-                        if(element !== undefined) {
+                        if(element) {
                             const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
                             me.elementHandler.queueSetAttributeOnElement(element, 'text', evaluatedValue);
                         }
