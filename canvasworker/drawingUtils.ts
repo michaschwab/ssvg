@@ -1,5 +1,13 @@
+export type Transformation = {
+    translateX: number,
+    translateY: number,
+    scaleX: number,
+    scaleY: number,
+    rotate: number
+}
+
 export default class DrawingUtils {
-    static parseTransform(transform: string|{}) {
+    static parseTransform(transform: string|{}): Transformation {
         const transformObject = {translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotate: 0, translateBeforeScale: false};
         
         if (transform) {
@@ -57,6 +65,16 @@ export default class DrawingUtils {
         }
         
         return transformObject;
+    }
+
+    static addTransforms(transformA: Transformation, transformB: Transformation): Transformation {
+        return {
+            translateX: transformA.translateX + transformB.translateX,
+            translateY: transformA.translateY + transformB.translateY,
+            scaleX: transformA.scaleX * transformB.scaleX,
+            scaleY: transformA.scaleY * transformB.scaleY,
+            rotate: transformA.rotate + transformB.rotate
+        };
     }
     
     static colorToRgba(color: string|{r: number, g: number, b: number}, opacity: string|number = 1): string {

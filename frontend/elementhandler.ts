@@ -1,4 +1,5 @@
 import {VdomManager, VdomNode, VdomNodeType} from "../util/vdomManager";
+import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 
 export default class Elementhandler {
     
@@ -510,6 +511,39 @@ export default class Elementhandler {
         }
         const elementIndex = this.nodesToElements.elements.indexOf(element);
         return this.nodesToElements.nodes[elementIndex];
+    }
+
+    getParentNode(node: VdomNode): VdomNode|null {
+        const element = this.getElementFromNode(node);
+        const parentElement = element.parentNode as Element;
+        return this.getNodeFromElement(parentElement);
+    }
+
+    getTotalTransformation(node: VdomNode): Transformation {
+        let parent = this.getParentNode(node);
+        const parents = [node];
+
+        while(parent) {
+            parents.push(parent);
+            parent = this.getParentNode(parent);
+        }
+
+        parent = parents.pop();
+        let totalTransform: Transformation = {
+            translateX: 0,
+            translateY: 0,
+            scaleX: 0,
+            scaleY: 0,
+            rotate: 0,
+        };
+
+        while(parent) {
+            const transform = DrawingUtils.parseTransform(parent.transform);
+            totalTransform = DrawingUtils.addTransforms(totalTransform, transform);
+            parent = parents.pop();
+        }
+
+        return totalTransform;
     }
 }
 

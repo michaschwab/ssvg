@@ -796,14 +796,13 @@ export default class SSVG {
             let distance = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
             return distance < visNode.r;
         } else if(visNode.type === 'g') {
-            if(visNode.transform) {
-                const transform = DrawingUtils.parseTransform(visNode.transform);
-                if(transform.translateX) {
-                    x -= transform.translateX;
-                }
-                if(transform.translateY) {
-                    y -= transform.translateY;
-                }
+
+            const transform = this.elementHandler.getTotalTransformation(visNode);
+            if(transform.translateX) {
+                x -= transform.translateX;
+            }
+            if(transform.translateY) {
+                y -= transform.translateY;
             }
 
             let matchAny = false;
