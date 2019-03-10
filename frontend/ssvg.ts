@@ -418,6 +418,12 @@ export default class SSVG {
                 return originalClassed.apply(this, arguments);
             };
 
+            const originalTransition = d3.selection.prototype.transition;
+            d3.selection.prototype.transition = function() {
+                me.elementHandler.enableFrontendDesignProperties();
+                return originalTransition.apply(this, arguments);
+            };
+
             const originalText = d3.selection.prototype.text;
             d3.selection.prototype.text = function(value?: boolean|((data: any, index: number) => boolean)) {
                 if(value !== undefined) {

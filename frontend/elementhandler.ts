@@ -9,7 +9,7 @@ export default class Elementhandler {
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
     
-    constructor(private svg: SVGElement, useWorker: boolean, ignoreDesign = false) {
+    constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign = true) {
         const visData: any = {
             width: this.svg.getAttribute('width'),
             height: this.svg.getAttribute('height'),
@@ -26,6 +26,10 @@ export default class Elementhandler {
         window.setTimeout(() => {
             this.nodesToRestyle = this.nodesToElements.nodes; // Re-do the styles.
         }, 100);
+    }
+
+    enableFrontendDesignProperties() {
+        this.ignoreDesign = false;
     }
     
     getVDom() {
