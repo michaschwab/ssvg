@@ -216,6 +216,18 @@ export class VdomManager {
         return selectedNodes;
     }
 
+    private findChildrenOfType(visNode: VdomNode, type: string, selectedNodes: VdomNode[]) {
+        const addDirectChildrenIfMatch = (node: VdomNode) => {
+            for(const child of node.children) {
+                if(child.type === type) {
+                    selectedNodes.push(child);
+                }
+                addDirectChildrenIfMatch(child);
+            }
+        };
+        addDirectChildrenIfMatch(visNode);
+    }
+
     public filterNodesBySelector(parentNode: VdomNode, nodes: VdomNode[], selector: string) {
         return nodes.filter(node => VdomManager.isCssRulePartialMatch(selector, node, parentNode));
     }
@@ -238,6 +250,10 @@ export class VdomManager {
                 selectedNodeSelectors.push(selector);
                 return;
             }
+        }
+
+        if(selector.match(/^[a-z]+$/)) {
+            return this.findChildrenOfType(visNode, selector, selectedNodes);
         }
         
         for(let i = 0; i < visNode.children.length; i++) {
