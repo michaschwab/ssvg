@@ -447,20 +447,20 @@ export default class SSVG {
                 let elements = this._groups ? this._groups[0] : this[0];
 
                 if(elements.length) {
-                    let parentNode = null;
+                    let parentElement: HTMLElement = null;
                     for(let i = elements.length - 1; i > -1; i--) {
                         const element = elements[i];
                         if(element) {
-                            parentNode = element.parentNode;
-                            if(!parentNode) {
+                            parentElement = element.parentNode;
+                            if(!parentElement) {
                                 console.error('element has no parent node', element);
                             }
-                            newRemove.call(parentNode, element);
+                            newRemove.call(parentElement, element);
                         }
 
                     }
-                    if(parentNode) {
-                        me.updateChildSelectors(parentNode);
+                    if(parentElement) {
+                        me.updateChildSelectors(parentElement);
                     }
                 }
             }
@@ -490,12 +490,14 @@ export default class SSVG {
         }
     }
 
-    private updateChildSelectors(parentElement: Element) {
+    private updateChildSelectors(parentElement: Element, parentNode?: VdomNode) {
         const parentSelector = parentElement['selector'];
         if(!parentSelector) {
             console.error('this node has no selector', parentElement)
         }
-        const parentNode = this.vdom.getParentNodeFromSelector(parentSelector);
+        if(!parentNode) {
+            parentNode = this.vdom.getParentNodeFromSelector(parentSelector);
+        }
         for(let i = 0; i < parentNode.children.length; i++) {
             const childNode: VdomNode = parentNode.children[i];
             const childElement = this.elementHandler.getElementFromNode(childNode);
@@ -507,7 +509,7 @@ export default class SSVG {
             childElement['parentSelector'] = parentSelector;
             childElement['selector'] = this.elementHandler.combineElementSelectors(parentSelector, childNode.type, i+1);
 
-            this.updateChildSelectors(childElement);
+            this.updateChildSelectors(childElement, childNode);
         }
     }
 
@@ -543,7 +545,7 @@ export default class SSVG {
                 if(!parentSelector) {
                     console.error('parent not found', parentNode, parentSelector, this, el);
                 }
-                me.updateChildSelectors(this);
+                me.updateChildSelectors(this, node);
             }
 
             delete el['selector'];
@@ -623,7 +625,7 @@ export default class SSVG {
     
             me.elementHandler.linkNodeToElement(node, el);
             me.elementHandler.addNodeToParent(parentNode, node);
-            me.updateChildSelectors(el as unknown as Element);
+            me.updateChildSelectors(el as unknown as Element, node);
             
             if(me.useWorker) {
                 me.enterExitQueue.push({
