@@ -77,21 +77,26 @@ export default class Elementhandler {
             //console.error('selection elements not found', elements);
             return;
         }
+        const useSharedArray = 'SharedArrayBuffer' in self;
+
+        let parent = elements[0].parentNode;
+        let parentSelector = parent === this.svg ? "svg" : parent['selector'];
+        if(!parentSelector) {
+            safeLog(elements, parent);
+            console.error('selector not found');
+        }
+
+        attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
         
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
             const indexOfParent = svgEl.childIndex;
 
-            const parent = elements[i].parentNode;
-            let parentSelector = parent === this.svg ? "svg" : parent['selector'];
-
-            if(!parentSelector) {
-                safeLog(elements, parent);
-                console.error('selector not found');
+            if(svgEl.parentNode !== parent) {
+                parent = svgEl.parentNode;
+                parentSelector = parent === this.svg ? "svg" : parent['selector'];
+                attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
             }
-
-            const useSharedArray = 'SharedArrayBuffer' in self;
-            attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
 
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
             if(this.useSharedArrayFor.indexOf(attrName) === -1 || !useSharedArray) {

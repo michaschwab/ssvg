@@ -222,7 +222,9 @@ export class VdomManager {
                 if(child.type === type) {
                     selectedNodes.push(child);
                 }
-                addDirectChildrenIfMatch(child);
+                if(node.children.length !== 0) {
+                    addDirectChildrenIfMatch(child);
+                }
             }
         };
         addDirectChildrenIfMatch(visNode);
