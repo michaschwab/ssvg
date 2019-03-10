@@ -1,7 +1,7 @@
 import {VdomManager, VdomNode, VdomNodeType} from "../util/vdomManager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 
-export default class Elementhandler {
+export default class Domhandler {
     
     private vdom: VdomManager;
     private sharedArrays: {[parentSelector: string]: { [attrName: string]: Int32Array}} = {};

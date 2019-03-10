@@ -1,4 +1,4 @@
 import './custom';
-import CanvasWorker = require('worker-loader?inline=true!./canvasworker');
+import CanvasWorkerImporter = require('worker-loader?inline=true!./canvasworker');
 
-export default CanvasWorker;
+export default CanvasWorkerImporter;

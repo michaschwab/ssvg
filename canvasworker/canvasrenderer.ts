@@ -1,8 +1,8 @@
 import {VdomManager, VdomNode} from "../util/vdomManager";
 import DrawingUtils from "./drawingUtils";
-import SvgToCanvasWorker from "./canvasworker";
+import CanvasWorker from "./canvasworker";
 
-export default class Canvasrenderer implements SvgToCanvasWorker {
+export default class Canvasrenderer implements CanvasWorker {
     
     private ctx: CanvasRenderingContext2D;
     
