@@ -145,12 +145,13 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
                         this.ctx.restore();
                         //this.ctx.restore();
                     }
-                    if(fillColor !== 'none'){
-                        this.ctx.fill();
-                    }
-    
+
                     if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none') {
                         this.ctx.stroke();
+                    }
+
+                    if(fillColor !== 'none'){
+                        this.ctx.fill();
                     }
                 }
             }
@@ -193,8 +194,9 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             }
 
             node.style['stroke-rgba'] = DrawingUtils.colorToRgba(stroke, strokeOpacity);
+            return node.style['stroke-rgba'];
         }
-        return node.style['stroke-rgba'];
+        return 'none';
     }
     
     private drawRect(elData: VdomNode) {
@@ -281,7 +283,10 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             // In my tests, drawing a long connected path is very slow for high DPI devices.
         }
         if(mode === 'normal') {
-            const stroke = elData.style['stroke-rgba'];
+            const stroke = this.getStrokeStyle(elData);
+            if(stroke === 'none') {
+                return;
+            }
             if(!this.linesByColor[stroke]) {
                 this.linesByColor[stroke] = [];
             }
@@ -298,7 +303,7 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
 
                     let sampleData = this.linesByColor[strokeColor][0];
                     this.ctx.lineWidth = sampleData.style['stroke-width'] ?
-                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
+                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData['stroke-width']);
 
                     this.ctx.beginPath();
                     for(let elData of this.linesByColor[strokeColor]) {
@@ -324,6 +329,14 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
             //safeLog(stroke, this.ctx.strokeStyle);
             this.ctx.stroke();
         }
+    }
+
+    private drawDefs(node: VdomNode) {
+        //TODO figure out.
+    }
+
+    private drawMarker(node: VdomNode) {
+        //TODO figure out.
     }
     
     private applyTransform(transformString: string) {
