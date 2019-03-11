@@ -1,19 +1,19 @@
 import {VdomManager, VdomNode} from "../util/vdomManager";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker-message"
-import Elementhandler from "./elementhandler";
-import SvgToCanvasWorker from "../canvasworker/canvasworker";
+import Domhandler from "./domhandler";
+import CanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
 import DrawingUtils from "../canvasworker/drawingUtils";
-import CanvasWorker from '../canvasworker';
+import CanvasWorkerImporter from '../canvasworker';
 
 export default class SSVG {
     private unassignedNodes: Node[] = [];
     private worker: Worker;
-    private elementHandler: Elementhandler;
+    private domHandler: Domhandler;
     private vdom: VdomManager;
     private interactionSelections: HTMLElement[] = [];
     
-    private renderer: SvgToCanvasWorker;
+    private renderer: CanvasWorker;
 
     private svg: SVGElement|undefined;
     private readonly canvas: HTMLCanvasElement;
@@ -53,7 +53,7 @@ export default class SSVG {
         }
         
         if(this.useWorker) {
-            this.worker = new CanvasWorker();
+            this.worker = new CanvasWorkerImporter();
     
             this.worker.onmessage = e => {
                 if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
@@ -115,8 +115,8 @@ export default class SSVG {
         
         this.svg = svg;
         this.svg.parentElement.appendChild(this.canvas);
-        this.elementHandler = new Elementhandler(this.svg, this.useWorker);
-        this.vdom = this.elementHandler.getVDom();
+        this.domHandler = new Domhandler(this.svg, this.useWorker);
+        this.vdom = this.domHandler.getVDom();
 
         this.setCanvasSize();
         
@@ -128,7 +128,7 @@ export default class SSVG {
             return;
         }
         if(this.useWorker) {
-            this.elementHandler.useAttrQueue(queue => {
+            this.domHandler.useAttrQueue(queue => {
                 if(Object.keys(queue).length === 0) {
                     //requestAnimationFrame(() => this.updateCanvas());
                     setTimeout(() => this.updateCanvas(), 1);
@@ -137,7 +137,7 @@ export default class SSVG {
                 this.sendUpdateToWorker(queue);
             });
         } else {
-            this.elementHandler.useAttrQueue(queue => {
+            this.domHandler.useAttrQueue(queue => {
                 if(this.renderer.updatePropertiesFromQueue) {
                     this.renderer.updatePropertiesFromQueue(queue);
                 }
@@ -220,10 +220,10 @@ export default class SSVG {
                     if(typeof selector === 'string') {
                         const element = this._groups ? this._groups[0][0] : this[0][0];
 
-                        const node = me.elementHandler.getVisNode(element);
+                        const node = me.domHandler.getVisNode(element);
                         const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
                         const childElements = childNodes.map(node => {
-                            return me.elementHandler.getElementFromNode(node);
+                            return me.domHandler.getElementFromNode(node);
                         });
 
                         const returnValue = original.apply(this, arguments);
@@ -256,8 +256,8 @@ export default class SSVG {
                 if(typeof selectorString !== 'string') {
                     return origFilter.apply(this, arguments);
                 }
-                const parentNode = elements.length ? me.elementHandler.getNodeFromElement(elements[0].parentNode) : null;
-                const nodes = elements.map(element => me.elementHandler.getNodeFromElement(element));
+                const parentNode = elements.length ? me.domHandler.getNodeFromElement(elements[0].parentNode) : null;
+                const nodes = elements.map(element => me.domHandler.getNodeFromElement(element));
 
                 const selectors = selectorString.split(',').map(sel => sel.trim());
                 const filteredNodes = [];
@@ -272,7 +272,7 @@ export default class SSVG {
                     }
                 }
 
-                const filteredElements = filteredNodes.map(node => me.elementHandler.getElementFromNode(node));
+                const filteredElements = filteredNodes.map(node => me.domHandler.getElementFromNode(node));
 
                 const returnValue = origFilter.apply(this, arguments);
 
@@ -298,7 +298,7 @@ export default class SSVG {
                 return origGetComputedStyle.apply(this, arguments);
             }
 
-            const node = me.elementHandler.getNodeFromElement(element);
+            const node = me.domHandler.getNodeFromElement(element);
             return {
                 getPropertyValue(propertyName: string): string {
                     //console.log(propertyName, node, node.style[propertyName]);
@@ -317,13 +317,13 @@ export default class SSVG {
                 return origQuerySelector.apply(this, arguments);
             }
 
-            const node = me.elementHandler.getVisNode(this);
+            const node = me.domHandler.getVisNode(this);
             const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
             if(childNodes.length === 0) {
                 console.warn('could not find selection', this, selector);
                 return null;
             }
-            return me.elementHandler.getElementFromNode(childNodes[0]);
+            return me.domHandler.getElementFromNode(childNodes[0]);
         };
     }
     
@@ -339,7 +339,7 @@ export default class SSVG {
                     if(me.unassignedNodes.indexOf(this) !== -1) {
                         return originalFct.apply(this, arguments);
                     } else {
-                        return me.elementHandler.getAttributesFromSelector(this, prefix + name);
+                        return me.domHandler.getAttributesFromSelector(this, prefix + name);
                     }
                 } else {
                     if(name === 'class' || !me.svg) {
@@ -350,11 +350,11 @@ export default class SSVG {
                     let elements = this._groups ? this._groups[0] : this[0];
                     if(typeof elements === 'object' && Object.keys(elements).length === 1 && elements.parentNode) {
                         const parentElement = elements.parentNode;
-                        const selector = me.elementHandler.getElementSelector(parentElement);
+                        const selector = me.domHandler.getElementSelector(parentElement);
                         const parentNode = me.vdom.getVisNodeFromSelector(selector);
                         elements = [];
                         for(const child of parentNode.children) {
-                            elements.push(me.elementHandler.getElementFromNode(child));
+                            elements.push(me.domHandler.getElementFromNode(child));
                         }
                     }
                     elements = elements.filter(element => element); // Remove nulls etc
@@ -364,9 +364,9 @@ export default class SSVG {
                             console.warn('element not found', this, name, value);
                             return this;
                         }
-                        me.elementHandler.queueSetAttributeOnElement(element, prefix + name, value);
+                        me.domHandler.queueSetAttributeOnElement(element, prefix + name, value);
                     } else {
-                        me.elementHandler.queueSetAttributeOnSelection(elements, prefix + name, value);
+                        me.domHandler.queueSetAttributeOnSelection(elements, prefix + name, value);
                     }
                     
                     if(elements[0] === me.svg && (name === 'width' || name === 'height')) {
@@ -404,11 +404,11 @@ export default class SSVG {
                             const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
                             if(evaluatedValue === true) {
                                 const newClassNames = prevClassNames === '' ? className : prevClassNames + ' ' + className;
-                                me.elementHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+                                me.domHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
 
                             } else if(evaluatedValue === false) {
                                 const newClassNames = prevClassNames.replace(className, '').replace('  ', ' ');
-                                me.elementHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+                                me.domHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
                             }
                         }
 
@@ -416,6 +416,12 @@ export default class SSVG {
                     }
                 }
                 return originalClassed.apply(this, arguments);
+            };
+
+            const originalTransition = d3.selection.prototype.transition;
+            d3.selection.prototype.transition = function() {
+                me.domHandler.enableFrontendDesignProperties();
+                return originalTransition.apply(this, arguments);
             };
 
             const originalText = d3.selection.prototype.text;
@@ -426,7 +432,7 @@ export default class SSVG {
                     for(let element of elements) {
                         if(element) {
                             const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
-                            me.elementHandler.queueSetAttributeOnElement(element, 'text', evaluatedValue);
+                            me.domHandler.queueSetAttributeOnElement(element, 'text', evaluatedValue);
                         }
 
                         i++;
@@ -447,20 +453,20 @@ export default class SSVG {
                 let elements = this._groups ? this._groups[0] : this[0];
 
                 if(elements.length) {
-                    let parentNode = null;
+                    let parentElement: HTMLElement = null;
                     for(let i = elements.length - 1; i > -1; i--) {
                         const element = elements[i];
                         if(element) {
-                            parentNode = element.parentNode;
-                            if(!parentNode) {
+                            parentElement = element.parentNode;
+                            if(!parentElement) {
                                 console.error('element has no parent node', element);
                             }
-                            newRemove.call(parentNode, element);
+                            newRemove.call(parentElement, element);
                         }
 
                     }
-                    if(parentNode) {
-                        me.updateChildSelectors(parentNode);
+                    if(parentElement) {
+                        me.updateChildSelectors(parentElement);
                     }
                 }
             }
@@ -490,24 +496,26 @@ export default class SSVG {
         }
     }
 
-    private updateChildSelectors(parentElement: Element) {
+    private updateChildSelectors(parentElement: Element, parentNode?: VdomNode) {
         const parentSelector = parentElement['selector'];
         if(!parentSelector) {
             console.error('this node has no selector', parentElement)
         }
-        const parentNode = this.vdom.getParentNodeFromSelector(parentSelector);
+        if(!parentNode) {
+            parentNode = this.vdom.getParentNodeFromSelector(parentSelector);
+        }
         for(let i = 0; i < parentNode.children.length; i++) {
             const childNode: VdomNode = parentNode.children[i];
-            const childElement = this.elementHandler.getElementFromNode(childNode);
+            const childElement = this.domHandler.getElementFromNode(childNode);
             if(!childElement) {
                 console.error('element not found', childNode, parentNode.children.length, i);
                 continue;
             }
             childElement['childIndex'] = i;
             childElement['parentSelector'] = parentSelector;
-            childElement['selector'] = this.elementHandler.combineElementSelectors(parentSelector, childNode.type, i+1);
+            childElement['selector'] = this.domHandler.combineElementSelectors(parentSelector, childNode.type, i+1);
 
-            this.updateChildSelectors(childElement);
+            this.updateChildSelectors(childElement, childNode);
         }
     }
 
@@ -519,9 +527,9 @@ export default class SSVG {
                 console.error('context not defined');
                 return el;
             }
-            const parentNode = me.elementHandler.getNodeFromElement(<Element> <any> this);
+            const parentNode = me.domHandler.getNodeFromElement(<Element> <any> this);
             const parentSelector = this['selector'];
-            const node = me.elementHandler.getNodeFromElement(<Element> <any> el);
+            const node = me.domHandler.getNodeFromElement(<Element> <any> el);
 
             // Remove from current parent first.
             Object.defineProperty(el, 'parentNode', {
@@ -536,14 +544,14 @@ export default class SSVG {
                 parentNodeSelector: parentSelector
             });
 
-            me.elementHandler.removeNodeFromParent(<Element> <any> el, node);
+            me.domHandler.removeNodeFromParent(<Element> <any> el, node);
 
             // Fix child indices of all children.
             if(!skipUpdateSelectors) {
                 if(!parentSelector) {
                     console.error('parent not found', parentNode, parentSelector, this, el);
                 }
-                me.updateChildSelectors(this);
+                me.updateChildSelectors(this, node);
             }
 
             delete el['selector'];
@@ -582,7 +590,7 @@ export default class SSVG {
             el['appendChild'] = <T extends Node>(el2: T) => {
                 return me.getNewAppendChild(origAppend).call(el, el2);
             };
-            const parentSelector = me.elementHandler.getElementSelector(this);
+            const parentSelector = me.domHandler.getElementSelector(this);
             if(parentSelector === null) {
                 return origAppend.apply(this, arguments);
             }
@@ -595,23 +603,23 @@ export default class SSVG {
             let keepChildren = false;
 
             if(el['parentSelector']) {
-                node = me.elementHandler.getVisNode(<Element> <any> el);
+                node = me.domHandler.getVisNode(<Element> <any> el);
 
                 me.getNewRemoveChild().call(this, el);
                 keepChildren = true; // If the element is being moved around, keep children.
             } else {
-                node = me.elementHandler.getNodeDataFromEl(<HTMLElement><any> el);
+                node = me.domHandler.getNodeDataFromEl(<HTMLElement><any> el);
             }
 
             (el as any)['parentSelector'] = parentSelector;
-            (el as any)['selector'] = me.elementHandler.getElementSelector(<Element><any> el);
+            (el as any)['selector'] = me.domHandler.getElementSelector(<Element><any> el);
             (el as any)['childIndex'] = parentNode.children.length;
 
             Object.defineProperty(el, 'style', {
                 writable: true,
                 value: {
                     setProperty: function(styleProp: string, value: string) {
-                        me.elementHandler.queueSetAttributeOnElement(el as any, 'style;' + styleProp, value);
+                        me.domHandler.queueSetAttributeOnElement(el as any, 'style;' + styleProp, value);
                     }
                 }
             });
@@ -621,9 +629,9 @@ export default class SSVG {
                 value: this
             });
     
-            me.elementHandler.linkNodeToElement(node, el);
-            me.elementHandler.addNodeToParent(parentNode, node);
-            me.updateChildSelectors(el as unknown as Element);
+            me.domHandler.linkNodeToElement(node, el);
+            me.domHandler.addNodeToParent(parentNode, node);
+            me.updateChildSelectors(el as unknown as Element, node);
             
             if(me.useWorker) {
                 me.enterExitQueue.push({
@@ -703,7 +711,7 @@ export default class SSVG {
             if(!me.isWithinSvg(this)) {
                 return origSetAttr.apply(this, arguments);
             }
-            me.elementHandler.queueSetAttributeOnElement(this, name, value);
+            me.domHandler.queueSetAttributeOnElement(this, name, value);
         };
         //TODO: Figure out how to access the element when setting a style property.
         /*CSSStyleDeclaration.prototype.setProperty = function(name: string, value: any) {
@@ -722,7 +730,7 @@ export default class SSVG {
             if(!me.isWithinSvg(this)) {
                 return origSetAttrNS.apply(this, arguments);
             }
-            me.elementHandler.queueSetAttributeOnElement(this, name, value);
+            me.domHandler.queueSetAttributeOnElement(this, name, value);
         };
     
         Element.prototype.getAttribute = function(name) {
@@ -730,7 +738,7 @@ export default class SSVG {
                 return origGetAttr.apply(this, arguments);
             } else {
                 try {
-                    return me.elementHandler.getAttributeFromSelector(this, name);
+                    return me.domHandler.getAttributeFromSelector(this, name);
                 } catch(e) {
                     console.error(e);
                     return origGetAttr.apply(this, arguments);
@@ -752,7 +760,7 @@ export default class SSVG {
 
         for(let interactionSel of this.interactionSelections)
         {
-            let parentSelector = this.elementHandler.getElementSelector(interactionSel);
+            let parentSelector = this.domHandler.getElementSelector(interactionSel);
             let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
             
             //let matchingVisParent = selectedNodes[i];
@@ -767,7 +775,7 @@ export default class SSVG {
                     {
                         /*let selector = parentSelector + ' > :nth-child(' + j + ')';
                         let svgEl = this.svg.querySelector(selector);*/
-                        const svgEl = this.elementHandler.getElementFromNode(vdomNode);
+                        const svgEl = this.domHandler.getElementFromNode(vdomNode);
             
                         if(svgEl) {
                             svgEl.dispatchEvent(new_event);
@@ -798,7 +806,7 @@ export default class SSVG {
             return distance < visNode.r;
         } else if(visNode.type === 'g') {
 
-            const transform = this.elementHandler.getTotalTransformation(visNode);
+            const transform = this.domHandler.getTotalTransformation(visNode);
             if(transform.translateX) {
                 x -= transform.translateX;
             }

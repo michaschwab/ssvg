@@ -1,10 +1,10 @@
 import { VdomManager } from "../util/vdomManager";
-import SvgToCanvasWorker from "./canvasworker";
+import CanvasWorker from "./canvasworker";
 if('importScripts' in self) {
     importScripts("https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js");
 }
 
-export default class Webglrenderer implements SvgToCanvasWorker {
+export default class Webglrenderer implements CanvasWorker {
     private platform;
     private circles;
     private circleData;

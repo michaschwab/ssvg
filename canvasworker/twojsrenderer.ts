@@ -1,5 +1,5 @@
 import {VdomManager, SetPropertyQueue} from "../util/vdomManager";
-import SvgToCanvasWorker from "./canvasworker";
+import CanvasWorker from "./canvasworker";
 //importScripts("https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js");
 //importScripts("https://raw.github.com/jonobr1/two.js/master/build/two.min.js");
 /*Object.defineProperty(window, 'window', {
@@ -12,7 +12,7 @@ if('importScripts' in self) {
     importScripts("http://localhost:8080/node_modules/ssvg/two.js");
 }
 
-export default class Twojsrenderer implements SvgToCanvasWorker {
+export default class Twojsrenderer implements CanvasWorker {
     private two: any;
     private circles;
     private circleData;

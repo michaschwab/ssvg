@@ -2,13 +2,13 @@ import { VdomManager } from "../util/vdomManager";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message"
 import Canvasrenderer from "./canvasrenderer";
 
-export default interface SvgToCanvasWorker {
+export default interface CanvasWorker {
     draw(): void;
     addNode?(node: any): void;
     updatePropertiesFromQueue?(queue: any): void;
 }
 
-let worker: SvgToCanvasWorker;
+let worker: CanvasWorker;
 const workerContext: Worker = self as any;
 let vdom: VdomManager;
 

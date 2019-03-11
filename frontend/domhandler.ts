@@ -1,7 +1,7 @@
 import {VdomManager, VdomNode, VdomNodeType} from "../util/vdomManager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 
-export default class Elementhandler {
+export default class Domhandler {
     
     private vdom: VdomManager;
     private sharedArrays: {[parentSelector: string]: { [attrName: string]: Int32Array}} = {};
@@ -9,7 +9,7 @@ export default class Elementhandler {
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
     
-    constructor(private svg: SVGElement, useWorker: boolean, ignoreDesign = false) {
+    constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign = true) {
         const visData: any = {
             width: this.svg.getAttribute('width'),
             height: this.svg.getAttribute('height'),
@@ -26,6 +26,10 @@ export default class Elementhandler {
         window.setTimeout(() => {
             this.nodesToRestyle = this.nodesToElements.nodes; // Re-do the styles.
         }, 100);
+    }
+
+    enableFrontendDesignProperties() {
+        this.ignoreDesign = false;
     }
     
     getVDom() {
@@ -73,21 +77,26 @@ export default class Elementhandler {
             //console.error('selection elements not found', elements);
             return;
         }
+        const useSharedArray = 'SharedArrayBuffer' in self;
+
+        let parent = elements[0].parentNode;
+        let parentSelector = parent === this.svg ? "svg" : parent['selector'];
+        if(!parentSelector) {
+            safeLog(elements, parent);
+            console.error('selector not found');
+        }
+
+        attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
         
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
             const indexOfParent = svgEl.childIndex;
 
-            const parent = elements[i].parentNode;
-            let parentSelector = parent === this.svg ? "svg" : parent['selector'];
-
-            if(!parentSelector) {
-                safeLog(elements, parent);
-                console.error('selector not found');
+            if(svgEl.parentNode !== parent) {
+                parent = svgEl.parentNode;
+                parentSelector = parent === this.svg ? "svg" : parent['selector'];
+                attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
             }
-
-            const useSharedArray = 'SharedArrayBuffer' in self;
-            attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
 
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
             if(this.useSharedArrayFor.indexOf(attrName) === -1 || !useSharedArray) {

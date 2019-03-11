@@ -1,8 +1,8 @@
 import {VdomManager, VdomNode} from "../util/vdomManager";
 import DrawingUtils from "./drawingUtils";
-import SvgToCanvasWorker from "./canvasworker";
+import CanvasWorker from "./canvasworker";
 
-export default class Canvasrenderer implements SvgToCanvasWorker {
+export default class Canvasrenderer implements CanvasWorker {
     
     private ctx: CanvasRenderingContext2D;
     
@@ -198,25 +198,77 @@ export default class Canvasrenderer implements SvgToCanvasWorker {
         }
         return 'none';
     }
-    
-    private drawRect(elData: VdomNode) {
-        let fill = elData.style.fill ? elData.style.fill : elData.fill;
-        if(fill) {
-            fill = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
-        }
 
-        if(fill && fill !== 'none') {
-            this.ctx.fillStyle = elData.style.fill ? elData.style.fill : elData.fill;
-            this.ctx.fillRect(elData.x, elData.y, elData.width, elData.height);
-        }
+    private rectsByColor = {};
 
-        let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-        if(stroke) {
-            stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
-            this.ctx.strokeStyle = stroke;
-            this.ctx.beginPath();
-            this.ctx.rect(elData.x, elData.y, elData.width, elData.height);
-            this.ctx.stroke();
+    private drawRect(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+
+        if(mode === 'normal') {
+            let fill = elData.style.fill ? elData.style.fill : elData.fill;
+            let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
+            if(!fill) fill = '#000';
+            const fillRgba = DrawingUtils.colorToRgba(fill, fillOpacity);
+            if(!this.rectsByColor[fillRgba]) {
+                this.rectsByColor[fillRgba] = [];
+            }
+            this.rectsByColor[fillRgba].push(elData);
+        }
+        if(mode === 'start') {
+            this.rectsByColor = {};
+            return;
+        }
+        if(mode === 'end') {
+            for(let fillColor in this.rectsByColor) {
+                if(this.rectsByColor.hasOwnProperty(fillColor)) {
+                    this.ctx.fillStyle = fillColor;
+
+                    let sampleData = this.rectsByColor[fillColor][0];
+                    this.ctx.lineWidth = sampleData.style['stroke-width'] ?
+                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
+                    this.ctx.strokeStyle = this.getStrokeStyle(elData);
+
+                    this.ctx.beginPath();
+                    for(let elData of this.rectsByColor[fillColor]) {
+                        const cx = elData.cx ? elData.cx : 0;
+                        const cy = elData.cy ? elData.cy : 0;
+                        const r = elData.r;
+                        this.ctx.save();
+                        this.applyTransform(elData.transform);
+                        this.ctx.moveTo(cx + r, cy);
+                        this.ctx.rect(elData.x, elData.y, elData.width, elData.height);
+                        this.ctx.restore();
+                        //this.ctx.restore();
+                    }
+                    if(fillColor !== 'none'){
+                        this.ctx.fill();
+                    }
+
+                    if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none') {
+                        this.ctx.stroke();
+                    }
+                }
+            }
+            return;
+        }
+        if(mode === 'forcesingle') {
+            let fill = elData.style.fill ? elData.style.fill : elData.fill;
+            if(fill) {
+                fill = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
+            }
+
+            if(fill && fill !== 'none') {
+                this.ctx.fillStyle = elData.style.fill ? elData.style.fill : elData.fill;
+                this.ctx.fillRect(elData.x, elData.y, elData.width, elData.height);
+            }
+
+            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+            if(stroke) {
+                stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
+                this.ctx.strokeStyle = stroke;
+                this.ctx.beginPath();
+                this.ctx.rect(elData.x, elData.y, elData.width, elData.height);
+                this.ctx.stroke();
+            }
         }
     }
 
