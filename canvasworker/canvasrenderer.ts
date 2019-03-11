@@ -131,7 +131,7 @@ export default class Canvasrenderer implements CanvasWorker {
                     let sampleData = this.circlesByColor[fillColor][0];
                     this.ctx.lineWidth = sampleData.style['stroke-width'] ?
                         parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
-                    this.ctx.strokeStyle = this.getStrokeStyle(elData);
+                    this.ctx.strokeStyle = this.getStrokeStyle(sampleData);
 
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillColor]) {
@@ -146,12 +146,12 @@ export default class Canvasrenderer implements CanvasWorker {
                         //this.ctx.restore();
                     }
 
-                    if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none') {
-                        this.ctx.stroke();
-                    }
-
                     if(fillColor !== 'none'){
                         this.ctx.fill();
+                    }
+
+                    if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none') {
+                        this.ctx.stroke();
                     }
                 }
             }

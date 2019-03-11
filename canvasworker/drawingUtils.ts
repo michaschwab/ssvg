@@ -77,7 +77,7 @@ export default class DrawingUtils {
         };
     }
     
-    static colorToRgba(color: string|{r: number, g: number, b: number}, opacity: string|number = 1): string {
+    static colorToRgba(color: string|{r: number, g: number, b: number}|{h: number, s: number, l: number}, opacity: string|number = 1): string {
         if(color === 'none') {
             return color;
         }
@@ -96,13 +96,45 @@ export default class DrawingUtils {
                 return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+',' + opacity + ')';
             }
             throw new Error('Bad Hex');
-        } else if(typeof color === 'object' && Object.keys(color).length === 3) {
-            return 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')';
-        } else if(typeof color === 'string' && color.substr(0, 4) === 'rgb(') {
+        } else if(typeof color === 'object') {
+            if('r' in color) {
+                return 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')';
+            }
+            if('h' in color) {
+                const rgb = DrawingUtils.hslToRgb(color.h / 360, color.s, color.l);
+                return 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + opacity + ')';
+            }
+        } else if(color.substr(0, 4) === 'rgb(') {
             return color.substr(0, color.length - 1).replace('rgb','rgba') +
                 ', ' + opacity + ')';
         }
-        return <string> color;
+        return color;
+    }
+
+    // From https://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion
+    static hslToRgb(h, s, l) {
+        var r, g, b;
+
+        if(s == 0){
+            r = g = b = l; // achromatic
+        } else {
+            var hue2rgb = function hue2rgb(p, q, t){
+                if(t < 0) t += 1;
+                if(t > 1) t -= 1;
+                if(t < 1/6) return p + (q - p) * 6 * t;
+                if(t < 1/2) return q;
+                if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+
+            var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            var p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+
+        return {r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255)};
     }
 
     static CssNamedColorToHex(color: any) {
