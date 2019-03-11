@@ -216,9 +216,15 @@ export default class SSVG {
             const d3 = (window as any)['d3'];
 
             const getReplacement = (original) => {
-                return function(selector) {
+                return function(selector: string|(()=>{})) {
                     if(typeof selector === 'string') {
-                        const element = this._groups ? this._groups[0][0] : this[0][0];
+
+                        let element: HTMLElement|SVGElement;
+                        if(this === d3) {
+                            element = me.svg;
+                        } else {
+                            element = this._groups ? this._groups[0][0] : this[0][0];
+                        }
 
                         const node = me.domHandler.getVisNode(element);
                         const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
@@ -244,11 +250,10 @@ export default class SSVG {
                 }
             };
 
-            const origSelectAll = d3.selection.prototype.selectAll;
-            d3.selection.prototype.selectAll = getReplacement(origSelectAll);
-
-            const origSelect = d3.selection.prototype.select;
-            d3.selection.prototype.select = getReplacement(origSelect);
+            d3.selection.prototype.selectAll = getReplacement(d3.selection.prototype.selectAll);
+            d3.selectAll = getReplacement(d3.selectAll);
+            d3.selection.prototype.select = getReplacement(d3.selection.prototype.select);
+            d3.select = getReplacement(d3.select);
 
             const origFilter = d3.selection.prototype.filter;
             d3.selection.prototype.filter = function(selectorString: string) {
@@ -364,20 +369,26 @@ export default class SSVG {
                             elements.push(me.domHandler.getElementFromNode(child));
                         }
                     }
-                    elements = elements.filter(element => element); // Remove nulls etc
-                    if(elements.length === 1) {
-                        const element = elements[0];
+                    const filteredElements = [];
+                    for(const element of elements) {
+                        if(element) {
+                            filteredElements.push(element);
+                        }
+                    }
+                    if(filteredElements.length === 1) {
+                        const element = filteredElements[0];
                         if(!element) {
                             console.warn('element not found', this, name, value);
                             return this;
                         }
                         me.domHandler.queueSetAttributeOnElement(element, prefix + name, value);
                     } else {
-                        me.domHandler.queueSetAttributeOnSelection(elements, prefix + name, value);
+                        me.domHandler.queueSetAttributeOnSelection(filteredElements, prefix + name, value);
                     }
                     
-                    if(elements[0] === me.svg && (name === 'width' || name === 'height')) {
-                        me.vdom.data[name] = value;
+                    if(filteredElements[0] === me.svg && (name === 'width' || name === 'height')) {
+                        me.vdom.data[name] = parseInt(value);
+                        console.log(name, value);
                         me.setCanvasSize();
                     }
                 
@@ -637,6 +648,10 @@ export default class SSVG {
                 value: {
                     setProperty: function(styleProp: string, value: string) {
                         me.domHandler.queueSetAttributeOnElement(el as any, 'style;' + styleProp, value);
+                    },
+                    getPropertyValue: function(styleProp) {
+                        me.domHandler.enableFrontendDesignProperties();
+                        return node.style[styleProp];
                     }
                 }
             });

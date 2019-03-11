@@ -332,6 +332,10 @@ export default class Canvasrenderer implements CanvasWorker {
         this.ctx.fillText(elData.text, elData.x, elData.y);
     }
 
+    private drawTextpath(elData: VdomNode) {
+        console.warn('no draw function yet for textpath');
+    }
+
     private linesByColor: {[color: string]: VdomNode[]} = {};
     private drawLine(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         if(this.vdom.data.scale > 1) {
