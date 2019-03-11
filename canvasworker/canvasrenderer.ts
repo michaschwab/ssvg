@@ -181,7 +181,13 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
 
-    private getStrokeStyle(node: VdomNode) {
+    private getFillStyle(node: VdomNode): string {
+        let fill = node.style.fill ? node.style.fill : node.fill;
+        fill = DrawingUtils.colorToRgba(fill, node.style['fill-opacity']);
+        return fill;
+    }
+
+    private getStrokeStyle(node: VdomNode): string {
         if(node.style['stroke-rgba']) {
             return node.style['stroke-rgba'];
         }
@@ -294,13 +300,11 @@ export default class Canvasrenderer implements CanvasWorker {
     
     private drawPath(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
-        
-        let fill = elData.style.fill ? elData.style.fill : elData.fill;
-        if(!fill) fill = '#000';
-        fill = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
-        let stroke = this.getStrokeStyle(elData);
-        let strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
-    
+
+        const fill = this.getFillStyle(elData);
+        const stroke = this.getStrokeStyle(elData);
+        const strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
+
         let p = new Path2D(elData.d);
         this.ctx.fillStyle = fill;
         if(stroke && stroke !== 'none') {

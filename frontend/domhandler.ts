@@ -271,13 +271,14 @@ export default class Domhandler {
 
         const parentsOfInterest = [];
         for(const nodeToBeStyled of this.nodesToRestyle) {
-            const parent = this.getNodeParent(nodeToBeStyled);
+            let parent = this.getNodeParent(nodeToBeStyled);
             while(parent && parentsOfInterest.indexOf(parent) === -1) {
                 parentsOfInterest.push(parent);
+                parent = this.getNodeParent(parent);
             }
         }
 
-        const checkNode = (currentNode: any, looseIndex = 0, strictIndex = 0): boolean => {
+        const checkNode = (currentNode: VdomNode, looseIndex = 0, strictIndex = 0): boolean => {
             const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
 
             for(let childIndex = 0; childIndex < currentNode.children.length; childIndex++) {
