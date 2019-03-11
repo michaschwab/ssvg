@@ -437,7 +437,7 @@ export default class SSVG {
                     let elements = this._groups ? this._groups[0] : this[0];
                     let i = 0;
                     for(let element of elements) {
-                        if(element) {
+                        if(element && me.isWithinSvg(element)) {
                             const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
                             me.domHandler.queueSetAttributeOnElement(element, 'text', evaluatedValue);
                         }
@@ -455,7 +455,7 @@ export default class SSVG {
             const d3 = window['d3'];
             const me = this;
 
-            const newRemove = this.getNewRemoveChild(true);
+            const newRemove = this.getNewRemoveChild(() => {}, true);
             d3.selection.prototype.remove = function() {
                 let elements = this._groups ? this._groups[0] : this[0];
 
@@ -476,6 +476,7 @@ export default class SSVG {
                         me.updateChildSelectors(parentElement);
                     }
                 }
+                return this;
             }
         }
     }
@@ -526,7 +527,8 @@ export default class SSVG {
         }
     }
 
-    private getNewRemoveChild(skipUpdateSelectors = false) {
+    private getNewRemoveChild(origRemoveChild: ((<T extends Node>(oldChild: T) => T)|(() => void)),
+        skipUpdateSelectors = false) {
         const me = this;
 
         return function<T extends Node>(this: Element, el: T) {
@@ -534,9 +536,17 @@ export default class SSVG {
                 console.error('context not defined');
                 return el;
             }
+            if(!me.isWithinSvg(<Element> <any> el)) {
+                return origRemoveChild.apply(this, arguments);
+            }
             const parentNode = me.domHandler.getNodeFromElement(<Element> <any> this);
             const parentSelector = this['selector'];
             const node = me.domHandler.getNodeFromElement(<Element> <any> el);
+
+            if(!node) {
+                console.error('node not found', node, el, this, parentNode);
+                return origRemoveChild.apply(this, arguments);
+            }
 
             // Remove from current parent first.
             Object.defineProperty(el, 'parentNode', {
@@ -568,7 +578,7 @@ export default class SSVG {
     }
 
     private replaceNativeRemoveChild() {
-        Element.prototype.removeChild = this.getNewRemoveChild();
+        Element.prototype.removeChild = this.getNewRemoveChild(Element.prototype.removeChild);
     }
     
     private getNewAppendChild(origAppend) {
@@ -612,7 +622,7 @@ export default class SSVG {
             if(el['parentSelector']) {
                 node = me.domHandler.getVisNode(<Element> <any> el);
 
-                me.getNewRemoveChild().call(this, el);
+                me.getNewRemoveChild(() => {}).call(this, el);
                 keepChildren = true; // If the element is being moved around, keep children.
             } else {
                 node = me.domHandler.getNodeDataFromEl(<HTMLElement><any> el);

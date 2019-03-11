@@ -24,7 +24,13 @@ export default class Domhandler {
         this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
 
         window.setTimeout(() => {
-            this.nodesToRestyle = this.nodesToElements.nodes; // Re-do the styles.
+            // Re-do the styles.
+            this.nodesToRestyle = [];
+            // Can not use this.nodesToRestyle = this.nodesToElements.nodes because this links the object and adding
+            // to this.nodesToRestyle would break the nodesToElements mapping.
+            for(const node of this.nodesToElements.nodes) {
+                this.nodesToRestyle.push(node);
+            }
         }, 100);
     }
 
@@ -53,6 +59,9 @@ export default class Domhandler {
             return;
         }
 
+        if(element === this.svg && attrName.indexOf('style;') === 0) {
+            attrName = attrName.substr('style;'.length);
+        }
         attrName = this.checkAttrName(parentSelector, attrName, false);
         const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, childIndex) : value;
         this.setAttrQueue[parentSelector][attrName][childIndex] = evaluatedValue;
@@ -66,6 +75,9 @@ export default class Domhandler {
                 this.nodesToRestyle.push(node);
             } else {
                 const styleName = attrName.substr(6);
+                if(!node.style) {
+                    console.error('no styles on node ', node);
+                }
                 node.style[styleName] = evaluatedValue;
             }
         }
