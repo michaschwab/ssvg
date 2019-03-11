@@ -317,7 +317,7 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.stroke(p);
         }
 
-        if(fill !== 'none') {
+        if(fill && fill !== 'none') {
             this.ctx.fill(p);
         }
     }

@@ -283,7 +283,7 @@ export class VdomManager {
             return !VdomManager.isCssRulePartialMatch(newSelPart, node, parentNode);
         }
         if(cssRuleSelectorPart[0] === '.') { // Example: .className
-            if(cssRuleSelectorPart.substr(1) === node.className) {
+            if(node.className && node.className.split(' ').indexOf(cssRuleSelectorPart.substr(1)) !== -1) {
                 return true;
             }
         } else if(cssRuleSelectorPart[0] === '#') { // Example: #id
@@ -312,7 +312,7 @@ export class VdomManager {
             const cutoff = cssRuleSelectorPart.indexOf('.');
             const typeName = cssRuleSelectorPart.substr(0, cutoff);
             const className = cssRuleSelectorPart.substr(cutoff + 1);
-            if(typeName === node.type && className === node.className) {
+            if(typeName === node.type && node.className && node.className.split(' ').indexOf(className) !== -1) {
                 return true;
             }
         }
