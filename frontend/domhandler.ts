@@ -434,10 +434,10 @@ export default class Domhandler {
             console.error('could not find element for node ', node);
             return '';
         }
-        return this.getElementSelector(element, node);
+        return this.getElementSelector(element, undefined, node);
     }
     
-    getElementSelector(element: Element, node?: VdomNode): string|null {
+    getElementSelector(element: Element, parentNode?: VdomNode, node?: VdomNode): string|null {
         let sel = (element as any)['selector'];
         
         if(sel)
@@ -451,8 +451,10 @@ export default class Domhandler {
             } else {
                 let parentSelector = (element as any)['parentSelector'] ?
                     (element as any)['parentSelector'] as string : '';
-                
-                let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
+
+                if(!parentNode) {
+                    parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
+                }
                 if(!parentNode) {
                     console.warn('Element not found', element, parentSelector, parentSelector.length, this.vdom.data);
                     return null;

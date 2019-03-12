@@ -635,7 +635,7 @@ export default class SSVG {
                 return origAppend.apply(this, arguments);
             }
 
-            const parentNode = me.vdom.getVisNodeFromSelector(parentSelector);
+            const parentNode = me.domHandler.getNodeFromElement(this);
             if(!parentNode) {
                 return console.error('parent node not found', parentSelector, this);
             }
@@ -652,7 +652,7 @@ export default class SSVG {
             }
 
             (el as any)['parentSelector'] = parentSelector;
-            (el as any)['selector'] = me.domHandler.getElementSelector(<Element><any> el);
+            (el as any)['selector'] = me.domHandler.getElementSelector(<Element><any> el, parentNode);
             (el as any)['childIndex'] = parentNode.children.length;
 
             Object.defineProperty(el, 'style', {
