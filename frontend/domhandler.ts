@@ -91,23 +91,25 @@ export default class Domhandler {
         }
         const useSharedArray = 'SharedArrayBuffer' in self;
 
-        let parent = elements[0].parentNode;
-        let parentSelector = parent === this.svg ? "svg" : parent['selector'];
+        let parentElement = elements[0].parentNode;
+        let parentNode = this.getNodeFromElement(parentElement);
+        let parentSelector = parentElement === this.svg ? "svg" : parentElement['selector'];
         if(!parentSelector) {
-            safeLog(elements, parent);
+            safeLog(elements, parentElement);
             console.error('selector not found');
         }
 
-        attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
+        attrName = this.checkAttrName(parentSelector, attrName, useSharedArray, parentNode);
         
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
             const indexOfParent = svgEl.childIndex;
 
-            if(svgEl.parentNode !== parent) {
-                parent = svgEl.parentNode;
-                parentSelector = parent === this.svg ? "svg" : parent['selector'];
-                attrName = this.checkAttrName(parentSelector, attrName, useSharedArray);
+            if(svgEl.parentNode !== parentElement) {
+                parentElement = svgEl.parentNode;
+                parentNode = this.getNodeFromElement(parentElement);
+                parentSelector = parentElement === this.svg ? "svg" : parentElement['selector'];
+                attrName = this.checkAttrName(parentSelector, attrName, useSharedArray, parentNode);
             }
 
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
@@ -137,7 +139,7 @@ export default class Domhandler {
     
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2'];
     
-    private checkAttrName(parentSelector: string, attrName: string, useBuffer = false) {
+    private checkAttrName(parentSelector: string, attrName: string, useBuffer = false, parentNode?: VdomNode) {
         if(attrName === 'class') {
             attrName = 'className';
         }
@@ -153,7 +155,10 @@ export default class Domhandler {
             }
         } else {
             if(!this.sharedArrays[parentSelector][attrName]) {
-                const length = this.vdom.getParentNodeFromSelector(parentSelector).children.length;
+                if(!parentNode) {
+                    parentNode = this.vdom.getParentNodeFromSelector(parentSelector)
+                }
+                const length = parentNode.children.length;
                 const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
 
                 this.setAttrQueue[parentSelector][attrName] = buffer;
