@@ -226,6 +226,10 @@ export default class SSVG {
                             element = this._groups ? this._groups[0][0] : this[0][0];
                         }
 
+                        if(!element) {
+                            console.error('no element', this);
+                            return original.apply(this, arguments);
+                        }
                         const node = me.domHandler.getVisNode(element);
                         const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
                         const childElements = childNodes.map(node => {
@@ -369,11 +373,19 @@ export default class SSVG {
                             elements.push(me.domHandler.getElementFromNode(child));
                         }
                     }
+                    if(!elements) {
+                        return originalFct.apply(this, arguments);
+                    }
                     const filteredElements = [];
-                    for(const element of elements) {
-                        if(element) {
-                            filteredElements.push(element);
+                    try {
+                        for (const element of elements) {
+                            if (element) {
+                                filteredElements.push(element);
+                            }
                         }
+                    } catch(e) {
+                        console.error(elements, this);
+                        console.error(e);
                     }
                     if(filteredElements.length === 1) {
                         const element = filteredElements[0];
