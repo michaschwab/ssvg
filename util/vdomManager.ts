@@ -35,6 +35,8 @@ export type VdomNode = {
     y1?: number,
     x2?: number,
     y2?: number,
+    dx?: number,
+    dy?: number,
     width?: number,
     height?: number,
     textAlign?: string,

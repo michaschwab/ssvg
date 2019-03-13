@@ -295,9 +295,11 @@ export default class Canvasrenderer implements CanvasWorker {
         if(!fill) fill = '#000';
         this.ctx.font = font;
         this.ctx.fillStyle = fill;
-        const x = elData.x || 0;
-        const y = elData.y || 0;
-        this.ctx.fillText(elData.text, x, y);
+        let x = elData.x || 0;
+        let y = elData.y || 0;
+        let dx = elData.dx || 0;
+        let dy = elData.dy || 0;
+        this.ctx.fillText(elData.text, x + dx, y + dy);
     }
 
     private drawPath(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
