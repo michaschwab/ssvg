@@ -210,7 +210,7 @@ export class VdomManager {
         return null;
     }
     
-    public getVisNodesFromSelector(visNode, selector: string) {
+    public getVisNodesFromSelector(visNode: VdomNode, selector: string) {
         const selectedNodes = [];
         this.findMatchingChildren(visNode, selector, 0, selectedNodes);
         return selectedNodes;

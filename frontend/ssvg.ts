@@ -231,12 +231,26 @@ export default class SSVG {
                             return original.apply(this, arguments);
                         }
                         const node = me.domHandler.getVisNode(element);
+
+                        if(!node) {
+                            console.warn('node not found', element);
+                            return original.apply(this, arguments);
+                        }
+
                         const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
                         const childElements = childNodes.map(node => {
                             return me.domHandler.getElementFromNode(node);
                         });
 
                         const returnValue = original.apply(this, arguments);
+                        const elementsOutsideSvg: NodeList = returnValue._groups ? returnValue._groups[0]
+                            : returnValue[0];
+                        elementsOutsideSvg.forEach(childNode => {
+                            const childEl = <Element> <any> childNode;
+                            if(childElements.indexOf(childEl) === -1) {
+                                childElements.push();
+                            }
+                        });
 
                         if(returnValue._groups) {
                             returnValue._groups[0] = childElements;
@@ -393,14 +407,19 @@ export default class SSVG {
                             console.warn('element not found', this, name, value);
                             return this;
                         }
+                        if(!me.isWithinSvg(element)) {
+                            return originalFct.apply(this, arguments);
+                        }
                         me.domHandler.queueSetAttributeOnElement(element, prefix + name, value);
                     } else {
+                        if(!me.isWithinSvg(elements[0])) {
+                            return originalFct.apply(this, arguments);
+                        }
                         me.domHandler.queueSetAttributeOnSelection(filteredElements, prefix + name, value);
                     }
                     
                     if(filteredElements[0] === me.svg && (name === 'width' || name === 'height')) {
                         me.vdom.data[name] = parseInt(value);
-                        console.log(name, value);
                         me.setCanvasSize();
                     }
                 
