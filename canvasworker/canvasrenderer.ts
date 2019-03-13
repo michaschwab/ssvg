@@ -33,8 +33,9 @@ export default class Canvasrenderer implements CanvasWorker {
         ctx.restore();
         ctx.save();
         
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, this.vdom.data.width, this.vdom.data.height);
+        //ctx.fillStyle = '#fff';
+        //ctx.fillRect(0, 0, this.vdom.data.width, this.vdom.data.height);
+        ctx.clearRect(0, 0, this.vdom.data.width, this.vdom.data.height);
     
         this.lastDrawn = null;
         this.drawNodeAndChildren(this.vdom.data);
