@@ -23,7 +23,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }, 1000);
     }
     
-    private lastDrawn: VdomNode = null;
+    //private lastDrawn: VdomNode = null;
     private lastFullSecond = 0;
     private countSinceLastFullSecond = 0;
     
@@ -37,12 +37,17 @@ export default class Canvasrenderer implements CanvasWorker {
         //ctx.fillRect(0, 0, this.vdom.data.width, this.vdom.data.height);
         ctx.clearRect(0, 0, this.vdom.data.width, this.vdom.data.height);
     
-        this.lastDrawn = null;
-        this.drawNodeAndChildren(this.vdom.data);
-        
-        if(this.lastDrawn) {
-            this.drawSingleNode(this.lastDrawn, 'end');
-        }
+        //this.lastDrawn = null;
+        this.drawLine(null, 'start');
+        this.drawCircle(null, 'start');
+        this.drawRect(null, 'start');
+
+        this.drawNodeAndChildren(this.vdom.data, this.forceSingle);
+
+        this.drawLine(null, 'end');
+        this.drawCircle(null, 'end');
+        this.drawRect(null, 'end');
+
         
         this.onDrawn();
     
@@ -55,14 +60,14 @@ export default class Canvasrenderer implements CanvasWorker {
         this.countSinceLastFullSecond++;
     }
     
-    private drawNodeAndChildren(elData: VdomNode) {
+    private drawNodeAndChildren(elData: VdomNode, forceSingle: boolean) {
         const ctx = this.ctx;
 
         ctx.save();
         this.applyTransform(elData.transform);
 
         if(elData.transform) {
-            this.forceSingle = true;
+            forceSingle = true;
         }
         
         if(elData.type && elData.type !== 'g' && (!elData.style.display || elData.style.display !== 'none')) {
@@ -70,25 +75,25 @@ export default class Canvasrenderer implements CanvasWorker {
                 return;
             }
             
-            if(!this.forceSingle) {
-                if(!this.lastDrawn || (this.lastDrawn && this.lastDrawn.type !== elData.type)) {
+            if(!forceSingle) {
+                /*if(!this.lastDrawn || (this.lastDrawn && this.lastDrawn.type !== elData.type)) {
                     if(this.lastDrawn) {
                         this.drawSingleNode(this.lastDrawn, 'end');
                     }
                     this.drawSingleNode(elData, 'start');
-                }
+                }*/
     
                 this.drawSingleNode(elData);
             } else {
                 this.drawSingleNode(elData, 'forcesingle');
             }
             
-            this.lastDrawn = elData;
+            //this.lastDrawn = elData;
         }
         
         if(elData.children) {
             for(let i = 0; i < elData.children.length; i++) {
-                this.drawNodeAndChildren(elData.children[i]);
+                this.drawNodeAndChildren(elData.children[i], forceSingle);
             }
         }
         //ctx.restore();
@@ -151,7 +156,7 @@ export default class Canvasrenderer implements CanvasWorker {
                         this.ctx.fill();
                     }
 
-                    if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none') {
+                    if(sampleData.style['stroke-rgba'] && sampleData.style['stroke-rgba'] !== 'none') {
                         this.ctx.stroke();
                     }
                 }
@@ -233,7 +238,7 @@ export default class Canvasrenderer implements CanvasWorker {
                     let sampleData = this.rectsByColor[fillColor][0];
                     this.ctx.lineWidth = sampleData.style['stroke-width'] ?
                         parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
-                    this.ctx.strokeStyle = this.getStrokeStyle(elData);
+                    this.ctx.strokeStyle = this.getStrokeStyle(sampleData);
 
                     this.ctx.beginPath();
                     for(let elData of this.rectsByColor[fillColor]) {
@@ -251,7 +256,7 @@ export default class Canvasrenderer implements CanvasWorker {
                         this.ctx.fill();
                     }
 
-                    if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none') {
+                    if(sampleData.style['stroke-rgba'] && sampleData.style['stroke-rgba'] !== 'none') {
                         this.ctx.stroke();
                     }
                 }
