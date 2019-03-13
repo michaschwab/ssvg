@@ -183,7 +183,8 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private getFillStyle(node: VdomNode): string {
         let fill = node.style.fill ? node.style.fill : node.fill;
-        fill = DrawingUtils.colorToRgba(fill, node.style['fill-opacity']);
+        let opacity = node.style['fill-opacity'] ? node.style['fill-opacity'] : node.style['opacity'];
+        fill = DrawingUtils.colorToRgba(fill, opacity);
         return fill;
     }
 
@@ -297,7 +298,7 @@ export default class Canvasrenderer implements CanvasWorker {
         const y = elData.y || 0;
         this.ctx.fillText(elData.text, x, y);
     }
-    
+
     private drawPath(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
 
