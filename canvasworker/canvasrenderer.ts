@@ -286,7 +286,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private drawText(elData: VdomNode) {
-        if(!elData.text) {
+        if(elData.text === '') {
             return;
         }
         const fontFamily = 'Arial';
