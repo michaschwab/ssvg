@@ -115,7 +115,7 @@ export default class SSVG {
         
         this.svg = svg;
         this.svg.parentElement.appendChild(this.canvas);
-        this.domHandler = new Domhandler(this.svg, this.useWorker);
+        this.domHandler = new Domhandler(this.svg, this.useWorker, this.useWorker);
         this.vdom = this.domHandler.getVDom();
 
         this.setCanvasSize();
@@ -350,7 +350,7 @@ export default class SSVG {
             const node = me.domHandler.getVisNode(this);
             const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
             if(childNodes.length === 0) {
-                console.warn('could not find selection', this, node, selector);
+                console.warn('could not find selection', this, node, node.globalElementIndex, selector);
                 return null;
             }
             return me.domHandler.getElementFromNode(childNodes[0]);

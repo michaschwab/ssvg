@@ -198,7 +198,7 @@ export default class Domhandler {
         return node[name];
     }
     
-    getVisNode(element: Element): any|null {
+    getVisNode(element: Element): VdomNode|null {
         const selector = this.getElementSelector(element);
 
         if(selector === null) {
@@ -377,11 +377,11 @@ export default class Domhandler {
             this.nodesToElements.nodes[i].globalElementIndex = i;
         }
 
-        /*for(let attrName in this.setAttrQueue[parentSelector]) {
+        for(let attrName in this.setAttrQueue[parentSelector]) {
             for(let i = childIndex + 1; i < this.setAttrQueue[parentSelector][attrName].length; i++) {
                 this.setAttrQueue[parentSelector][attrName][i-1] = this.setAttrQueue[parentSelector][attrName][i];
             }
-        }*/
+        }
     }
 
     addNodeToParent(parentNode, node) {
