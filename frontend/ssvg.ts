@@ -350,7 +350,7 @@ export default class SSVG {
             const node = me.domHandler.getVisNode(this);
             const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
             if(childNodes.length === 0) {
-                console.warn('could not find selection', this, selector);
+                console.warn('could not find selection', this, node, selector);
                 return null;
             }
             return me.domHandler.getElementFromNode(childNodes[0]);
@@ -378,10 +378,21 @@ export default class SSVG {
                     // For d3 v4, this would just be this.groups[0]. The rest is for
                     // earlier versions, where selectAll() returned other values.
                     let elements = this._groups ? this._groups[0] : this[0];
+
                     if(typeof elements === 'object' && Object.keys(elements).length === 1 && elements.parentNode) {
                         const parentElement = elements.parentNode;
-                        const selector = me.domHandler.getElementSelector(parentElement);
-                        const parentNode = me.vdom.getVisNodeFromSelector(selector);
+                        let parentNode: VdomNode;
+                        if(parentElement !== document.children[0]) {
+                            const selector = me.domHandler.getElementSelector(parentElement);
+                            if(selector === null) {
+                                console.error('selector not found', parentElement, elements);
+                                throw Error('selector not found');
+                            }
+                            parentNode = me.vdom.getVisNodeFromSelector(selector);
+                        } else {
+                            parentNode = me.vdom.data;
+                        }
+
                         elements = [];
                         for(const child of parentNode.children) {
                             elements.push(me.domHandler.getElementFromNode(child));
