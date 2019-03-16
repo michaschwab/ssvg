@@ -196,7 +196,10 @@ export default class SSVG {
 
             d3.selection.prototype.on = function()
             {
-                const el = this._parents && this._parents.length ? this._parents[0] : this[0].parentNode;
+                let el = this._parents && this._parents.length ? this._parents[0] : this[0].parentNode;
+                if(el === document.children[0]) {
+                    el = me.svg;
+                }
                 let isWithinSvg = me.isWithinSvg(el);
 
                 if(el && isWithinSvg && me.interactionSelections.indexOf(el) === -1)
@@ -845,11 +848,21 @@ export default class SSVG {
             } else {
                 for(let vdomNode of parentNode.children)
                 {
-                    if(this.nodeAtPosition(vdomNode, new_event.clientX-10, new_event.clientY-10))
+                    let childNode = this.nodeAtPosition(vdomNode, new_event.clientX-10, new_event.clientY-10);
+                    if(childNode)
                     {
                         /*let selector = parentSelector + ' > :nth-child(' + j + ')';
                         let svgEl = this.svg.querySelector(selector);*/
                         const svgEl = this.domHandler.getElementFromNode(vdomNode);
+                        const svgChildEl = this.domHandler.getElementFromNode(childNode);
+                        //safeLog(svgEl, vdomNode, childNode, new_event);
+
+                        if(svgChildEl) {
+                            Object.defineProperty(new_event, 'target', {
+                                writable: true,
+                                value: svgChildEl
+                            });
+                        }
             
                         if(svgEl) {
                             svgEl.dispatchEvent(new_event);
@@ -861,23 +874,46 @@ export default class SSVG {
         }
     }
     
-    private nodeAtPosition(visNode: VdomNode, x: number, y: number): boolean
-    {
-        if(visNode.type === 'circle')
-        {
+    private nodeAtPosition(visNode: VdomNode, x: number, y: number): false|VdomNode {
+        if (visNode.type === 'circle') {
             let cx = visNode.cx || 0;
             let cy = visNode.cy || 0;
-            if(visNode.transform) {
+            if (visNode.transform) {
                 const transform = DrawingUtils.parseTransform(visNode.transform);
-                if(transform.translateX) {
+                if (transform.translateX) {
                     cx += transform.translateX;
                 }
-                if(transform.translateY) {
+                if (transform.translateY) {
                     cy += transform.translateY;
                 }
             }
-            let distance = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
-            return distance < visNode.r;
+            const distance = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
+            return distance < visNode.r ? visNode : false;
+        } else if(visNode.type === 'rect') {
+
+            let elX = visNode.x || 0;
+            let elY = visNode.y || 0;
+            const width = visNode.width;
+            const height = visNode.height;
+
+            if (visNode.transform) {
+                const transform = DrawingUtils.parseTransform(visNode.transform);
+                if (transform.translateX) {
+                    elX += transform.translateX;
+                }
+                if (transform.translateY) {
+                    elY += transform.translateY;
+                }
+            }
+
+            const centerX = elX + width / 2;
+            const centerY = elY + height / 2;
+
+            const distanceX = Math.abs(centerX - x);
+            const distanceY = Math.abs(centerY - y);
+
+            return distanceX < width / 2 && distanceY < height / 2 ? visNode : false;
+
         } else if(visNode.type === 'g') {
 
             const transform = this.domHandler.getTotalTransformation(visNode);
@@ -888,10 +924,10 @@ export default class SSVG {
                 y -= transform.translateY;
             }
 
-            let matchAny = false;
+            let matchAny: false|VdomNode = false;
             for(let i = 0; i < visNode.children.length; i++) {
                 if(this.nodeAtPosition(visNode.children[i], x, y)) {
-                    matchAny = true;
+                    matchAny = visNode.children[i];
                 }
             }
             return matchAny;
