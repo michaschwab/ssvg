@@ -142,8 +142,9 @@ export default class Canvasrenderer implements CanvasWorker {
 
                     this.ctx.fillStyle = fillColor;
                     let sampleData = this.circlesByColor[fillAndStrokeColor][0];
-                    this.ctx.lineWidth = sampleData.style['stroke-width'] ?
+                    const lineWidth = sampleData.style['stroke-width'] ?
                         parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
+                    this.ctx.lineWidth = lineWidth ? lineWidth : 1;
                     this.ctx.strokeStyle = strokeColor;
 
                     this.ctx.beginPath();
@@ -234,27 +235,33 @@ export default class Canvasrenderer implements CanvasWorker {
 
             //if(!fill) fill = '#000';
             const fillRgba = DrawingUtils.colorToRgba(fill, fillOpacity);
-            if(!this.rectsByColor[fillRgba]) {
-                this.rectsByColor[fillRgba] = [];
+            const stroke = this.getStrokeStyle(elData);
+            const handle = fillRgba + ';' + stroke;
+            if(!this.rectsByColor[handle]) {
+                this.rectsByColor[handle] = [];
             }
-            this.rectsByColor[fillRgba].push(elData);
+            this.rectsByColor[handle].push(elData);
         }
         if(mode === 'start') {
             this.rectsByColor = {};
             return;
         }
         if(mode === 'end') {
-            for(let fillColor in this.rectsByColor) {
-                if(this.rectsByColor.hasOwnProperty(fillColor)) {
+            for(let fillAndStrokeColor in this.rectsByColor) {
+                if(this.rectsByColor.hasOwnProperty(fillAndStrokeColor)) {
+                    const split = fillAndStrokeColor.split(';');
+                    const fillColor = split[0];
+                    const strokeColor = split[1];
                     this.ctx.fillStyle = fillColor;
 
-                    let sampleData = this.rectsByColor[fillColor][0];
-                    this.ctx.lineWidth = sampleData.style['stroke-width'] ?
+                    let sampleData = this.rectsByColor[fillAndStrokeColor][0];
+                    const lineWidth = sampleData.style['stroke-width'] ?
                         parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
-                    this.ctx.strokeStyle = this.getStrokeStyle(sampleData);
+                    this.ctx.lineWidth = lineWidth ? lineWidth : 1;
+                    this.ctx.strokeStyle = strokeColor;
 
                     this.ctx.beginPath();
-                    for(let elData of this.rectsByColor[fillColor]) {
+                    for(let elData of this.rectsByColor[fillAndStrokeColor]) {
                         const cx = elData.cx ? elData.cx : 0;
                         const cy = elData.cy ? elData.cy : 0;
                         const r = elData.r;
