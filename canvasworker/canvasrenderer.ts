@@ -218,7 +218,13 @@ export default class Canvasrenderer implements CanvasWorker {
 
         if(mode === 'normal') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
-            let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
+            let fillOpacity = elData['fill-opacity'] ? elData['fill-opacity'] : elData['opacity'];
+            let fillOpacityStyle = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
+
+            if(fillOpacityStyle !== undefined) {
+                fillOpacity = fillOpacityStyle;
+            }
+
             //if(!fill) fill = '#000';
             const fillRgba = DrawingUtils.colorToRgba(fill, fillOpacity);
             if(!this.rectsByColor[fillRgba]) {
