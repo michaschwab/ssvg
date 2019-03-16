@@ -50,6 +50,10 @@ export class VdomManager {
     constructor(public data: VDOM, private ignoreDesign = false) {
         //console.log(data);
     }
+
+    enableFrontendDesignProperties() {
+        this.ignoreDesign = false;
+    }
     
     addNode(nodeData: VdomNode, parentNodeSelector: string) {
         let parentNode = this.getVisNodeFromSelector(parentNodeSelector);

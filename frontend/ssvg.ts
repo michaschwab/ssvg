@@ -455,6 +455,7 @@ export default class SSVG {
             d3.selection.prototype.classed = function(className: string,
                                                       value?: boolean|((data: any, index: number) => boolean)) {
                 if(value !== undefined) {
+                    me.domHandler.enableFrontendDesignProperties();
                     let elements = this._groups ? this._groups[0] : this[0];
                     let i = 0;
                     for(let element of elements) {
@@ -466,12 +467,19 @@ export default class SSVG {
                             const prevClassNames = node.className || '';
                             const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
                             if(evaluatedValue === true) {
-                                const newClassNames = prevClassNames === '' ? className : prevClassNames + ' ' + className;
-                                me.domHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+                                if(prevClassNames.indexOf(className) === -1) {
+                                    let newClassNames = (prevClassNames + ' ' + className).trim();
 
+                                    me.domHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+                                }
                             } else if(evaluatedValue === false) {
-                                const newClassNames = prevClassNames.replace(className, '').replace('  ', ' ');
-                                me.domHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+                                const containedPreviously = prevClassNames.indexOf(className) !== -1;
+                                if(containedPreviously) {
+                                    const newClassNames = prevClassNames.replace(className, '').replace('  ', ' ');
+                                    me.domHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
+
+                                    node['removedClass'] = className; // For removing associated styles.
+                                }
                             }
                         }
 

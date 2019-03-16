@@ -137,7 +137,10 @@ export default class DrawingUtils {
         return {r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255)};
     }
 
-    static CssNamedColorToHex(color: any) {
+    static CssNamedColorToHex(color: any) { // TODO put a somewhat complete list here..
+        if(color === 'red') {
+            return '#ff0000';
+        }
         if(color === 'steelblue') {
             return '#4682b4';
         }

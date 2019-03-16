@@ -1,5 +1,6 @@
 import {VdomManager, VdomNode, VdomNodeType} from "../util/vdomManager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
+import drawingUtils from "../canvasworker/drawingUtils";
 
 export default class Domhandler {
     
@@ -36,6 +37,7 @@ export default class Domhandler {
 
     enableFrontendDesignProperties() {
         this.ignoreDesign = false;
+        this.vdom.enableFrontendDesignProperties();
     }
     
     getVDom() {
@@ -266,7 +268,7 @@ export default class Domhandler {
                 if(!selector) {
                     continue; // Skip @imports etc.
                 }
-                this.applyRuleToMatchingNodes(selector, rule); //TODO
+                this.applyRuleToMatchingNodes(selector, rule);
             }
         }
 
@@ -351,6 +353,20 @@ export default class Domhandler {
                         }
                     }
                 } else {
+                    if(child['removedClass']) {
+                        // temporarily add the class, see if it matches this rule, and if so, un-apply its stuff.
+                        child.className +=  ' ' + child['removedClass'];
+
+                        let newPartialMatch = VdomManager.isCssRulePartialMatch(selPart, child, currentNode);
+                        if(newPartialMatch) {
+                            const parentSelector = this.getNodeSelector(currentNode);
+                            this.removeRuleStylesFromNode(parentSelector, child, childIndex, rule);
+                        }
+
+                        child.className = child.className.substr(0, child.className.length -
+                           child['removedClass'].length - 1);
+                        delete child['removedClass'];
+                    }
                     checkNode(child, looseIndex, strictIndex);
                 }
             }
@@ -358,6 +374,21 @@ export default class Domhandler {
         };
 
         return checkNode(this.vdom.data);
+    }
+
+    removeRuleStylesFromNode(parentSelector: string, child: VdomNode, childIndex: number,
+                             rule: {style: {[settingName: string]: string}}) {
+        if(rule.style['stroke']) {
+            const color = drawingUtils.colorToRgba(rule.style['stroke']);
+            if(child.style['stroke'] === color || child.style['stroke-rgba'] === color) {
+                console.log('removing stroke', child);
+                this.checkAttrName(parentSelector, 'style;stroke');
+                this.setAttrQueue[parentSelector]['style;stroke'][childIndex] = '';
+                this.checkAttrName(parentSelector, 'style;stroke-rgba');
+                this.setAttrQueue[parentSelector]['style;stroke-rgba'][childIndex] = '';
+            }
+        }
+        //TODO remove other styles.
     }
 
     removeNodeFromParent(element: Element, node: VdomNode) {
