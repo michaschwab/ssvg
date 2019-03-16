@@ -120,27 +120,32 @@ export default class Canvasrenderer implements CanvasWorker {
             let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
             if(!fill) fill = 'rgb(0,0,0)';
             const fillRgba = DrawingUtils.colorToRgba(fill, fillOpacity);
-            if(!this.circlesByColor[fillRgba]) {
-                this.circlesByColor[fillRgba] = [];
+            const stroke = this.getStrokeStyle(elData);
+            const handle = fillRgba + ';' + stroke;
+            if(!this.circlesByColor[handle]) {
+                this.circlesByColor[handle] = [];
             }
-            this.circlesByColor[fillRgba].push(elData);
+            this.circlesByColor[handle].push(elData);
         }
         if(mode === 'start') {
             this.circlesByColor = {};
             return;
         }
         if(mode === 'end') {
-            for(let fillColor in this.circlesByColor) {
-                if(this.circlesByColor.hasOwnProperty(fillColor)) {
-                    this.ctx.fillStyle = fillColor;
+            for(let fillAndStrokeColor in this.circlesByColor) {
+                if(this.circlesByColor.hasOwnProperty(fillAndStrokeColor)) {
+                    const split = fillAndStrokeColor.split(';');
+                    const fillColor = split[0];
+                    const strokeColor = split[1];
 
-                    let sampleData = this.circlesByColor[fillColor][0];
+                    this.ctx.fillStyle = fillColor;
+                    let sampleData = this.circlesByColor[fillAndStrokeColor][0];
                     this.ctx.lineWidth = sampleData.style['stroke-width'] ?
                         parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
-                    this.ctx.strokeStyle = this.getStrokeStyle(sampleData);
+                    this.ctx.strokeStyle = strokeColor;
 
                     this.ctx.beginPath();
-                    for(let elData of this.circlesByColor[fillColor]) {
+                    for(let elData of this.circlesByColor[fillAndStrokeColor]) {
                         const cx = elData.cx ? elData.cx : 0;
                         const cy = elData.cy ? elData.cy : 0;
                         const r = elData.r;
