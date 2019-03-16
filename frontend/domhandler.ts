@@ -381,7 +381,6 @@ export default class Domhandler {
         if(rule.style['stroke']) {
             const color = drawingUtils.colorToRgba(rule.style['stroke']);
             if(child.style['stroke'] === color || child.style['stroke-rgba'] === color) {
-                console.log('removing stroke', child);
                 this.checkAttrName(parentSelector, 'style;stroke');
                 this.setAttrQueue[parentSelector]['style;stroke'][childIndex] = '';
                 this.checkAttrName(parentSelector, 'style;stroke-rgba');

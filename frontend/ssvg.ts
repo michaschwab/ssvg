@@ -28,6 +28,8 @@ export default class SSVG {
     private readonly useWorker: boolean = true;
     private readonly getFps: (fps: number) => void = () => {};
 
+    private hoveredElement: Element|undefined;
+
     constructor(options?: {
         safeMode?: boolean,
         maxPixelRatio?: number,
@@ -80,7 +82,16 @@ export default class SSVG {
         this.setupElementsIfSvgExists();
         
         this.canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
-        this.canvas.addEventListener('mousemove', e => this.propagateMouseEvent(e));
+        this.canvas.addEventListener('mousemove', e => {
+            const lastHovered = this.hoveredElement;
+            this.hoveredElement = this.propagateMouseEvent(e);
+            if(lastHovered !== this.hoveredElement) {
+                if(lastHovered) {
+                    lastHovered.dispatchEvent(new MouseEvent('mouseout', e));
+                }
+            }
+            this.propagateMouseEvent(e, 'mouseover');
+        });
         this.canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('click', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
@@ -230,7 +241,7 @@ export default class SSVG {
                         }
 
                         if(!element) {
-                            console.error('no element', this);
+                            console.error('no element', this, selector);
                             return original.apply(this, arguments);
                         }
                         const node = me.domHandler.getVisNode(element);
@@ -832,16 +843,18 @@ export default class SSVG {
         };
     }
     
-    private propagateMouseEvent(evt: MouseEvent) {
-        return this.propagateEvent(new MouseEvent(evt.type, evt));
+    private propagateMouseEvent(evt: MouseEvent, type?: string) {
+        return this.propagateEvent(new MouseEvent(type? type : evt.type, evt));
     }
     
     private propagateWheelEvent(evt: WheelEvent) {
         return this.propagateEvent(new WheelEvent(evt.type, evt));
     }
     
-    private propagateEvent(new_event: MouseEvent|WheelEvent): void {
+    private propagateEvent(new_event: MouseEvent|WheelEvent): undefined|Element {
         this.svg.dispatchEvent(new_event); // for EasyPZ
+
+        let triggeredElement: undefined|Element;
 
         for(let interactionSel of this.interactionSelections)
         {
@@ -863,7 +876,6 @@ export default class SSVG {
                         let svgEl = this.svg.querySelector(selector);*/
                         const svgEl = this.domHandler.getElementFromNode(vdomNode);
                         const svgChildEl = this.domHandler.getElementFromNode(childNode);
-                        //safeLog(svgEl, vdomNode, childNode, new_event);
 
                         if(svgChildEl) {
                             Object.defineProperty(new_event, 'target', {
@@ -871,8 +883,16 @@ export default class SSVG {
                                 value: svgChildEl
                             });
                         }
-            
+
+                        if(svgChildEl) {
+                            triggeredElement = svgChildEl;
+                            svgChildEl.dispatchEvent(new_event);
+                        }
+
                         if(svgEl) {
+                            if(!triggeredElement) {
+                                triggeredElement = svgEl;
+                            }
                             svgEl.dispatchEvent(new_event);
                         }
                     }
@@ -880,6 +900,7 @@ export default class SSVG {
                 }
             }
         }
+        return triggeredElement;
     }
     
     private nodeAtPosition(visNode: VdomNode, x: number, y: number): false|VdomNode {

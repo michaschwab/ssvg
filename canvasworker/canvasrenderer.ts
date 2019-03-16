@@ -64,7 +64,7 @@ export default class Canvasrenderer implements CanvasWorker {
         const ctx = this.ctx;
 
         ctx.save();
-        this.applyTransform(elData.transform);
+        const hasTransformed = this.applyTransform(elData.transform);
 
         if(elData.transform) {
             forceSingle = true;
@@ -96,8 +96,10 @@ export default class Canvasrenderer implements CanvasWorker {
                 this.drawNodeAndChildren(elData.children[i], forceSingle);
             }
         }
-        //ctx.restore();
         ctx.restore();
+        if(hasTransformed) {
+            ctx.restore();
+        }
     }
     
     private drawSingleNode(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
@@ -433,7 +435,9 @@ export default class Canvasrenderer implements CanvasWorker {
             //ctx.rotate(transform.rotate / 2 / Math.PI);
             this.ctx.rotate(transform.rotate * Math.PI / 180);
             //console.log(transform.rotate);
+            return true;
         }
+        return false;
     }
 }
 
