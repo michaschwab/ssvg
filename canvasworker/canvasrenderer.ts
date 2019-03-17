@@ -310,7 +310,7 @@ export default class Canvasrenderer implements CanvasWorker {
             return;
         }
         const fontFamily = 'Arial';
-        const fontSize = elData['font-size'] ? elData['font-size'] + 'px' : '30px';
+        const fontSize = elData['font-size'] ? parseFloat(elData['font-size']) + 'px' : '30px';
         let font = elData.style['font'] ? elData.style['font'] : elData['font'];
         if(!font) {
             font = fontSize + ' ' + fontFamily;
