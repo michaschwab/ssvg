@@ -98,7 +98,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }
         ctx.restore();
         if(hasTransformed) {
-            ctx.restore();
+            //ctx.restore();
         }
     }
     

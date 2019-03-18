@@ -338,8 +338,8 @@ export default class SSVG {
         const me = this;
 
         window.getComputedStyle = function(element: HTMLElement) {
-            if(!me.isWithinSvg(element)) {
-                return origGetComputedStyle.apply(this, arguments);
+            if(element && !me.isWithinSvg(element) && (<Window> <any> element) !== window) {
+                return origGetComputedStyle.call(this, element);
             }
 
             const node = me.domHandler.getNodeFromElement(element);
@@ -383,7 +383,16 @@ export default class SSVG {
                     if(me.unassignedNodes.indexOf(this) !== -1) {
                         return originalFct.apply(this, arguments);
                     } else {
-                        return me.domHandler.getAttributesFromSelector(this, prefix + name);
+                        // Dealing with d3 v3.
+                        const els = this._groups ? this._groups[0] : this[0];
+                        if(els[0] && !me.isWithinSvg(els[0])) {
+                            return originalFct.apply(this, arguments);
+                        }
+                        const returnVal = [];
+                        for(const el of els) {
+                            returnVal.push(me.domHandler.getAttributeFromSelector(el, name))
+                        }
+                        return returnVal;
                     }
                 } else {
                     if(name === 'class' || !me.svg) {
