@@ -383,7 +383,7 @@ export default class SSVG {
             return function(name, value) {
                 
                 if(value === undefined) {
-    
+
                     if(me.unassignedNodes.indexOf(this) !== -1) {
                         return originalFct.apply(this, arguments);
                     } else {
@@ -392,11 +392,15 @@ export default class SSVG {
                         if(els[0] && !me.isWithinSvg(els[0])) {
                             return originalFct.apply(this, arguments);
                         }
-                        const returnVal = [];
-                        for(const el of els) {
-                            returnVal.push(me.domHandler.getAttributeFromSelector(el, name))
+                        if(els.length > 1) {
+                            const returnVal = [];
+                            for(const el of els) {
+                                returnVal.push(me.domHandler.getAttributeFromSelector(el, name))
+                            }
+                            return returnVal;
+                        } else {
+                            return me.domHandler.getAttributeFromSelector(els[0], name);
                         }
-                        return returnVal;
                     }
                 } else {
                     if(name === 'class' || !me.svg) {
