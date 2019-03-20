@@ -65,7 +65,7 @@ export default class Domhandler {
             attrName = attrName.substr('style;'.length);
         }
         attrName = this.checkAttrName(parentSelector, attrName, false);
-        const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, childIndex) : value;
+        const evaluatedValue = typeof value === "function" ? value.call(<any> element, (<any> element).__data__, childIndex) : value;
         this.setAttrQueue[parentSelector][attrName][childIndex] = evaluatedValue;
 
         if(attrName === 'className' || attrName.indexOf('style') !== -1) {

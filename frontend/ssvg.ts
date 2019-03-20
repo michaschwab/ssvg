@@ -343,6 +343,10 @@ export default class SSVG {
             }
 
             const node = me.domHandler.getNodeFromElement(element);
+            if(!node) {
+                console.warn('node not found for ', this, element);
+                return origGetComputedStyle.call(this, element);
+            }
             return {
                 getPropertyValue(propertyName: string): string {
                     //console.log(propertyName, node, node.style[propertyName]);
@@ -484,6 +488,10 @@ export default class SSVG {
                             const parentSelector = element['parentSelector'];
                             const parent = me.vdom.getParentNodeFromSelector(parentSelector);
                             const node = parent.children[indexOfParent];
+                            if(!node) {
+                                console.warn('node not found', element, parent, indexOfParent, className);
+                                continue;
+                            }
                             const prevClassNames = node.className || '';
                             const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
                             if(evaluatedValue === true) {
