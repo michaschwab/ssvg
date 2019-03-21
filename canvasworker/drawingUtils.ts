@@ -77,10 +77,13 @@ export default class DrawingUtils {
         };
     }
 
-    static convertSizeToPx(size: string, fallback = true): number|undefined {
+    static convertSizeToPx(size: string|number, fallback = true): number|undefined {
         const defaultValue = fallback ? 14 : undefined;
         if(size === undefined) {
             return defaultValue;
+        }
+        if(typeof size === "number") {
+            return size;
         }
         if(size.substr(-2) === 'em') {
             return Math.round(parseFloat(size) * 12);
