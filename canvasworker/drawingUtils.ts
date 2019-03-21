@@ -76,6 +76,24 @@ export default class DrawingUtils {
             rotate: transformA.rotate + transformB.rotate
         };
     }
+
+    static convertSizeToPx(size: string, fallback = true): number|undefined {
+        const defaultValue = fallback ? 14 : undefined;
+        if(size === undefined) {
+            return defaultValue;
+        }
+        if(size.substr(-2) === 'em') {
+            return Math.round(parseFloat(size) * 12);
+        }
+        if(size.substr(-2) === 'px') {
+            return parseInt(size);
+        }
+        if(size.match(/^[0-9]+$/)) {
+            return parseInt(size);
+        }
+        console.warn('size in unsupported format: ', size);
+        return defaultValue;
+    }
     
     static colorToRgba(color: string|{r: number, g: number, b: number}|{h: number, s: number, l: number}, opacity: string|number = 1): string {
         if(!color || color === 'none') {

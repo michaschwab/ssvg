@@ -314,7 +314,7 @@ export default class Canvasrenderer implements CanvasWorker {
                 return;
             }
             const fontFamily = 'Arial';
-            const fontSize = elData['font-size'] ? parseFloat(elData['font-size']) + 'px' : '30px';
+            const fontSize = elData['font-size'] ? DrawingUtils.convertSizeToPx(elData['font-size']) + 'px' : '30px';
             let font = elData.style['font'] ? elData.style['font'] : elData['font'];
             if(!font) {
                 font = fontSize + ' ' + fontFamily;
@@ -329,8 +329,8 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.fillStyle = fill;
             let x = elData.x || 0;
             let y = elData.y || 0;
-            let dx = elData.dx || 0;
-            let dy = elData.dy || 0;
+            let dx = DrawingUtils.convertSizeToPx(elData.dx, false) || 0;
+            let dy = DrawingUtils.convertSizeToPx(elData.dy, false) || 0;
             this.ctx.fillText(elData.text, x + dx, y + dy);
         };
         if(mode === 'start') {
