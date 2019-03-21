@@ -664,7 +664,7 @@ export default class SSVG {
                 if(!parentSelector) {
                     console.error('parent not found', parentNode, parentSelector, this, el);
                 }
-                me.updateChildSelectors(this, node);
+                me.updateChildSelectors(this);
             }
 
             delete el['selector'];
