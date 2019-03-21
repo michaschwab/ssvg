@@ -41,13 +41,14 @@ export default class Canvasrenderer implements CanvasWorker {
         this.drawLine(null, 'start');
         this.drawCircle(null, 'start');
         this.drawRect(null, 'start');
+        this.drawText(null, 'start');
 
         this.drawNodeAndChildren(this.vdom.data, this.forceSingle);
 
         this.drawLine(null, 'end');
         this.drawCircle(null, 'end');
         this.drawRect(null, 'end');
-
+        this.drawText(null, 'end');
         
         this.onDrawn();
     
@@ -305,29 +306,50 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
 
-    private drawText(elData: VdomNode) {
-        if(elData.text === '') {
+    private drawTexts: VdomNode[] = [];
+
+    private drawText(node: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+        const drawSingle = (elData: VdomNode) => {
+            if(elData.text === '') {
+                return;
+            }
+            const fontFamily = 'Arial';
+            const fontSize = elData['font-size'] ? parseFloat(elData['font-size']) + 'px' : '30px';
+            let font = elData.style['font'] ? elData.style['font'] : elData['font'];
+            if(!font) {
+                font = fontSize + ' ' + fontFamily;
+            }
+            if(elData['text-anchor']) {
+                const align = elData['text-anchor'] === 'middle' ? 'center' : elData['text-anchor'];
+                this.ctx.textAlign = align;
+            }
+            let fill = elData['fill'] ? elData['fill'] : elData.style['fill'];
+            if(!fill) fill = '#000';
+            this.ctx.font = font;
+            this.ctx.fillStyle = fill;
+            let x = elData.x || 0;
+            let y = elData.y || 0;
+            let dx = elData.dx || 0;
+            let dy = elData.dy || 0;
+            this.ctx.fillText(elData.text, x + dx, y + dy);
+        };
+        if(mode === 'start') {
+            this.drawTexts = [];
             return;
         }
-        const fontFamily = 'Arial';
-        const fontSize = elData['font-size'] ? parseFloat(elData['font-size']) + 'px' : '30px';
-        let font = elData.style['font'] ? elData.style['font'] : elData['font'];
-        if(!font) {
-            font = fontSize + ' ' + fontFamily;
+        if(mode === 'normal') {
+            this.drawTexts.push(node);
+            return;
         }
-        if(elData['text-anchor']) {
-            const align = elData['text-anchor'] === 'middle' ? 'center' : elData['text-anchor'];
-            this.ctx.textAlign = align;
+        if(mode === 'forcesingle') {
+            return drawSingle(node);
         }
-        let fill = elData['fill'] ? elData['fill'] : elData.style['fill'];
-        if(!fill) fill = '#000';
-        this.ctx.font = font;
-        this.ctx.fillStyle = fill;
-        let x = elData.x || 0;
-        let y = elData.y || 0;
-        let dx = elData.dx || 0;
-        let dy = elData.dy || 0;
-        this.ctx.fillText(elData.text, x + dx, y + dy);
+        if(mode === 'end') {
+            for(const currentNode of this.drawTexts) {
+                drawSingle(currentNode);
+            }
+            return;
+        }
     }
 
     private drawPath(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
