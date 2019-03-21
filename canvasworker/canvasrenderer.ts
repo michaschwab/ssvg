@@ -368,6 +368,14 @@ export default class Canvasrenderer implements CanvasWorker {
             } else {
                 this.ctx.strokeStyle = stroke;
             }
+            if(elData.style['stroke-linejoin']) {
+                const lineJoin = elData.style['stroke-linejoin'];
+                if(lineJoin === 'bevel' || lineJoin === 'round' || lineJoin === 'miter') {
+                    this.ctx.lineJoin = lineJoin;
+                } else {
+                    console.error('unknown line join value:', lineJoin)
+                }
+            }
             this.ctx.stroke(p);
         }
 

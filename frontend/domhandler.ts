@@ -333,6 +333,12 @@ export default class Domhandler {
                                 this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = parseInt(rule.style['stroke-width']);
                             }
                         }
+                        if(rule.style['stroke-linejoin']) {
+                            this.checkAttrName(parentSelector, 'style;stroke-linejoin');
+                            if(!this.setAttrQueue[parentSelector]['style;stroke-linejoin'][childIndex] && !child.style['stroke-linejoin']) {
+                                this.setAttrQueue[parentSelector]['style;stroke-linejoin'][childIndex] = rule.style['stroke-linejoin'];
+                            }
+                        }
                         if(rule.style['fill-opacity']) {
                             this.checkAttrName(parentSelector, 'style;fill-opacity');
                             if(!this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] && !child.style['fill-opacity']) {
