@@ -139,7 +139,7 @@ export default class Domhandler {
         }
     }
     
-    private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2'];
+    private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];
     
     private checkAttrName(parentSelector: string, attrName: string, useBuffer = false, parentNode?: VdomNode) {
         if(attrName === 'class') {
