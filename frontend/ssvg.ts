@@ -615,9 +615,13 @@ export default class SSVG {
                 console.error('element not found', childNode, parentNode.children.length, i);
                 continue;
             }
+            const oldSelector = childElement['selector'];
+
             childElement['childIndex'] = i;
             childElement['parentSelector'] = parentSelector;
             childElement['selector'] = this.domHandler.combineElementSelectors(parentSelector, childNode.type, i+1);
+
+            this.domHandler.updateNodeSelector(oldSelector, childElement['selector']);
 
             this.updateChildSelectors(childElement, childNode);
         }
@@ -642,6 +646,12 @@ export default class SSVG {
             if(!node) {
                 console.error('node not found', node, el, this, parentNode);
                 return origRemoveChild.apply(this, arguments);
+            }
+
+            // Remove all child elements.
+            for(const childNode of node.children) {
+                const childEl = me.domHandler.getElementFromNode(childNode);
+                el.removeChild(childEl);
             }
 
             // Remove from current parent first.

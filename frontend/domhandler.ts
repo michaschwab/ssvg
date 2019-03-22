@@ -175,7 +175,7 @@ export default class Domhandler {
         if(this.nodesToRestyle) {
             this.applyStyles();
         }
-        
+
         cb(this.setAttrQueue);
         this.vdom.updatePropertiesFromQueue(this.setAttrQueue);
         
@@ -193,8 +193,8 @@ export default class Domhandler {
         const node = this.getNodeFromElement(element);
         
         if(!node) {
+            console.error('trying to get attribute for unfit selection', node, element, name);
             throw Error('element not found');
-            //return console.error('trying to get attribute for unfit selection', node, element, name);
         }
         
         return node[name];
@@ -273,6 +273,20 @@ export default class Domhandler {
         }
 
         this.nodesToRestyle = [];
+    }
+
+    updateNodeSelector(oldSelector: string, newSelector: string) {
+        if(oldSelector === newSelector) {
+            return;
+        }
+        if(this.setAttrQueue[newSelector]) {
+            console.warn('having problems rearranging the elements! old:', oldSelector, ', new:', newSelector,
+                this.setAttrQueue[oldSelector], this.setAttrQueue[newSelector]);
+            delete this.setAttrQueue[oldSelector];
+        } else {
+            this.setAttrQueue[newSelector] = this.setAttrQueue[oldSelector];
+            delete this.setAttrQueue[oldSelector];
+        }
     }
 
     private applyRuleToMatchingNodes(selectorString: string, rule: {style: {[settingName: string]: string}}): boolean {
@@ -407,6 +421,10 @@ export default class Domhandler {
 
         this.nodesToElements.nodes.splice(index, 1);
         this.nodesToElements.elements.splice(index, 1);
+
+        // Remove all pending changes on this element
+        const selector = element['selector'];
+        delete this.setAttrQueue[selector];
 
         // Update indices
         for(let i = index; i < this.nodesToElements.nodes.length; i++) {

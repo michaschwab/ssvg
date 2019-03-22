@@ -108,7 +108,7 @@ export class VdomManager {
             parentNode = this.getVisNodeFromSelector(parentSelector);
         }
         if(!parentNode) {
-            console.error(parentNode, parentSelector);
+            console.error('parent node not found with selector', parentSelector);
         }
         return parentNode;
     }
@@ -127,7 +127,14 @@ export class VdomManager {
 
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueue) {
         for(let parentSelector in setAttrQueue) {
+            if(!setAttrQueue[parentSelector]) {
+                continue;
+            }
             const parentNode = this.getParentNodeFromSelector(parentSelector);
+            if(!parentNode) {
+                console.error('parent not found', parentSelector, setAttrQueue[parentSelector]);
+                continue;
+            }
                 
             for(let attrName in setAttrQueue[parentSelector]) {
                 const attrNameStart = attrName.substr(0, 'style;'.length);
