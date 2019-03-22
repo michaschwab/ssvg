@@ -552,7 +552,7 @@ export default class SSVG {
             const me = this;
 
             const newRemove = this.getNewRemoveChild(() => {}, true);
-            d3.selection.prototype.remove = function() {
+            const d3Remove = function() {
                 let elements = this._groups ? this._groups[0] : this[0];
 
                 if(elements.length) {
@@ -573,7 +573,9 @@ export default class SSVG {
                     }
                 }
                 return this;
-            }
+            };
+            d3.selection.prototype.remove = d3Remove;
+            //d3.transition.prototype.remove = d3Remove;
         }
     }
     
