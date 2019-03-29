@@ -123,8 +123,15 @@ export default class SSVG {
         if(!svg) {
             return false;
         }
+
+        const urlConnector = document.location.href.indexOf('?') === -1 ? '?' : '&';
+        const svgSwitchUrl = document.location.href + urlConnector + 'svg';
+        const svgSwitchComment = document.createComment(' This project uses SSVG.io to render a SVG as Canvas.\r\n' +
+            'To inspect the SVG, please open the following URL:\r\n' +
+            svgSwitchUrl + '\r\n');
         
         this.svg = svg;
+        this.svg.parentElement.appendChild(svgSwitchComment);
         this.svg.parentElement.appendChild(this.canvas);
         this.domHandler = new Domhandler(this.svg, this.useWorker, this.useWorker);
         this.vdom = this.domHandler.getVDom();
