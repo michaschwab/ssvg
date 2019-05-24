@@ -46,6 +46,9 @@ export type VdomNode = {
 }
 
 export class VdomManager {
+
+    private static ATTRIBUTES_NOT_IGNORED_WITH_IGNOREDESIGN = ['fill', 'stroke', 'opacity', 'x1', 'x2', 'y1', 'y2', 'x',
+        'y'];
     
     constructor(public data: VDOM, private ignoreDesign = false) {
         //console.log(data);
@@ -140,7 +143,7 @@ export class VdomManager {
                 const attrNameStart = attrName.substr(0, 'style;'.length);
 
                 if(this.ignoreDesign && (attrNameStart === 'style;' ||
-                    ['fill', 'stroke', 'opacity', 'x1', 'x2', 'y1', 'y2'].indexOf(attrName) !== -1)) {
+                    VdomManager.ATTRIBUTES_NOT_IGNORED_WITH_IGNOREDESIGN.indexOf(attrName) !== -1)) {
                     continue;
                 }
                 

@@ -9,6 +9,7 @@ export default class Domhandler {
     private setAttrQueue: {[parentSelector: string]: { [attrName: string]: (string[]|SharedArrayBuffer)}} = {};
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
+    private static BUFFER_PRECISION_FACTOR = 10;
     
     constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign = true) {
         const visData: any = {
@@ -118,7 +119,7 @@ export default class Domhandler {
             if(this.useSharedArrayFor.indexOf(attrName) === -1 || !useSharedArray) {
                 this.setAttrQueue[parentSelector][attrName][indexOfParent] = evaluatedValue;
             } else {
-                this.sharedArrays[parentSelector][attrName][indexOfParent] = evaluatedValue * 10; // For precision.
+                this.sharedArrays[parentSelector][attrName][indexOfParent] = evaluatedValue * Domhandler.BUFFER_PRECISION_FACTOR;
             }
         }
 
@@ -162,9 +163,20 @@ export default class Domhandler {
                 }
                 const length = parentNode.children.length;
                 const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
+                const values = new Int32Array(buffer);
+
+                // If values have been previously set without a buffer, transfer them.
+                if(this.setAttrQueue[parentSelector][attrName] &&
+                    !(this.setAttrQueue[parentSelector][attrName] instanceof SharedArrayBuffer)) {
+                    const prevData: string[] = <any> this.setAttrQueue[parentSelector][attrName];
+
+                    prevData.forEach((value, index) => {
+                        values[index] = parseFloat(value) * Domhandler.BUFFER_PRECISION_FACTOR;
+                    });
+                }
 
                 this.setAttrQueue[parentSelector][attrName] = buffer;
-                this.sharedArrays[parentSelector][attrName] = new Int32Array(buffer);
+                this.sharedArrays[parentSelector][attrName] = values;
             }
         }
 
