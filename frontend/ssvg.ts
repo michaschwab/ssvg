@@ -660,7 +660,7 @@ export default class SSVG {
             // Remove all child elements.
             for(const childNode of node.children) {
                 const childEl = me.domHandler.getElementFromNode(childNode);
-                el.removeChild(childEl);
+                //el.removeChild(childEl);
             }
 
             // Remove from current parent first.
