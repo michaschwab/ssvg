@@ -18,6 +18,7 @@ export type VdomNodeType = 'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'tex
 
 export type VdomNode = {
     style: {[styleName: string]: string},
+    styleSpecificity: {[styleName: string]: number},
     type: VdomNodeType,
     children: VdomNode[],
     globalElementIndex: number,
@@ -168,6 +169,9 @@ export class VdomManager {
                         const styleName = attrName.substr('style;'.length);
                         this.applyStyleToNodeAndChildren(childNode, styleName, <string> value);
                         this.updateDeducedStyles(childNode, styleName, <string> value);
+                    } else if(attrNameStart === 'styleS') {
+                        const styleName = attrName.substr('styleSpecificity;'.length);
+                        childNode['styleSpecificity'][styleName] = value;
                     } else {
                         if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
                             value = Math.round(<number> value);

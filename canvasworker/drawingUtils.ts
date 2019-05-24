@@ -171,4 +171,34 @@ export default class DrawingUtils {
         //TODO add more colors.
         return color;
     }
+
+    /**
+     * Basic implementation to get a sense of specificity. Numbers are completely made up.
+     * Should eventually be more sophisticated, e.g. using https://github.com/keeganstreet/specificity.
+     * @param selector CSS rule as string.
+     */
+    static getCssRuleSpecificityNumber(selector: string) {
+        let specificity = 0;
+
+        selector = selector
+            .replace(' >', '>')
+            .replace('> ', '>');
+
+        const parts = [].concat.apply([], selector.split(' ')
+            .map(part => part.split('>')));
+
+        // Rough logic: the more stuff, the more specific. IDs and classes are more specific than other things.
+        for(const part of parts) {
+            selector += 100;
+            const start = part[0];
+
+            if(start === '#') {
+                selector += 300;
+            } else if(start === '.') {
+                selector += 100;
+            }
+        }
+
+        return specificity;
+    }
 }

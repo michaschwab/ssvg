@@ -250,6 +250,7 @@ export default class Domhandler {
             'font': el.getAttribute('font'),
             'text-anchor': el.getAttribute('text-anchor'),
             style: {},
+            styleSpecificity: {},
             children: [],
             globalElementIndex: -1,
         };
@@ -322,6 +323,39 @@ export default class Domhandler {
                 parent = this.getNodeParent(parent);
             }
         }
+        const specificity = DrawingUtils.getCssRuleSpecificityNumber(selectorString);
+
+        const setStyle = (parentSelector: string, styleName: string, rule: {style: {[settingName: string]: string}},
+                          childIndex: number, child: VdomNode) => {
+            if(rule.style[styleName]) {
+                const longName = 'style;' + styleName;
+                const longSpecName = 'styleSpecificity;' + styleName;
+                this.checkAttrName(parentSelector, longName);
+                this.checkAttrName(parentSelector, longSpecName);
+                let setValue = false;
+
+                if(!this.setAttrQueue[parentSelector][longName][childIndex] && !child.style[styleName]) {
+                    setValue = true;
+                } else {
+                    if(child.styleSpecificity[styleName]) {
+                        if(child.styleSpecificity[styleName] < specificity) {
+                            if(this.setAttrQueue[parentSelector][longSpecName][childIndex]) {
+                                setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] < specificity;
+                            } else {
+                                setValue = true;
+                            }
+                        } else {
+                            setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] < specificity;
+                        }
+                    }
+                }
+
+                if(setValue) {
+                    this.setAttrQueue[parentSelector][longName][childIndex] = rule.style[styleName];
+                    this.setAttrQueue[parentSelector][longSpecName][childIndex] = specificity;
+                }
+            }
+        };
 
         const checkNode = (currentNode: VdomNode, looseIndex = 0, strictIndex = 0): boolean => {
             const selPart = selectorPartsLooseStrict[looseIndex][strictIndex];
@@ -341,48 +375,13 @@ export default class Domhandler {
                     } else {
                         const parentSelector = this.getNodeSelector(currentNode);
 
-                        if(rule.style.stroke) {
-                            this.checkAttrName(parentSelector, 'style;stroke');
-                            if(!this.setAttrQueue[parentSelector]['style;stroke'][childIndex] && !child.style.stroke) {
-                                this.setAttrQueue[parentSelector]['style;stroke'][childIndex] = rule.style.stroke;
-                            }
-                        }
-                        if(rule.style['stroke-opacity']) {
-                            this.checkAttrName(parentSelector, 'style;stroke-opacity');
-                            if(!this.setAttrQueue[parentSelector]['style;stroke-opacity'][childIndex] && !child.style['stroke-opacity']) {
-                                this.setAttrQueue[parentSelector]['style;stroke-opacity'][childIndex] = rule.style['stroke-opacity'];
-                            }
-                        }
-                        if(rule.style['stroke-width']) {
-                            this.checkAttrName(parentSelector, 'style;stroke-width');
-                            if(!this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] && !child.style['stroke-width']) {
-                                this.setAttrQueue[parentSelector]['style;stroke-width'][childIndex] = parseInt(rule.style['stroke-width']);
-                            }
-                        }
-                        if(rule.style['stroke-linejoin']) {
-                            this.checkAttrName(parentSelector, 'style;stroke-linejoin');
-                            if(!this.setAttrQueue[parentSelector]['style;stroke-linejoin'][childIndex] && !child.style['stroke-linejoin']) {
-                                this.setAttrQueue[parentSelector]['style;stroke-linejoin'][childIndex] = rule.style['stroke-linejoin'];
-                            }
-                        }
-                        if(rule.style['fill-opacity']) {
-                            this.checkAttrName(parentSelector, 'style;fill-opacity');
-                            if(!this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] && !child.style['fill-opacity']) {
-                                this.setAttrQueue[parentSelector]['style;fill-opacity'][childIndex] = rule.style['fill-opacity'];
-                            }
-                        }
-                        if(rule.style['fill']) {
-                            this.checkAttrName(parentSelector, 'style;fill');
-                            if(!this.setAttrQueue[parentSelector]['style;fill'][childIndex] && !child.style['fill']) {
-                                this.setAttrQueue[parentSelector]['style;fill'][childIndex] = rule.style['fill'];
-                            }
-                        }
-                        if(rule.style['font']) {
-                            this.checkAttrName(parentSelector, 'style;font');
-                            if(!this.setAttrQueue[parentSelector]['style;font'][childIndex] && !child.style['font']) {
-                                this.setAttrQueue[parentSelector]['style;font'][childIndex] = rule.style['font'];
-                            }
-                        }
+                        setStyle(parentSelector, 'stroke', rule, childIndex, child);
+                        setStyle(parentSelector, 'stroke-opacity', rule, childIndex, child);
+                        setStyle(parentSelector, 'stroke-width', rule, childIndex, child);
+                        setStyle(parentSelector, 'stroke-linejoin', rule, childIndex, child);
+                        setStyle(parentSelector, 'fill', rule, childIndex, child);
+                        setStyle(parentSelector, 'fill-opacity', rule, childIndex, child);
+                        setStyle(parentSelector, 'font', rule, childIndex, child);
                     }
                 } else {
                     if(child['removedClass']) {
