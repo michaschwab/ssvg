@@ -181,8 +181,8 @@ export default class DrawingUtils {
         let specificity = 0;
 
         selector = selector
-            .replace(' >', '>')
-            .replace('> ', '>');
+            .replace(/ >/g, '>')
+            .replace(/> /g, '>');
 
         const parts = [].concat.apply([], selector.split(' ')
             .map(part => part.split('>')));
@@ -193,9 +193,11 @@ export default class DrawingUtils {
             const start = part[0];
 
             if(start === '#') {
-                specificity += 300;
+                specificity += 1000;
             } else if(start === '.') {
-                specificity += 100;
+                // More classes are more specific, but never more specific than an ID.
+                const countClasses = part.split('.').length;
+                specificity += Math.min(900, countClasses * 100);
             }
         }
 

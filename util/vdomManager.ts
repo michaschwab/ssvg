@@ -303,9 +303,17 @@ export class VdomManager {
             const newSelPart = cssRuleSelectorPart.substr(0, cssRuleSelectorPart.length - 1).substr(5);
             return !VdomManager.isCssRulePartialMatch(newSelPart, node, parentNode);
         }
-        if(cssRuleSelectorPart[0] === '.') { // Example: .className
-            if(node.className && node.className.split(' ').indexOf(cssRuleSelectorPart.substr(1)) !== -1) {
-                return true;
+        if(cssRuleSelectorPart[0] === '.') { // Example: .className or .classnameA.classnameB
+            const searchClassNames = cssRuleSelectorPart.split('.');
+            searchClassNames.shift(); // remove empty first string.
+            if(node.className) {
+                let allTrue = true;
+                for(const searchClassName of searchClassNames) {
+                    if(node.className.split(' ').indexOf(searchClassName) === -1) {
+                        allTrue = false;
+                    }
+                }
+                return allTrue;
             }
         } else if(cssRuleSelectorPart[0] === '#') { // Example: #id
             if(cssRuleSelectorPart.substr(1) === node.id) {
