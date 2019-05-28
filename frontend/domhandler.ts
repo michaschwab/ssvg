@@ -269,7 +269,7 @@ export default class Domhandler {
         
         return node;
     }
-    
+
     private applyStyles() {
         for (let i = 0; i < document.styleSheets.length; i++) {
             const sheet = document.styleSheets[i] as any;
@@ -338,15 +338,19 @@ export default class Domhandler {
                     setValue = true;
                 } else {
                     if(child.styleSpecificity[styleName]) {
-                        if(child.styleSpecificity[styleName] < specificity) {
+                        // If a later rule has the same or higher specificity, apply.
+                        // Hence, later rules override earlier rules.
+                        if(child.styleSpecificity[styleName] <= specificity) {
                             if(this.setAttrQueue[parentSelector][longSpecName][childIndex]) {
-                                setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] < specificity;
+                                setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] <= specificity;
                             } else {
                                 setValue = true;
                             }
                         } else {
-                            setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] < specificity;
+                            setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] <= specificity;
                         }
+                    } else {
+                        setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] <= specificity;
                     }
                 }
 
