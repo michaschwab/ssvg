@@ -117,12 +117,13 @@ export class VdomManager {
         return parentNode;
     }
 
-    applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string) {
-        node['style'][styleName] = styleValue;
+    applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string, isSpecificity = false) {
+        const prop = isSpecificity ? 'styleSpecificity' : 'style';
+        node[prop][styleName] = styleValue;
 
         if(node.children) {
             for(let child of node.children) {
-                this.applyStyleToNodeAndChildren(child, styleName, styleValue);
+                this.applyStyleToNodeAndChildren(child, styleName, styleValue, isSpecificity);
             }
         }
     }
@@ -171,7 +172,7 @@ export class VdomManager {
                         this.updateDeducedStyles(childNode, styleName, <string> value);
                     } else if(attrNameStart === 'styleS') {
                         const styleName = attrName.substr('styleSpecificity;'.length);
-                        childNode['styleSpecificity'][styleName] = value;
+                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, true);
                     } else {
                         if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
                             value = Math.round(<number> value);
