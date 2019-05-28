@@ -189,13 +189,13 @@ export default class DrawingUtils {
 
         // Rough logic: the more stuff, the more specific. IDs and classes are more specific than other things.
         for(const part of parts) {
-            selector += 100;
+            specificity += 100;
             const start = part[0];
 
             if(start === '#') {
-                selector += 300;
+                specificity += 300;
             } else if(start === '.') {
-                selector += 100;
+                specificity += 100;
             }
         }
 
