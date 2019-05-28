@@ -517,7 +517,10 @@ export default class SSVG {
                                     const newClassNames = prevClassNames.replace(className, '').replace('  ', ' ');
                                     me.domHandler.queueSetAttributeOnElement(element, 'class', newClassNames);
 
-                                    node['removedClass'] = className; // For removing associated styles.
+                                    if(!node['removedClasses']) {
+                                        node['removedClasses'] = [];
+                                    }
+                                    node['removedClasses'].push(className); // For removing associated styles.
                                 }
                             }
                         }

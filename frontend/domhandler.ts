@@ -303,7 +303,6 @@ export default class Domhandler {
     }
 
     private applyRuleToMatchingNodes(selectorString: string, rule: {style: {[settingName: string]: string}}): boolean {
-
         selectorString = selectorString.trim();
 
         const selector = selectorString
@@ -388,19 +387,23 @@ export default class Domhandler {
                         setStyle(parentSelector, 'font', rule, childIndex, child);
                     }
                 } else {
-                    if(child['removedClass']) {
+                    if(child['removedClasses']) {
                         // temporarily add the class, see if it matches this rule, and if so, un-apply its stuff.
-                        child.className +=  ' ' + child['removedClass'];
+                        for(const removedClass of child['removedClasses']) {
+                            child.className += ' ' + removedClass;
 
-                        let newPartialMatch = VdomManager.isCssRulePartialMatch(selPart, child, currentNode);
-                        if(newPartialMatch) {
-                            const parentSelector = this.getNodeSelector(currentNode);
-                            this.removeRuleStylesFromNode(parentSelector, child, childIndex, rule);
+                            let newPartialMatch = VdomManager.isCssRulePartialMatch(selPart, child, currentNode);
+                            if(newPartialMatch) {
+                                const parentSelector = this.getNodeSelector(currentNode);
+                                this.removeRuleStylesFromNode(parentSelector, child, childIndex, rule);
+                            }
+
+                            child.className = child.className.substr(0, child.className.length -
+                                removedClass.length - 1);
                         }
-
-                        child.className = child.className.substr(0, child.className.length -
-                           child['removedClass'].length - 1);
-                        delete child['removedClass'];
+                        setTimeout(() => {
+                            delete child['removedClasses'];
+                        }); // After this frame, reset which classes have been removed.
                     }
                     checkNode(child, looseIndex, strictIndex);
                 }
