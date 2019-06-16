@@ -117,13 +117,15 @@ export class VdomManager {
         return parentNode;
     }
 
-    applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string, isSpecificity = false) {
-        const prop = isSpecificity ? 'styleSpecificity' : 'style';
-        node[prop][styleName] = styleValue;
+    applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string, specificity: number) {
+        if(!node['styleSpecificity'][styleName] || node['styleSpecificity'][styleName] <= specificity) {
+            node['style'][styleName] = styleValue;
+            node['styleSpecificity'][styleName] = specificity;
+        }
 
         if(node.children) {
             for(let child of node.children) {
-                this.applyStyleToNodeAndChildren(child, styleName, styleValue, isSpecificity);
+                this.applyStyleToNodeAndChildren(child, styleName, styleValue, specificity);
             }
         }
     }
@@ -168,11 +170,16 @@ export class VdomManager {
                     let value = factor ? factor * <number> values[childIndex] : values[childIndex];
                     if(attrNameStart === 'style;') {
                         const styleName = attrName.substr('style;'.length);
-                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value);
-                        this.updateDeducedStyles(childNode, styleName, <string> value);
-                    } else if(attrNameStart === 'styleS') {
-                        const styleName = attrName.substr('styleSpecificity;'.length);
-                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, true);
+                        const specificityAttrName = 'styleSpecificity;' + styleName;
+                        try {
+                            const matchingSpecificity: number = setAttrQueue[parentSelector][specificityAttrName][childIndex];
+                            this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, matchingSpecificity);
+                            this.updateDeducedStyles(childNode, styleName, <string> value);
+                        } catch (e) {
+                            console.error(setAttrQueue, specificityAttrName, parentSelector, childIndex)
+                            this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, -1);
+                        }
+
                     } else {
                         if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
                             value = Math.round(<number> value);

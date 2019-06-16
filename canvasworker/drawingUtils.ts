@@ -196,7 +196,7 @@ export default class DrawingUtils {
                 specificity += 1000;
             } else if(start === '.') {
                 // More classes are more specific, but never more specific than an ID.
-                const countClasses = part.split('.').length;
+                const countClasses = part.split('.').length - 1;
                 specificity += Math.min(900, countClasses * 100);
             }
         }
