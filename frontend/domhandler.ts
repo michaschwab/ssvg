@@ -6,7 +6,7 @@ export default class Domhandler {
     
     private vdom: VdomManager;
     private sharedArrays: { [attrName: string]: Int32Array} = {};
-    private setAttrQueue: SetPropertyQueue;
+    private setAttrQueue = new SetPropertyQueue();
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
 
@@ -71,13 +71,14 @@ export default class Domhandler {
         const evaluatedValue = typeof value === "function" ? value.call(<any> element, (<any> element).__data__, childIndex) : value;
         //const node = this.getNodeFromElement(element);
         //this.setAttrQueue.set(node, attrName, evaluatedValue, false);
-        this.setAttrQueue.set(element, attrName, evaluatedValue, false);
+        const node = this.getNodeFromElement(element);
+        this.setAttrQueue.set(node, attrName, evaluatedValue, false);
 
         //this.setAttrQueue[attrName][element['globalElementIndex']] = evaluatedValue;
 
         if(attrName === 'class' || attrName.indexOf('style') !== -1) {
             // Apply classes immediately so styles can be applied correctly.
-            const node = this.getNodeFromElement(element);
+
 
             if(attrName === 'class') {
                 node.className = evaluatedValue;

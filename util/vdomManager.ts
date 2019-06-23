@@ -51,12 +51,18 @@ export class SetPropertyQueue {
         }
     }
 
-    set(element: Element|VdomNode, attrName: string, value: any, useBuffer: boolean) {
+    set(element: VdomNode, attrName: string, value: any, useBuffer: boolean) {
         if(attrName === 'class') {
             attrName = 'className';
         }
-        const storage = useBuffer ? 'shared' : 'raw';
-        this.data[storage][attrName][element['globalElementIndex']] = value;
+        const storage = useBuffer && this.useSharedArrayFor.indexOf(attrName) !== -1 ? 'shared' : 'raw';
+        try {
+            this.data[storage][attrName][element['globalElementIndex']] = value;
+        }
+        catch(e) {
+            console.log(e);
+            console.log(this.data, storage, attrName, element, element['globalElementIndex']);
+        }
     }
 
     get(node: VdomNode, attrName: string) {
