@@ -935,8 +935,8 @@ export default class SSVG {
                         if(svgEl) {
                             if(!triggeredElement) {
                                 triggeredElement = svgEl;
+                                svgEl.dispatchEvent(new_event);
                             }
-                            svgEl.dispatchEvent(new_event);
                         }
                     }
                     j++;
