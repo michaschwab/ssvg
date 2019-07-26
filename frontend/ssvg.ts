@@ -27,6 +27,7 @@ export default class SSVG {
     private readonly maxPixelRatio: number|undefined;
     private readonly useWorker: boolean = true;
     private readonly getFps: (fps: number) => void = () => {};
+    private readonly onDrawn: () => void = () => {};
 
     private hoveredElement: Element|undefined;
 
@@ -34,7 +35,8 @@ export default class SSVG {
         safeMode?: boolean,
         maxPixelRatio?: number,
         useWorker?: boolean,
-        getFps?: (fps: number) => void
+        getFps?: (fps: number) => void,
+        onDrawn?: () => void
     }) {
         if(options) {
             if(options.safeMode !== undefined) {
@@ -46,6 +48,9 @@ export default class SSVG {
             }
             if(options.getFps !== undefined) {
                 this.getFps = options.getFps;
+            }
+            if(options.onDrawn !== undefined) {
+                this.onDrawn = options.onDrawn;
             }
         }
 
@@ -71,7 +76,6 @@ export default class SSVG {
         } else {
             const raf = () => {
                 this.updateFps();
-                this.logDrawn();
                 this.updateCanvas();
                 requestAnimationFrame(raf);
             };
@@ -159,7 +163,14 @@ export default class SSVG {
                 if(this.renderer.updatePropertiesFromQueue) {
                     this.renderer.updatePropertiesFromQueue(queue);
                 }
+
+                if(Object.keys(queue).length === 0) {
+                    //requestAnimationFrame(() => this.updateCanvas());
+                    setTimeout(() => this.updateCanvas(), 1);
+                    return;
+                }
                 this.renderer.draw();
+                this.logDrawn();
             });
         }
     }
@@ -1013,6 +1024,7 @@ export default class SSVG {
         if(this.lastTenCanvasDrawTimes.length > 100) {
             this.lastTenCanvasDrawTimes.shift(); // Remove first item
         }
+        this.onDrawn();
     }
     
     private updateFps() {
