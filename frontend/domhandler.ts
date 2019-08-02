@@ -69,6 +69,20 @@ export default class Domhandler {
         const evaluatedValue = typeof value === "function" ? value.call(<any> element, (<any> element).__data__, childIndex) : value;
         this.setAttrQueue[parentSelector][attrName][childIndex] = evaluatedValue;
 
+        
+        if(attrName === "href") {
+            try {
+                fetch(location.origin + evaluatedValue, {mode: 'cors'})
+                    .then(resp => resp.blob())
+                    .then(blob => createImageBitmap(blob))
+                    .then(bitmap => {
+                        this.checkAttrName(parentSelector, "image", false);
+                        this.setAttrQueue[parentSelector]["image"][childIndex] = bitmap;
+                    });
+            }
+            catch(e) {console.log(e);}
+        }
+
         if(attrName === 'className' || attrName.indexOf('style') !== -1) {
             // Apply classes immediately so styles can be applied correctly.
             const node = this.getNodeFromElement(element);
@@ -120,6 +134,20 @@ export default class Domhandler {
                 this.setAttrQueue[parentSelector][attrName][indexOfParent] = evaluatedValue;
             } else {
                 this.sharedArrays[parentSelector][attrName][indexOfParent] = evaluatedValue * Domhandler.BUFFER_PRECISION_FACTOR;
+            }
+
+            
+            if(attrName === "href") {
+                try {
+                    fetch(location.origin + evaluatedValue, {mode: 'cors'})
+                    .then(resp => resp.blob())
+                    .then(blob => createImageBitmap(blob))
+                    .then(bitmap => {
+                        this.checkAttrName(parentSelector, "image", useSharedArray, parentNode);
+                        this.setAttrQueue[parentSelector]["image"][indexOfParent] = bitmap;
+                    });
+                }
+                catch(e) {console.log(e);}
             }
         }
 
@@ -249,6 +277,7 @@ export default class Domhandler {
             'font-size': el.getAttribute('font-size'),
             'font': el.getAttribute('font'),
             'text-anchor': el.getAttribute('text-anchor'),
+            href: el.getAttribute('href'),
             style: {},
             styleSpecificity: {},
             children: [],
