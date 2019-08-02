@@ -912,7 +912,7 @@ export default class SSVG {
             } else {
                 for(let vdomNode of parentNode.children)
                 {
-                    let childNode = this.nodeAtPosition(vdomNode, new_event.clientX-10, new_event.clientY-10);
+                    let childNode = this.nodeAtPosition(vdomNode, new_event.clientX, new_event.clientY);
                     if(childNode)
                     {
                         /*let selector = parentSelector + ' > :nth-child(' + j + ')';
