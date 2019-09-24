@@ -6,6 +6,7 @@ import Canvasrenderer from "../canvasworker/canvasrenderer";
 import DrawingUtils from "../canvasworker/drawingUtils";
 import CanvasWorkerImporter from '../canvasworker';
 
+//alert('hi');
 export default class SSVG {
     private unassignedNodes: Node[] = [];
     private worker: Worker;
@@ -932,10 +933,8 @@ export default class SSVG {
                             svgChildEl.dispatchEvent(new_event);
                         }
 
-                        if(svgEl) {
-                            if(!triggeredElement) {
-                                triggeredElement = svgEl;
-                            }
+                        if(svgEl && !triggeredElement) {
+                            triggeredElement = svgEl;
                             svgEl.dispatchEvent(new_event);
                         }
                     }

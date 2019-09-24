@@ -151,7 +151,8 @@ export default class Domhandler {
                     .then(resp => resp.blob())
                     .then(blob => createImageBitmap(blob))
                     .then(bitmap => {
-                        this.checkAttrName(parentSelector, "image", useSharedArray, parentNode);
+                        //this.checkAttrName(parentSelector, "image", useSharedArray, parentNode);
+                        this.setAttrQueue.ensureInitialized("image", false);
                         this.setAttrQueue[parentSelector]["image"][indexOfParent] = bitmap;
                     });
                 }
