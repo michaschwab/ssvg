@@ -104,7 +104,7 @@ export default class Domhandler {
         }
     }
     
-    queueSetAttributeOnSelection(elements, attrName, value) {
+    queueSetAttributeOnSelection(elements: (HTMLElement & {__data__: any})[], attrName: string, value) {
         if(!elements.length) return;
         if(!elements[0]) {
             //console.error('selection elements not found', elements);
@@ -113,7 +113,6 @@ export default class Domhandler {
         const useSharedArray = 'SharedArrayBuffer' in self;
 
         let parentElement = elements[0].parentNode;
-        let parentNode = this.getNodeFromElement(parentElement);
         let parentSelector = parentElement === this.svg ? "svg" : parentElement['selector'];
         if(!parentSelector) {
             safeLog(elements, parentElement);
@@ -125,7 +124,7 @@ export default class Domhandler {
         
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
-            const indexOfParent = svgEl.childIndex;
+            //const indexOfParent = svgEl.childIndex;
 
             /*if(svgEl.parentNode !== parentElement) {
                 parentElement = svgEl.parentNode;
@@ -134,10 +133,10 @@ export default class Domhandler {
                 attrName = this.checkAttrName(parentSelector, attrName, useSharedArray, parentNode);
             }*/
 
-
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
+            const node = this.getNodeFromElement(svgEl);
 
-            this.setAttrQueue.set(svgEl, attrName, evaluatedValue, useSharedArray);
+            this.setAttrQueue.set(node, attrName, evaluatedValue, useSharedArray);
 
             /*if(this.useSharedArrayFor.indexOf(attrName) === -1 || !useSharedArray) {
                 this.setAttrQueue[parentSelector][attrName][indexOfParent] = evaluatedValue;
@@ -145,7 +144,8 @@ export default class Domhandler {
                 this.sharedArrays[parentSelector][attrName][indexOfParent] = evaluatedValue * Domhandler.BUFFER_PRECISION_FACTOR;
             }*/
 
-            if(attrName === "href") {
+            //TODO: re-implement.
+            /*if(attrName === "href") {
                 try {
                     fetch(location.origin + evaluatedValue, {mode: 'cors'})
                     .then(resp => resp.blob())
@@ -157,7 +157,7 @@ export default class Domhandler {
                     });
                 }
                 catch(e) {console.log(e);}
-            }
+            }*/
         }
 
         if(attrName === 'className' || attrName.indexOf('style') !== -1) {

@@ -55,6 +55,10 @@ export class SetPropertyQueue {
         if(attrName === 'class') {
             attrName = 'className';
         }
+        if(element['globalElementIndex'] === undefined) {
+            console.error('No index', element);
+            throw new Error('Element has no index');
+        }
         const storage = useBuffer && this.useSharedArrayFor.indexOf(attrName) !== -1 ? 'shared' : 'raw';
         try {
             this.data[storage][attrName][element['globalElementIndex']] = value;
@@ -233,7 +237,7 @@ export class VdomManager {
             if('SharedArrayBuffer' in self &&
                 setAttrQueue[attrName] instanceof SharedArrayBuffer) {
                 values = new Int32Array(<ArrayBuffer> setAttrQueue[attrName]);
-                factor = 0.1;
+                factor = 1;
             } else {
                 values = setAttrQueue[attrName] as string[];
             }
