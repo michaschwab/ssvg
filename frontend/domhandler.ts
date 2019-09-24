@@ -3,20 +3,18 @@ import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 import drawingUtils from "../canvasworker/drawingUtils";
 
 export default class Domhandler {
-    
-    private vdom: VdomManager;
-    private sharedArrays: { [attrName: string]: Int32Array} = {};
+    private readonly vdom: VdomManager;
     private setAttrQueue = new SetPropertyQueue();
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
 
-    
-    constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign = true) {
+    constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign: boolean) {
         const visData: any = {
             width: this.svg.getAttribute('width'),
             height: this.svg.getAttribute('height'),
             scale: 1,
-            children: []
+            children: [],
+            globalElementIndex: 0,
         };
 
         this.vdom = new VdomManager(visData, ignoreDesign);

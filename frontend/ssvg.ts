@@ -6,7 +6,6 @@ import Canvasrenderer from "../canvasworker/canvasrenderer";
 import DrawingUtils from "../canvasworker/drawingUtils";
 import CanvasWorkerImporter from '../canvasworker';
 
-//alert('hi');
 export default class SSVG {
     private unassignedNodes: Node[] = [];
     private worker: Worker;
@@ -152,6 +151,17 @@ export default class SSVG {
                     //requestAnimationFrame(() => this.updateCanvas());
                     setTimeout(() => this.updateCanvas(), 1);
                     return;
+                }
+
+                for(let operation of  this.enterExitQueue) {
+                    if(operation.cmd === 'ENTER') {
+                        if(!operation.keepChildren) {
+                            operation.node.children = [];
+                        }
+                        this.vdom.addNode(operation.node, operation.parentNodeSelector);
+                    } else if(operation.cmd === 'EXIT') {
+                        this.vdom.removeNode(operation.childIndex, operation.parentNodeSelector);
+                    }
                 }
                 this.sendUpdateToWorker(queue);
             });
@@ -916,6 +926,7 @@ export default class SSVG {
                     let childNode = this.nodeAtPosition(vdomNode, new_event.clientX-10, new_event.clientY-10);
                     if(childNode)
                     {
+                        //console.log(childNode);
                         /*let selector = parentSelector + ' > :nth-child(' + j + ')';
                         let svgEl = this.svg.querySelector(selector);*/
                         const svgEl = this.domHandler.getElementFromNode(vdomNode);
