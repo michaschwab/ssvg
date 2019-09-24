@@ -194,9 +194,10 @@ export default class Domhandler {
             this.applyStyles();
         }
 
-        cb(this.setAttrQueue);
-        this.vdom.updatePropertiesFromQueue(this.setAttrQueue.getData());
-        
+        const data = this.setAttrQueue.getData();
+        cb(data);
+        this.vdom.updatePropertiesFromQueue(data);
+
         //this.setAttrQueue = {};
         this.setAttrQueue.clearData();
     }
