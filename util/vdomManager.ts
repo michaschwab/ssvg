@@ -14,7 +14,7 @@ export type VDOM = {
     scale: number;
 } & VdomNode;
 
-export type VdomNodeType = 'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'text';
+export type VdomNodeType = 'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'text'|'image';
 
 export type VdomNode = {
     style: {[styleName: string]: string},
@@ -42,6 +42,8 @@ export type VdomNode = {
     height?: number,
     textAlign?: string,
     text?: string,
+    href?: string,
+    image?: ImageBitmap,
     className?: string,
     id?: string,
 }

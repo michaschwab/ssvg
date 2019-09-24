@@ -42,6 +42,7 @@ export default class Canvasrenderer implements CanvasWorker {
         this.drawCircle(null, 'start');
         this.drawRect(null, 'start');
         this.drawText(null, 'start');
+        this.drawImage(null, 'start');
 
         this.drawNodeAndChildren(this.vdom.data, this.forceSingle);
 
@@ -49,6 +50,7 @@ export default class Canvasrenderer implements CanvasWorker {
         this.drawCircle(null, 'end');
         this.drawRect(null, 'end');
         this.drawText(null, 'end');
+        this.drawImage(null, 'end');
         
         this.onDrawn();
     
@@ -346,6 +348,47 @@ export default class Canvasrenderer implements CanvasWorker {
         }
         if(mode === 'end') {
             for(const currentNode of this.drawTexts) {
+                drawSingle(currentNode);
+            }
+            return;
+        }
+    }
+
+    private drawImages: VdomNode[] = [];
+
+    private drawImage(node: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+        const drawSingle = (elData: VdomNode) => {
+            if(elData.href === '') {
+                return;
+            }
+            let fill = elData['fill'] ? elData['fill'] : elData.style['fill'];
+            if(!fill) fill = '#000';
+            this.ctx.fillStyle = fill;
+            let x = elData.x || 0;
+            let y = elData.y || 0;
+            let width = elData.width || 0;
+            let height = elData.height || 0;
+            if(elData.image) {
+                try {
+                    this.ctx.drawImage(elData.image, x, y, width, height);
+                } catch(e) {
+                    console.log(e);
+                }
+            }
+        };
+        if(mode === 'start') {
+            this.drawImages = [];
+            return;
+        }
+        if(mode === 'normal') {
+            this.drawImages.push(node);
+            return;
+        }
+        if(mode === 'forcesingle') {
+            return drawSingle(node);
+        }
+        if(mode === 'end') {
+            for(const currentNode of this.drawImages) {
                 drawSingle(currentNode);
             }
             return;

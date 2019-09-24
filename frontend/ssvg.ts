@@ -961,7 +961,7 @@ export default class SSVG {
             }
             const distance = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
             return distance < visNode.r ? visNode : false;
-        } else if(visNode.type === 'rect') {
+        } else if(visNode.type === 'rect' || visNode.type === 'image') {
 
             let elX = visNode.x || 0;
             let elY = visNode.y || 0;
