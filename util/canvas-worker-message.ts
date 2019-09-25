@@ -1,4 +1,4 @@
-import {VdomNode} from "./vdomManager";
+import {VdomNode} from "./vdom/vdom";
 
 export interface CanvasWorkerMessage {
     cmd: 'INIT'|'UPDATE_NODES'|'UPDATE_SIZE';

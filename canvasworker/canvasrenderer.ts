@@ -1,4 +1,5 @@
-import {VdomManager, VdomNode} from "../util/vdomManager";
+import {VdomNode} from "../util/vdom/vdom";
+import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils from "./drawingUtils";
 import CanvasWorker from "./canvasworker";
 
@@ -23,7 +24,6 @@ export default class Canvasrenderer implements CanvasWorker {
         }, 1000);
     }
     
-    //private lastDrawn: VdomNode = null;
     private lastFullSecond = 0;
     private countSinceLastFullSecond = 0;
     

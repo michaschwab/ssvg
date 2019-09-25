@@ -1,4 +1,5 @@
-import {VdomManager, VdomNode} from "../util/vdomManager";
+import {VdomManager} from "../util/vdom/vdom-manager";
+import {VdomNode} from "../util/vdom/vdom";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker-message"
 import Domhandler from "./domhandler";
 import CanvasWorker from "../canvasworker/canvasworker";

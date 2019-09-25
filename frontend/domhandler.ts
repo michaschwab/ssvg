@@ -1,4 +1,6 @@
-import {SetPropertyQueue, SetPropertyQueueData, VdomManager, VdomNode, VdomNodeType} from "../util/vdomManager";
+import {VdomNode, VdomNodeType} from "../util/vdom/vdom";
+import SetPropertyQueue from "../util/vdom/set-property-queue";
+import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 import drawingUtils from "../canvasworker/drawingUtils";
 
