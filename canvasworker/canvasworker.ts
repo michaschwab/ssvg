@@ -41,7 +41,7 @@ workerContext.onmessage = function(e: MessageEvent) {
                         if(!operation.keepChildren) {
                             operation.node.children = [];
                         }
-                        const node = vdom.addNode(operation.node, operation.parentNodeSelector);
+                        const node = vdom.addNode(operation.node, operation.parentNodeIndex);
                         if(worker.addNode) {
                             worker.addNode(node);
                         }

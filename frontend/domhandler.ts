@@ -120,29 +120,13 @@ export default class Domhandler {
         }
 
         this.setAttrQueue.ensureInitialized(attrName, useSharedArray);
-        //attrName = this.checkAttrName(parentSelector, attrName, useSharedArray, parentNode);
-        
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
-            //const indexOfParent = svgEl.childIndex;
-
-            /*if(svgEl.parentNode !== parentElement) {
-                parentElement = svgEl.parentNode;
-                parentNode = this.getNodeFromElement(parentElement);
-                parentSelector = parentElement === this.svg ? "svg" : parentElement['selector'];
-                attrName = this.checkAttrName(parentSelector, attrName, useSharedArray, parentNode);
-            }*/
 
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
             const node = this.getNodeFromElement(svgEl);
 
             this.setAttrQueue.set(node, attrName, evaluatedValue, useSharedArray);
-
-            /*if(this.useSharedArrayFor.indexOf(attrName) === -1 || !useSharedArray) {
-                this.setAttrQueue[parentSelector][attrName][indexOfParent] = evaluatedValue;
-            } else {
-                this.sharedArrays[parentSelector][attrName][indexOfParent] = evaluatedValue * Domhandler.BUFFER_PRECISION_FACTOR;
-            }*/
 
             //TODO: re-implement.
             /*if(attrName === "href") {
@@ -176,44 +160,7 @@ export default class Domhandler {
             }
         }
     }
-    
 
-    /*
-    private checkAttrName(parentSelector: string, attrName: string, useBuffer = false, parentNode?: VdomNode) {
-        if(attrName === 'class') {
-            attrName = 'className';
-        }
-
-        this.setAttrQueue.ensureInitialized();
-
-        if(!useBuffer || this.useSharedArrayFor.indexOf(attrName) === -1) {
-            if(!this.setAttrQueue[attrName]) {
-                this.setAttrQueue[attrName] = [];
-            }
-        } else {
-            if(!this.sharedArrays[attrName]) {
-                const length = 10000; //Todo use number of elements in vdom
-                const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
-                const values = new Int32Array(buffer);
-
-                // If values have been previously set without a buffer, transfer them.
-                if(this.setAttrQueue[attrName] &&
-                    !(this.setAttrQueue[attrName] instanceof SharedArrayBuffer)) {
-                    const prevData: string[] = <any> this.setAttrQueue[attrName];
-
-                    prevData.forEach((value, index) => {
-                        values[index] = parseFloat(value) * Domhandler.BUFFER_PRECISION_FACTOR;
-                    });
-                }
-
-                this.setAttrQueue[attrName] = buffer;
-                this.sharedArrays[attrName] = values;
-            }
-        }
-
-        return attrName;
-    }*/
-    
     useAttrQueue(cb: (data) => void = () => {}) {
         if(this.nodesToRestyle) {
             this.applyStyles();
@@ -226,14 +173,7 @@ export default class Domhandler {
         //this.setAttrQueue = {};
         this.setAttrQueue.clearData();
     }
-    
-    getAttributesFromSelector(selection, name: string) {
-        // Dealing with d3 v3.
-        const els = selection._groups ? selection._groups[0] : selection[0];
-        
-        return els.map(el => this.getAttributeFromSelector(el, name));
-    }
-    
+
     getAttributeFromSelector(element: Element, name: string) {
         const node = this.getNodeFromElement(element);
         

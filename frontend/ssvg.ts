@@ -159,7 +159,7 @@ export default class SSVG {
                         if(!operation.keepChildren) {
                             operation.node.children = [];
                         }
-                        this.vdom.addNode(operation.node, operation.parentNodeSelector);
+                        this.vdom.addNode(operation.node, operation.parentNodeIndex);
                     } else if(operation.cmd === 'EXIT') {
                         this.vdom.removeNode(operation.childIndex, operation.parentNodeSelector);
                     }
@@ -788,7 +788,7 @@ export default class SSVG {
                 me.enterExitQueue.push({
                     cmd: 'ENTER',
                     node: node,
-                    parentNodeSelector: parentSelector,
+                    parentNodeIndex: parentNode.globalElementIndex,
                     keepChildren: keepChildren
                 });
             } else {

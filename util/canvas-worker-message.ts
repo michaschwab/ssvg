@@ -13,5 +13,5 @@ export interface CanvasUpdateWorkerMessage {
     };
 }
 
-export type CanvasUpdateData = ({ cmd: 'ENTER', node: VdomNode, parentNodeSelector: string, keepChildren: boolean }|
+export type CanvasUpdateData = ({ cmd: 'ENTER', node: VdomNode, parentNodeIndex: number, keepChildren: boolean }|
     { cmd: 'EXIT', childIndex: number, parentNodeSelector: string });

@@ -25,22 +25,14 @@ export class VdomManager {
         this.ignoreDesign = false;
     }
     
-    addNode(nodeData: VdomNode, parentNodeSelector: string) {
-        let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
+    addNode(nodeData: VdomNode, parentNodeIndex: number) {
+        let parentNode = this.getNodeFromIndex(parentNodeIndex);
         if(!parentNode) {
-            if(parentNodeSelector === "") {
-                parentNode = this.data;
-            } else {
-                console.error('could not add node without parent', parentNodeSelector, nodeData, this.data);
-                new Error('parent not found');
-                return;
-            }
+            console.error('could not add node without parent', parentNodeIndex, nodeData, this.data);
+            new Error('parent not found');
+            return;
         }
         this.applyParentStyles(parentNode, nodeData);
-        
-        if(!parentNode || !parentNode.children) {
-            console.error('parent node not found or no children: ', parentNode, parentNodeSelector, this.data);
-        }
         
         parentNode.children.push(nodeData);
         this.indexToNodeMap[nodeData.globalElementIndex] = nodeData;
