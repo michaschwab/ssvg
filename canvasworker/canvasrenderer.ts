@@ -3,6 +3,8 @@ import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils from "./drawingUtils";
 import CanvasWorker from "./canvasworker";
 
+type DrawMode = 'start'|'normal'|'end'|'forcesingle';
+
 export default class Canvasrenderer implements CanvasWorker {
     
     private ctx: CanvasRenderingContext2D;
@@ -105,7 +107,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
     
-    private drawSingleNode(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawSingleNode(elData: VdomNode, mode: DrawMode = 'normal') {
         const type: string = elData.type;
         const drawFct = this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)];
         if(!drawFct) {
@@ -119,7 +121,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
     
     private circlesByColor: {[color: string]: VdomNode[]} = {};
-    private drawCircle(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawCircle(elData: VdomNode, mode: DrawMode = 'normal') {
         if(mode === 'normal') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
             let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
@@ -225,7 +227,7 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private rectsByColor = {};
 
-    private drawRect(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawRect(elData: VdomNode, mode: DrawMode = 'normal') {
 
         if(mode === 'normal') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
@@ -310,7 +312,7 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private drawTexts: VdomNode[] = [];
 
-    private drawText(node: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawText(node: VdomNode, mode: DrawMode = 'normal') {
         const drawSingle = (elData: VdomNode) => {
             if(elData.text === '') {
                 return;
@@ -356,7 +358,7 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private drawImages: VdomNode[] = [];
 
-    private drawImage(node: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawImage(node: VdomNode, mode: DrawMode = 'normal') {
         const drawSingle = (elData: VdomNode) => {
             if(elData.href === '') {
                 return;
@@ -395,7 +397,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
 
-    private drawPath(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawPath(elData: VdomNode, mode: DrawMode = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
 
         const fill = this.getFillStyle(elData);
@@ -427,7 +429,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
     
-    private drawTspan(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawTspan(elData: VdomNode, mode: DrawMode = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
         
         this.ctx.font = "10px Arial";
@@ -442,7 +444,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private linesByColor: {[color: string]: VdomNode[]} = {};
-    private drawLine(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawLine(elData, mode: DrawMode = 'normal') {
         if(this.vdom.data.scale > 1) {
             //mode = 'forcesingle';
             // In my tests, drawing a long connected path is very slow for high DPI devices.
@@ -462,6 +464,7 @@ export default class Canvasrenderer implements CanvasWorker {
             return;
         }
         if(mode === 'end') {
+            //safeLog(Object.keys(this.linesByColor), this.linesByColor);
             for(let strokeColor in this.linesByColor) {
                 if(this.linesByColor.hasOwnProperty(strokeColor)) {
                     this.ctx.strokeStyle = strokeColor;
@@ -472,12 +475,18 @@ export default class Canvasrenderer implements CanvasWorker {
 
                     this.ctx.beginPath();
                     for(let elData of this.linesByColor[strokeColor]) {
-                        this.ctx.save();
-                        this.applyTransform(elData.transform);
+                        if(elData.transform) {
+                            this.ctx.save();
+                            this.applyTransform(elData.transform);
+                        }
+
                         this.ctx.moveTo(elData.x1, elData.y1);
                         this.ctx.lineTo(elData.x2, elData.y2);
-                        this.ctx.restore();
-                        //this.ctx.restore();
+
+                        if(elData.transform) {
+                            //this.ctx.restore();
+                            this.ctx.restore();
+                        }
                     }
 
                     this.ctx.stroke();
@@ -490,7 +499,7 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.moveTo(elData.x1, elData.y1);
             this.ctx.lineTo(elData.x2, elData.y2);
 
-            this.ctx.strokeStyle = elData.style['stroke-rgba'];
+            this.ctx.strokeStyle = this.getStrokeStyle(elData);
             //safeLog(stroke, this.ctx.strokeStyle);
             this.ctx.stroke();
         }

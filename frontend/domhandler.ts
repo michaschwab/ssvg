@@ -20,6 +20,7 @@ export default class Domhandler {
         };
 
         this.vdom = new VdomManager(visData, ignoreDesign);
+        this.linkNodeToElement(visData, this.svg);
         this.svg.style.display = 'none';
         this.svg['selector'] = 'svg';
 
