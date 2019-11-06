@@ -34,7 +34,8 @@ export default class SSVG {
         safeMode?: boolean,
         maxPixelRatio?: number,
         useWorker?: boolean,
-        getFps?: (fps: number) => void
+        getFps?: (fps: number) => void,
+        svg?: SVGElement,
     }) {
         if(options) {
             if(options.safeMode !== undefined) {
@@ -79,7 +80,8 @@ export default class SSVG {
         }
 
         this.captureD3On();
-        this.setupElementsIfSvgExists();
+        const svg = options && options.svg ? options.svg : undefined;
+        this.setupElementsIfSvgExists(svg);
         
         this.canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('mousemove', e => {
@@ -117,7 +119,7 @@ export default class SSVG {
         if(this.svg) {
             return true;
         }
-        
+
         const svg = !svgEl ? document.getElementsByTagName('svg')[0] : svgEl;
         
         if(!svg) {
@@ -131,8 +133,17 @@ export default class SSVG {
             svgSwitchUrl + '\r\n');
         
         this.svg = svg;
-        this.svg.parentElement.appendChild(svgSwitchComment);
-        this.svg.parentElement.appendChild(this.canvas);
+        const parent = this.svg.parentElement;
+
+        if(this.svg.nextSibling) {
+            const next = this.svg.nextSibling;
+            parent.insertBefore(svgSwitchComment, next);
+            parent.insertBefore(this.canvas, next);
+        } else {
+            parent.appendChild(svgSwitchComment);
+            parent.appendChild(this.canvas);
+        }
+
         this.domHandler = new Domhandler(this.svg, this.useWorker, this.useWorker);
         this.vdom = this.domHandler.getVDom();
 

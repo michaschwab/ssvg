@@ -14,7 +14,7 @@
         <array />
       </option>
       <option name="outputFromStdout" value="false" />
-      <option name="program" value="/usr/local/bin/webpack-cli" />
+      <option name="program" value="/usr/bin/webpack" />
       <option name="runOnExternalChanges" value="true" />
       <option name="scopeName" value="Project Files" />
       <option name="trackOnlyRoot" value="false" />
