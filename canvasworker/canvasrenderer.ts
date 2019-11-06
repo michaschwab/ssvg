@@ -265,13 +265,12 @@ export default class Canvasrenderer implements CanvasWorker {
 
                     this.ctx.beginPath();
                     for(let elData of this.rectsByColor[fillAndStrokeColor]) {
-                        const cx = elData.cx ? elData.cx : 0;
-                        const cy = elData.cy ? elData.cy : 0;
-                        const r = elData.r;
+                        const x = elData.x ? elData.x : 0;
+                        const y = elData.y ? elData.y : 0;
                         this.ctx.save();
                         this.applyTransform(elData.transform);
-                        this.ctx.moveTo(cx + r, cy);
-                        this.ctx.rect(elData.x, elData.y, elData.width, elData.height);
+                        this.ctx.moveTo(x, y);
+                        this.ctx.rect(x, y, elData.width, elData.height);
                         this.ctx.restore();
                         //this.ctx.restore();
                     }
