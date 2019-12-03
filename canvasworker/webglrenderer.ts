@@ -1,128 +1,170 @@
 import { VdomManager } from "../util/vdomManager";
 import CanvasWorker from "./canvasworker";
-if('importScripts' in self) {
+import DrawingUtils from "./drawingUtils";
+if ('importScripts' in self) {
     importScripts("https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js");
 }
 
 export default class Webglrenderer implements CanvasWorker {
-    private platform;
-    private circles;
-    private circleData;
-    private lines;
-    private linesData;
-    
-    constructor(private vdom: VdomManager, private canvas: HTMLCanvasElement, private onDrawn = () => {}) {
-        
+    // Stardust Platform
+    private platform: any;
+    // Lines
+    private lines: any;
+    private lineData: any[];
+    // Circles
+    private circles: any;
+    private circleData: any[];
+    // Rectangles
+    private rects: any;
+    private rectData: any[];
+
+
+    constructor(private vdom: VdomManager, private canvas: HTMLCanvasElement, private onDrawn = () => { }) {
+
         const Stardust = (self as any)['Stardust'];
-        
+
         Object.defineProperty(this.canvas, 'style', {
             writable: true,
             value: {}
         });
-        //console.log(this.canvas.style);
+
         this.platform = Stardust.platform("webgl-2d", this.canvas, this.vdom.data.width, this.vdom.data.height);
-        
-        const circleSpec = Stardust.mark.circle(8);
-        this.circles = Stardust.mark.create(circleSpec, this.platform);
-        this.circles
-            .attr('center', d => [d.cx, d.cy])
-            .attr('radius', d => d.r)
-            .attr('color', d => d.style.fill ? d.style.fill : d.fill);
-        
+
         this.lines = Stardust.mark.create(Stardust.mark.line(), this.platform);
         this.lines
-            .attr('width', 1)
-            //.attr('color', d => d.style.stroke ? d.style.stroke : d.stroke)
-            .attr('color', [0,0,0,1])
-            .attr('p1', d => [d.x1, d.y1])
-            .attr('p2', d => [d.x2, d.y2]);
-        
+            .attr('p1', d => d.p1)
+            .attr('p2', d => d.p2)
+            .attr('width', d => d.width)
+            .attr('color', d => d.color);
+
+        this.circles = Stardust.mark.create(Stardust.mark.circle(), this.platform);
+        this.circles
+            .attr('center', d => d.center)
+            .attr('radius', d => d.radius)
+            .attr('color', d => d.color);
+
+        this.rects = Stardust.mark.create(Stardust.mark.rect(), this.platform);
+        this.rects
+            .attr('p1', d => d.p1)
+            .attr('p2', d => d.p2)
+            .attr('color', d => d.color);
+
         this.draw();
-        
+
         setTimeout(() => {
             console.log(this.vdom.data);
         }, 1000);
     }
-    
+
     private lastDrawn: any = null;
     private lastFullSecond = 0;
     private countSinceLastFullSecond = 0;
-    
+
     draw() {
         this.platform.clear();
+
+        this.lineData = [];
         this.circleData = [];
-        this.linesData = [];
+        this.rectData = [];
+
         this.drawChildren(this.vdom.data);
-        
-        this.lines.data(this.linesData);
+
+        // Render the lines
+        this.lines.data(this.lineData);
         this.lines.render();
-        
+
+        // Render the circles
         this.circles.data(this.circleData);
         this.circles.render();
-        
+
+        // Render the rects
+        this.rects.data(this.rectData);
+        this.rects.render();
+
         const fullSecond = Math.round(performance.now() / 1000);
-        if(fullSecond !== this.lastFullSecond) {
+        if (fullSecond !== this.lastFullSecond) {
             this.lastFullSecond = fullSecond;
-            console.log(this.countSinceLastFullSecond);
+            //console.log(this.countSinceLastFullSecond);
             this.countSinceLastFullSecond = 0;
         }
         this.countSinceLastFullSecond++;
-        //console.log('drawn');
+
+        // console.log('drawn');
         this.onDrawn();
     }
-    
+
+    private rgbaStringToStardustColor(s: string) {
+        const rgbaNums = s.substring(4, s.length - 1).split(',').map(num => { return parseFloat(num); });
+        rgbaNums[0] /= 255;
+        rgbaNums[1] /= 255;
+        rgbaNums[2] /= 255;
+        return rgbaNums;
+    }
+
     private drawChildren(elData: any) {
-        
+
         const Stardust = (self as any)['Stardust'];
-        
-        
-        
-        //if(elData.type !== 'line')
-        {
-            //this.applyTransform(elData.transform);
-        }
-        
-        if(elData.type && elData.type !== 'g') {
-            if(elData.type === 'title') {
+
+        if (elData.type && elData.type !== 'g') {
+            if (elData.type === 'title') {
                 return;
             }
-            
-            if(elData.type === 'circle') {
-                
-                this.circleData.push(elData);
-                
-            } else if(elData.type === 'line') {
-                this.linesData.push(elData);
-                /*ctx.moveTo(elData.x1, elData.y1);
-                ctx.lineTo(elData.x2, elData.y2);*/
-            } else if(elData.type === 'path') {
-                /*let p = new Path2D(elData.d);
-                //ctx.stroke(p);
-                ctx.fillStyle = fill;
-                //console.log(elData);
-                //ctx.fill(p);
-                if(stroke !== 'none') {
-                    ctx.lineWidth = strokeWidth;
-                    ctx.strokeStyle = strokeWidth + ' ' + stroke;
-                    ctx.stroke(p);
-                }*/
-            } else if(elData.type === 'tspan') {
-                /*ctx.font = "10px Arial";
-                ctx.fillStyle = "#000000";
-                ctx.textAlign = elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor;
-                ctx.fillText(elData.text, elData.x, elData.y);*/
+            if (elData.type === 'line') {
+                let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
+                let strokeOpacity = elData.style['stroke-opacity'] ? elData.style['stroke-opacity'] : elData['stroke-opacity'] ? elData['stroke-opacity'] : 1;
+                if (!stroke || !stroke.includes('rgb')) {
+                    console.log("Error: Only rgb fill is supported for now. Defaulting to black.")
+                    stroke = 'rgb(0,0,0,1)';
+                }
+                const strokeRgba = DrawingUtils.colorToRgba(stroke, strokeOpacity);
+                const stardustColor = this.rgbaStringToStardustColor(strokeRgba);
+                this.lineData.push({
+                    p1: [elData.x1, elData.y1],
+                    p2: [elData.x2, elData.y2],
+                    width: elData["stroke-width"],
+                    color: stardustColor
+                });
+            } else if (elData.type === 'circle') {
+                let fill = elData.style.fill ? elData.style.fill : elData.fill;
+                let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData['fill-opacity'] ? elData['fill-opacity'] : 1;
+                if (!fill || !fill.includes('rgb')) {
+                    console.log("Error: Only rgb fill is supported for now. Defaulting to black.")
+                    fill = 'rgb(0,0,0,1)';
+                }
+                const fillRgba = DrawingUtils.colorToRgba(fill, fillOpacity);
+                const stardustColor = this.rgbaStringToStardustColor(fillRgba);
+                this.circleData.push({
+                    center: [elData.cx, elData.cy],
+                    radius: elData.r,
+                    color: stardustColor
+                });
+            } else if (elData.type === 'rect') {
+                let fill = elData.style.fill ? elData.style.fill : elData.fill;
+                let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData['fill-opacity'] ? elData['fill-opacity'] : 1;
+                if (!fill || !fill.includes('rgb')) {
+                    console.log("Error: Only rgb fill is supported for now. Defaulting to black.")
+                    fill = 'rgb(0,0,0,1)';
+                }
+                const fillRgba = DrawingUtils.colorToRgba(fill, fillOpacity);
+                const stardustColor = this.rgbaStringToStardustColor(fillRgba);
+
+                this.rectData.push({
+                    p1: [elData.x, elData.y],
+                    p2: [elData.x + elData.width, elData.y + elData.height],
+                    color: stardustColor
+                });
+            } else if (elData.type === 'path') {
+                console.log("Path support is still being worked on");
+            } else {
+                console.log(`${elData.type} is currently unsupported`);
             }
             this.lastDrawn = elData;
         }
-        
-        if(elData.children) {
-            for(let i = 0; i < elData.children.length; i++) {
+
+        if (elData.children) {
+            for (let i = 0; i < elData.children.length; i++) {
                 this.drawChildren(elData.children[i]);
             }
-        }
-        if(elData.type !== 'line') {
-            //console.log(elData.type);
-            //ctx.restore();
         }
     }
 }
