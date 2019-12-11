@@ -9,14 +9,11 @@ class CompleteSetPropertyQueueData {
 }
 
 export default class SetPropertyQueue {
-    private data: CompleteSetPropertyQueueData;
+    private data: CompleteSetPropertyQueueData = {'raw': {}, 'shared': {}};
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];
     private static BUFFER_PRECISION_FACTOR = 10;
 
     ensureInitialized(attrName: string, useBuffer: boolean) {
-        if(!this.data) {
-            this.data = {'raw': {}, 'shared': {}};
-        }
         if(attrName === 'class') {
             attrName = 'className';
         }

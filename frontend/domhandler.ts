@@ -218,6 +218,8 @@ export default class Domhandler {
             x2: getRoundedAttr(el, 'x2'),
             y1: getRoundedAttr(el, 'y1'),
             y2: getRoundedAttr(el, 'y2'),
+            width: getRoundedAttr(el, 'width'),
+            height: getRoundedAttr(el, 'height'),
             "stroke-width": getRoundedAttr(el, 'stroke-width'),
             text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : undefined,
             'font-size': el.getAttribute('font-size'),
