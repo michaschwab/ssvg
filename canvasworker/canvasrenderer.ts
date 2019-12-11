@@ -316,7 +316,7 @@ export default class Canvasrenderer implements CanvasWorker {
             if(elData.text === '') {
                 return;
             }
-            const fontFamily = 'Arial';
+            const fontFamily = 'Times New Roman';
             const fontSize = elData['font-size'] ? DrawingUtils.convertSizeToPx(elData['font-size']) + 'px' : '30px';
             let font = elData.style['font'] ? elData.style['font'] : elData['font'];
             if(!font) {
