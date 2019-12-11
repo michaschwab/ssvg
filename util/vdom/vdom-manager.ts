@@ -119,6 +119,11 @@ export class VdomManager {
             }
 
             for(let childIndex in values) {
+                // This skips all values that are 0 because the SharedArrayBuffer fills up with zeros.
+                //TODO(michaschwab): Find a solution for zero values.
+                if(values[childIndex] === 0) {
+                    continue;
+                }
                 const index = parseInt(childIndex);
                 const childNode = this.getNodeFromIndex(index);
                 if(!childNode) {
