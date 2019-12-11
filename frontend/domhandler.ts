@@ -121,13 +121,14 @@ export default class Domhandler {
         }
 
         this.setAttrQueue.ensureInitialized(attrName, useSharedArray);
+
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
 
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
-            const node = this.getNodeFromElement(svgEl);
+            this.ensureElementIndex(svgEl);
 
-            this.setAttrQueue.set(node, attrName, evaluatedValue, useSharedArray);
+            this.setAttrQueue.set(svgEl, attrName, evaluatedValue, useSharedArray);
 
             //TODO: re-implement.
             /*if(attrName === "href") {
@@ -159,6 +160,13 @@ export default class Domhandler {
                     node.style[styleName] = evaluatedValue;
                 }
             }
+        }
+    }
+
+    ensureElementIndex(svgEl: HTMLElement) {
+        if(!svgEl['globalElementIndex']) {
+            const node = this.getNodeFromElement(svgEl);
+            svgEl['globalElementIndex'] = node.globalElementIndex;
         }
     }
 

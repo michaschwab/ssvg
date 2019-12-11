@@ -44,7 +44,7 @@ export default class SetPropertyQueue {
         }
     }
 
-    set(element: VdomNode, attrName: string, value: any, useBuffer: boolean) {
+    set(element: VdomNode|HTMLElement, attrName: string, value: any, useBuffer: boolean) {
         if(attrName === 'class') {
             attrName = 'className';
         }
