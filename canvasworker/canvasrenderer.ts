@@ -319,13 +319,16 @@ export default class Canvasrenderer implements CanvasWorker {
                 return;
             }
             const fontFamily = 'Times New Roman';
-            const fontSize = elData['font-size'] ? DrawingUtils.convertSizeToPx(elData['font-size']) + 'px' : '30px';
+            const fontSize = elData['font-size'] ? DrawingUtils.convertSizeToPx(elData['font-size']) + 'px' : '16px';
             let font = elData.style['font'] ? elData.style['font'] : elData['font'];
             if(!font) {
                 font = fontSize + ' ' + fontFamily;
             }
-            if(elData['text-anchor']) {
-                const align = elData['text-anchor'] === 'middle' ? 'center' : elData['text-anchor'];
+            let align = elData['text-anchor'] !== undefined ? elData['text-anchor'] : elData.style['text-anchor'];
+            if(align) {
+                if(align === 'middle') {
+                    align = 'center';
+                }
                 this.ctx.textAlign = align;
             }
             let fill = elData['fill'] ? elData['fill'] : elData.style['fill'];
@@ -524,9 +527,10 @@ export default class Canvasrenderer implements CanvasWorker {
                 //console.log(transform.rotate);
             }
             //console.log(transformString);
+            this.ctx.rotate(transform.rotate * Math.PI / 180);
             this.ctx.transform(transform.scaleX, 0, 0, transform.scaleY, transform.translateX, transform.translateY);
             //ctx.rotate(transform.rotate / 2 / Math.PI);
-            this.ctx.rotate(transform.rotate * Math.PI / 180);
+
             //console.log(transform.rotate);
             return true;
         }

@@ -244,7 +244,8 @@ export default class Domhandler {
             if(el.style.hasOwnProperty(styleProp)) {
                 const val = el.style[styleProp];
                 if(val !== '' && typeof el.style[styleProp] !== 'function') {
-                    node.style[styleProp] = el.style[styleProp];
+                    const kebabCase = styleProp.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+                    node.style[kebabCase] = el.style[styleProp];
                 }
             }
         }
