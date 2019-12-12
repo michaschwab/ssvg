@@ -486,8 +486,8 @@ export default class Canvasrenderer implements CanvasWorker {
                             this.applyTransform(elData.transform);
                         }
 
-                        this.ctx.moveTo(elData.x1, elData.y1);
-                        this.ctx.lineTo(elData.x2, elData.y2);
+                        this.ctx.moveTo(elData.x1 || 0, elData.y1 || 0);
+                        this.ctx.lineTo(elData.x2 || 0, elData.y2 || 0);
 
                         if(elData.transform) {
                             //this.ctx.restore();
@@ -502,8 +502,8 @@ export default class Canvasrenderer implements CanvasWorker {
         }
         if(mode === 'forcesingle') {
             this.ctx.beginPath();
-            this.ctx.moveTo(elData.x1, elData.y1);
-            this.ctx.lineTo(elData.x2, elData.y2);
+            this.ctx.moveTo(elData.x1 || 0, elData.y1 || 0);
+            this.ctx.lineTo(elData.x2 || 0, elData.y2 || 0);
 
             this.ctx.strokeStyle = this.getStrokeStyle(elData);
             this.ctx.lineWidth = this.getStrokeWidth(elData);
