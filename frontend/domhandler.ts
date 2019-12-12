@@ -239,7 +239,13 @@ export default class Domhandler {
             children: [],
             globalElementIndex: -1,
         };
-        
+
+        for(const styleProp in el.style) {
+            if(el.style.hasOwnProperty(styleProp) && typeof el.style[styleProp] !== 'function') {
+                node.style[styleProp] = el.style[styleProp];
+            }
+        }
+
         const clean = obj => {
             const propNames = Object.getOwnPropertyNames(obj);
             for (let i = 0; i < propNames.length; i++) {

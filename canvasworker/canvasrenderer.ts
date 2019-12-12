@@ -411,7 +411,6 @@ export default class Canvasrenderer implements CanvasWorker {
             if(strokeWidth !== undefined) {
                 this.ctx.lineWidth = strokeWidth;
             }
-            safeLog(strokeWidth, this.ctx.lineWidth);
             this.ctx.strokeStyle = stroke;
 
             if(elData.style['stroke-linejoin']) {
