@@ -147,9 +147,8 @@ export default class Canvasrenderer implements CanvasWorker {
 
                     this.ctx.fillStyle = fillColor;
                     let sampleData = this.circlesByColor[fillAndStrokeColor][0];
-                    const lineWidth = sampleData.style['stroke-width'] ?
-                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
-                    this.ctx.lineWidth = lineWidth ? lineWidth : 1;
+                    const lineWidth = this.getStrokeWidth(sampleData);
+                    this.ctx.lineWidth = lineWidth !== undefined ? lineWidth : 1;
                     this.ctx.strokeStyle = strokeColor;
 
                     this.ctx.beginPath();
@@ -187,8 +186,7 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.beginPath();
             this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, fillOpacity);
             this.ctx.strokeStyle = this.getStrokeStyle(elData);
-            this.ctx.lineWidth = elData.style['stroke-width'] ?
-                parseFloat(elData.style['stroke-width']) : parseFloat(elData.strokeWidth);
+            this.ctx.lineWidth = this.getStrokeWidth(elData);
             this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
             if(fill !== 'none'){
                 this.ctx.fill();
@@ -226,7 +224,8 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private getStrokeWidth(node: VdomNode) {
-        return node.style['stroke-width'] !== undefined ? node.style['stroke-width'] : node['stroke-width'];
+        const width = node.style['stroke-width'] !== undefined ? node.style['stroke-width'] : node['stroke-width'];
+        return width === undefined ? undefined : parseFloat(width);
     }
 
     private rectsByColor = {};
@@ -264,9 +263,8 @@ export default class Canvasrenderer implements CanvasWorker {
                     this.ctx.fillStyle = fillColor;
 
                     let sampleData = this.rectsByColor[fillAndStrokeColor][0];
-                    const lineWidth = sampleData.style['stroke-width'] ?
-                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
-                    this.ctx.lineWidth = lineWidth ? lineWidth : 1;
+                    const lineWidth = this.getStrokeWidth(sampleData);
+                    this.ctx.lineWidth = lineWidth !== undefined ? lineWidth : 1;
                     this.ctx.strokeStyle = strokeColor;
 
                     this.ctx.beginPath();
@@ -413,6 +411,7 @@ export default class Canvasrenderer implements CanvasWorker {
             if(strokeWidth !== undefined) {
                 this.ctx.lineWidth = strokeWidth;
             }
+            safeLog(strokeWidth, this.ctx.lineWidth);
             this.ctx.strokeStyle = stroke;
 
             if(elData.style['stroke-linejoin']) {
