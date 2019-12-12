@@ -241,8 +241,11 @@ export default class Domhandler {
         };
 
         for(const styleProp in el.style) {
-            if(el.style.hasOwnProperty(styleProp) && typeof el.style[styleProp] !== 'function') {
-                node.style[styleProp] = el.style[styleProp];
+            if(el.style.hasOwnProperty(styleProp)) {
+                const val = el.style[styleProp];
+                if(val !== '' && typeof el.style[styleProp] !== 'function') {
+                    node.style[styleProp] = el.style[styleProp];
+                }
             }
         }
 
