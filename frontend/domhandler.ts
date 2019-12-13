@@ -1,25 +1,26 @@
-import {VdomManager, VdomNode, VdomNodeType} from "../util/vdomManager";
+import {VdomNode, VdomNodeType} from "../util/vdom/vdom";
+import SetPropertyQueue from "../util/vdom/set-property-queue";
+import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 import drawingUtils from "../canvasworker/drawingUtils";
 
 export default class Domhandler {
-    
-    private vdom: VdomManager;
-    private sharedArrays: {[parentSelector: string]: { [attrName: string]: Int32Array}} = {};
-    private setAttrQueue: {[parentSelector: string]: { [attrName: string]: (string[]|SharedArrayBuffer)}} = {};
+    private readonly vdom: VdomManager;
+    private setAttrQueue = new SetPropertyQueue();
     private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
-    private static BUFFER_PRECISION_FACTOR = 10;
-    
-    constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign = true) {
+
+    constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign: boolean) {
         const visData: any = {
             width: this.svg.getAttribute('width'),
             height: this.svg.getAttribute('height'),
             scale: 1,
-            children: []
+            children: [],
+            globalElementIndex: 0,
         };
 
         this.vdom = new VdomManager(visData, ignoreDesign);
+        this.linkNodeToElement(visData, this.svg);
         this.svg.style.display = 'none';
         this.svg['selector'] = 'svg';
 
@@ -65,29 +66,33 @@ export default class Domhandler {
         if(element === this.svg && attrName.indexOf('style;') === 0) {
             attrName = attrName.substr('style;'.length);
         }
-        attrName = this.checkAttrName(parentSelector, attrName, false);
-        const evaluatedValue = typeof value === "function" ? value.call(<any> element, (<any> element).__data__, childIndex) : value;
-        this.setAttrQueue[parentSelector][attrName][childIndex] = evaluatedValue;
+        //attrName = this.checkAttrName(parentSelector, attrName, false);
+        this.setAttrQueue.ensureInitialized(attrName, false);
 
-        
+        const evaluatedValue = typeof value === "function" ? value.call(<any> element, (<any> element).__data__, childIndex) : value;
+        //const node = this.getNodeFromElement(element);
+        //this.setAttrQueue.set(node, attrName, evaluatedValue, false);
+        const node = this.getNodeFromElement(element);
+        this.setAttrQueue.set(node, attrName, evaluatedValue, false);
+
         if(attrName === "href") {
             try {
                 fetch(location.origin + evaluatedValue, {mode: 'cors'})
                     .then(resp => resp.blob())
                     .then(blob => createImageBitmap(blob))
                     .then(bitmap => {
-                        this.checkAttrName(parentSelector, "image", false);
+                        //this.checkAttrName(parentSelector, "image", false);
+                        this.setAttrQueue.ensureInitialized("image", false);
                         this.setAttrQueue[parentSelector]["image"][childIndex] = bitmap;
                     });
             }
             catch(e) {console.log(e);}
         }
 
-        if(attrName === 'className' || attrName.indexOf('style') !== -1) {
+        if(attrName === 'class' || attrName.indexOf('style') !== -1) {
             // Apply classes immediately so styles can be applied correctly.
-            const node = this.getNodeFromElement(element);
 
-            if(attrName === 'className') {
+            if(attrName === 'class') {
                 node.className = evaluatedValue;
                 this.nodesToRestyle.push(node);
             } else {
@@ -100,7 +105,7 @@ export default class Domhandler {
         }
     }
     
-    queueSetAttributeOnSelection(elements, attrName, value) {
+    queueSetAttributeOnSelection(elements: (HTMLElement & {__data__: any})[], attrName: string, value) {
         if(!elements.length) return;
         if(!elements[0]) {
             //console.error('selection elements not found', elements);
@@ -109,46 +114,36 @@ export default class Domhandler {
         const useSharedArray = 'SharedArrayBuffer' in self;
 
         let parentElement = elements[0].parentNode;
-        let parentNode = this.getNodeFromElement(parentElement);
         let parentSelector = parentElement === this.svg ? "svg" : parentElement['selector'];
         if(!parentSelector) {
             safeLog(elements, parentElement);
             console.error('selector not found');
         }
 
-        attrName = this.checkAttrName(parentSelector, attrName, useSharedArray, parentNode);
-        
+        this.setAttrQueue.ensureInitialized(attrName, useSharedArray);
+
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
-            const indexOfParent = svgEl.childIndex;
-
-            if(svgEl.parentNode !== parentElement) {
-                parentElement = svgEl.parentNode;
-                parentNode = this.getNodeFromElement(parentElement);
-                parentSelector = parentElement === this.svg ? "svg" : parentElement['selector'];
-                attrName = this.checkAttrName(parentSelector, attrName, useSharedArray, parentNode);
-            }
 
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
-            if(this.useSharedArrayFor.indexOf(attrName) === -1 || !useSharedArray) {
-                this.setAttrQueue[parentSelector][attrName][indexOfParent] = evaluatedValue;
-            } else {
-                this.sharedArrays[parentSelector][attrName][indexOfParent] = evaluatedValue * Domhandler.BUFFER_PRECISION_FACTOR;
-            }
+            this.ensureElementIndex(svgEl);
 
-            
-            if(attrName === "href") {
+            this.setAttrQueue.set(svgEl, attrName, evaluatedValue, useSharedArray);
+
+            //TODO: re-implement.
+            /*if(attrName === "href") {
                 try {
                     fetch(location.origin + evaluatedValue, {mode: 'cors'})
                     .then(resp => resp.blob())
                     .then(blob => createImageBitmap(blob))
                     .then(bitmap => {
-                        this.checkAttrName(parentSelector, "image", useSharedArray, parentNode);
+                        //this.checkAttrName(parentSelector, "image", useSharedArray, parentNode);
+                        this.setAttrQueue.ensureInitialized("image", false);
                         this.setAttrQueue[parentSelector]["image"][indexOfParent] = bitmap;
                     });
                 }
                 catch(e) {console.log(e);}
-            }
+            }*/
         }
 
         if(attrName === 'className' || attrName.indexOf('style') !== -1) {
@@ -167,68 +162,27 @@ export default class Domhandler {
             }
         }
     }
-    
-    private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];
-    
-    private checkAttrName(parentSelector: string, attrName: string, useBuffer = false, parentNode?: VdomNode) {
-        if(attrName === 'class') {
-            attrName = 'className';
+
+    ensureElementIndex(svgEl: HTMLElement) {
+        if(!svgEl['globalElementIndex']) {
+            const node = this.getNodeFromElement(svgEl);
+            svgEl['globalElementIndex'] = node.globalElementIndex;
         }
-
-        if(!this.setAttrQueue[parentSelector]) {
-            this.setAttrQueue[parentSelector] = {};
-            this.sharedArrays[parentSelector] = {};
-        }
-
-        if(!useBuffer || this.useSharedArrayFor.indexOf(attrName) === -1) {
-            if(!this.setAttrQueue[parentSelector][attrName]) {
-                this.setAttrQueue[parentSelector][attrName] = [];
-            }
-        } else {
-            if(!this.sharedArrays[parentSelector][attrName]) {
-                if(!parentNode) {
-                    parentNode = this.vdom.getParentNodeFromSelector(parentSelector)
-                }
-                const length = parentNode.children.length;
-                const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
-                const values = new Int32Array(buffer);
-
-                // If values have been previously set without a buffer, transfer them.
-                if(this.setAttrQueue[parentSelector][attrName] &&
-                    !(this.setAttrQueue[parentSelector][attrName] instanceof SharedArrayBuffer)) {
-                    const prevData: string[] = <any> this.setAttrQueue[parentSelector][attrName];
-
-                    prevData.forEach((value, index) => {
-                        values[index] = parseFloat(value) * Domhandler.BUFFER_PRECISION_FACTOR;
-                    });
-                }
-
-                this.setAttrQueue[parentSelector][attrName] = buffer;
-                this.sharedArrays[parentSelector][attrName] = values;
-            }
-        }
-
-        return attrName;
     }
-    
+
     useAttrQueue(cb: (data) => void = () => {}) {
         if(this.nodesToRestyle) {
             this.applyStyles();
         }
 
-        cb(this.setAttrQueue);
-        this.vdom.updatePropertiesFromQueue(this.setAttrQueue);
-        
-        this.setAttrQueue = {};
+        const data = this.setAttrQueue.getData();
+        cb(data);
+        this.vdom.updatePropertiesFromQueue(data);
+
+        //this.setAttrQueue = {};
+        this.setAttrQueue.clearData();
     }
-    
-    getAttributesFromSelector(selection, name: string) {
-        // Dealing with d3 v3.
-        const els = selection._groups ? selection._groups[0] : selection[0];
-        
-        return els.map(el => this.getAttributeFromSelector(el, name));
-    }
-    
+
     getAttributeFromSelector(element: Element, name: string) {
         const node = this.getNodeFromElement(element);
         
@@ -285,7 +239,17 @@ export default class Domhandler {
             children: [],
             globalElementIndex: -1,
         };
-        
+
+        for(const styleProp in el.style) {
+            if(el.style.hasOwnProperty(styleProp)) {
+                const val = el.style[styleProp];
+                if(val !== '' && typeof el.style[styleProp] !== 'function') {
+                    const kebabCase = styleProp.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+                    node.style[kebabCase] = el.style[styleProp];
+                }
+            }
+        }
+
         const clean = obj => {
             const propNames = Object.getOwnPropertyNames(obj);
             for (let i = 0; i < propNames.length; i++) {
@@ -320,7 +284,7 @@ export default class Domhandler {
     }
 
     updateNodeSelector(oldSelector: string, newSelector: string) {
-        if(oldSelector === newSelector) {
+        /*if(oldSelector === newSelector) {
             return;
         }
         if(this.setAttrQueue[newSelector]) {
@@ -330,7 +294,7 @@ export default class Domhandler {
         } else {
             this.setAttrQueue[newSelector] = this.setAttrQueue[oldSelector];
             delete this.setAttrQueue[oldSelector];
-        }
+        }*/
     }
 
     private applyRuleToMatchingNodes(selectorString: string, rule: {style: {[settingName: string]: string}}): boolean {
@@ -355,38 +319,41 @@ export default class Domhandler {
         }
         const specificity = DrawingUtils.getCssRuleSpecificityNumber(selectorString);
 
-        const setStyle = (parentSelector: string, styleName: string, rule: {style: {[settingName: string]: string}},
-                          childIndex: number, child: VdomNode) => {
+        const setStyle = (styleName: string, rule: {style: {[settingName: string]: string}}, child: VdomNode) => {
             if(rule.style[styleName]) {
                 const longName = 'style;' + styleName;
                 const longSpecName = 'styleSpecificity;' + styleName;
-                this.checkAttrName(parentSelector, longName);
-                this.checkAttrName(parentSelector, longSpecName);
+                this.setAttrQueue.ensureInitialized(longName, false);
+                this.setAttrQueue.ensureInitialized(longSpecName, false);
+                /*this.checkAttrName(parentSelector, longName);
+                this.checkAttrName(parentSelector, longSpecName);*/
                 let setValue = false;
 
-                if(!this.setAttrQueue[parentSelector][longName][childIndex] && !child.style[styleName]) {
+                if(!this.setAttrQueue.get(child, longName) && !child.style[styleName]) {
                     setValue = true;
                 } else {
                     if(child.styleSpecificity[styleName]) {
                         // If a later rule has the same or higher specificity, apply.
                         // Hence, later rules override earlier rules.
                         if(child.styleSpecificity[styleName] <= specificity) {
-                            if(this.setAttrQueue[parentSelector][longSpecName][childIndex]) {
-                                setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] <= specificity;
+                            if(this.setAttrQueue.get(child, longSpecName)) {
+                                setValue = this.setAttrQueue.get(child, longSpecName) <= specificity;
                             } else {
                                 setValue = true;
                             }
                         } else {
-                            setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] <= specificity;
+                            setValue = this.setAttrQueue.get(child, longSpecName) <= specificity;
                         }
                     } else {
-                        setValue = this.setAttrQueue[parentSelector][longSpecName][childIndex] <= specificity;
+                        setValue = this.setAttrQueue.get(child, longSpecName) <= specificity;
                     }
                 }
 
                 if(setValue) {
-                    this.setAttrQueue[parentSelector][longName][childIndex] = rule.style[styleName];
-                    this.setAttrQueue[parentSelector][longSpecName][childIndex] = specificity;
+                    this.setAttrQueue.set(child, longName, rule.style[styleName], false);
+                    this.setAttrQueue.set(child, longSpecName, specificity, false);
+                    /*this.setAttrQueue[parentSelector][longName][childIndex] = rule.style[styleName];
+                    this.setAttrQueue[parentSelector][longSpecName][childIndex] = specificity;*/
                 }
             }
         };
@@ -409,13 +376,13 @@ export default class Domhandler {
                     } else {
                         const parentSelector = this.getNodeSelector(currentNode);
 
-                        setStyle(parentSelector, 'stroke', rule, childIndex, child);
-                        setStyle(parentSelector, 'stroke-opacity', rule, childIndex, child);
-                        setStyle(parentSelector, 'stroke-width', rule, childIndex, child);
-                        setStyle(parentSelector, 'stroke-linejoin', rule, childIndex, child);
-                        setStyle(parentSelector, 'fill', rule, childIndex, child);
-                        setStyle(parentSelector, 'fill-opacity', rule, childIndex, child);
-                        setStyle(parentSelector, 'font', rule, childIndex, child);
+                        setStyle('stroke', rule, child);
+                        setStyle('stroke-opacity', rule, child);
+                        setStyle('stroke-width', rule, child);
+                        setStyle('stroke-linejoin', rule, child);
+                        setStyle('fill', rule, child);
+                        setStyle('fill-opacity', rule, child);
+                        setStyle('font', rule, child);
                     }
                 } else {
                     if(child['removedClasses']) {
@@ -450,10 +417,15 @@ export default class Domhandler {
         if(rule.style['stroke']) {
             const color = drawingUtils.colorToRgba(rule.style['stroke']);
             if(child.style['stroke'] === color || child.style['stroke-rgba'] === color) {
-                this.checkAttrName(parentSelector, 'style;stroke');
-                this.setAttrQueue[parentSelector]['style;stroke'][childIndex] = '';
-                this.checkAttrName(parentSelector, 'style;stroke-rgba');
-                this.setAttrQueue[parentSelector]['style;stroke-rgba'][childIndex] = '';
+                //this.checkAttrName(parentSelector, 'style;stroke');
+                //this.setAttrQueue[parentSelector]['style;stroke'][childIndex] = '';
+                //this.checkAttrName(parentSelector, 'style;stroke-rgba');
+                //this.setAttrQueue[parentSelector]['style;stroke-rgba'][childIndex] = '';
+
+                this.setAttrQueue.ensureInitialized('style;stroke', false);
+                this.setAttrQueue.ensureInitialized('style;stroke-rgba', false);
+                this.setAttrQueue.set(child, 'style;stroke', '', false);
+                this.setAttrQueue.set(child, 'style;troke-rgba', '', false);
             }
         }
         //TODO remove other styles.

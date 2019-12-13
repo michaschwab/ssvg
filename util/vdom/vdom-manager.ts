@@ -1,82 +1,41 @@
-import DrawingUtils from "../canvasworker/drawingUtils";
-
-export class SetPropertyQueue {
-    [parentSelector: string]: {
-        [attrName: string]:
-            string[]|SharedArrayBuffer
-        
-    }
-}
-
-export type VDOM = {
-    width: number;
-    height: number;
-    scale: number;
-} & VdomNode;
-
-export type VdomNodeType = 'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'text'|'image';
-
-export type VdomNode = {
-    style: {[styleName: string]: string},
-    styleSpecificity: {[styleName: string]: number},
-    type: VdomNodeType,
-    children: VdomNode[],
-    globalElementIndex: number,
-    transform?: string,
-    fill?: string,
-    d?: string,
-    stroke?: string,
-    strokeWidth?: string,
-    cx?: number,
-    cy?: number,
-    r?: number,
-    x?: number,
-    y?: number,
-    x1?: number,
-    y1?: number,
-    x2?: number,
-    y2?: number,
-    dx?: string,
-    dy?: string,
-    width?: number,
-    height?: number,
-    textAlign?: string,
-    text?: string,
-    href?: string,
-    image?: ImageBitmap,
-    className?: string,
-    id?: string,
-}
+import DrawingUtils from "../../canvasworker/drawingUtils";
+import SetPropertyQueueData from "./set-property-queue-data";
+import {VDOM, VdomNode} from "./vdom";
 
 export class VdomManager {
 
     private static ATTRIBUTES_NOT_IGNORED_WITH_IGNOREDESIGN = ['fill', 'stroke', 'opacity', 'x1', 'x2', 'y1', 'y2', 'x',
         'y'];
+    private indexToNodeMap: {[index: number]: VdomNode} = {};
     
-    constructor(public data: VDOM, private ignoreDesign = false) {
-        //console.log(data);
+    constructor(public data: VDOM, private ignoreDesign: boolean) {
+        const addToMap = (node: VdomNode) => {
+            if(node.globalElementIndex === undefined) {
+                console.error('no element index', node);
+            }
+            this.indexToNodeMap[node.globalElementIndex] = node;
+            for(const child of node.children) {
+                addToMap(child);
+            }
+        };
+        addToMap(data);
     }
 
     enableFrontendDesignProperties() {
         this.ignoreDesign = false;
     }
     
-    addNode(nodeData: VdomNode, parentNodeSelector: string) {
-        let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
+    addNode(nodeData: VdomNode, parentNodeIndex: number) {
+        let parentNode = this.getNodeFromIndex(parentNodeIndex);
         if(!parentNode) {
-            if(parentNodeSelector === "") {
-                parentNode = this.data;
-            } else {
-                console.error(parentNode, parentNodeSelector);
-            }
+            console.error('could not add node without parent', parentNodeIndex, nodeData, this.data);
+            new Error('parent not found');
+            return;
         }
         this.applyParentStyles(parentNode, nodeData);
         
-        if(!parentNode || !parentNode.children) {
-            console.error('parent node not found or no children: ', parentNode, parentNodeSelector, this.data);
-        }
-        
         parentNode.children.push(nodeData);
+        this.indexToNodeMap[nodeData.globalElementIndex] = nodeData;
         return nodeData;
     }
 
@@ -132,63 +91,63 @@ export class VdomManager {
         }
     }
 
+    private getNodeFromIndex(index: number): VdomNode {
+        return this.indexToNodeMap[index];
+    }
+
     private static ROUNDED_ATTRS = ['cx', 'cy'];
 
-    updatePropertiesFromQueue(setAttrQueue: SetPropertyQueue) {
-        for(let parentSelector in setAttrQueue) {
-            if(!setAttrQueue[parentSelector]) {
-                continue;
-            }
-            const parentNode = this.getParentNodeFromSelector(parentSelector);
-            if(!parentNode) {
-                console.error('parent not found', parentSelector, setAttrQueue[parentSelector]);
-                continue;
-            }
+    updatePropertiesFromQueue(setAttrQueue: SetPropertyQueueData) {
                 
-            for(let attrName in setAttrQueue[parentSelector]) {
-                const attrNameStart = attrName.substr(0, 'style;'.length);
+        for(let attrName in setAttrQueue) {
+            const attrNameStart = attrName.substr(0, 'style;'.length);
 
-                if(this.ignoreDesign && (attrNameStart === 'style;' ||
-                    VdomManager.ATTRIBUTES_NOT_IGNORED_WITH_IGNOREDESIGN.indexOf(attrName) !== -1)) {
+            if(this.ignoreDesign && (attrNameStart === 'style;' ||
+                VdomManager.ATTRIBUTES_NOT_IGNORED_WITH_IGNOREDESIGN.indexOf(attrName) !== -1)) {
+                continue;
+            }
+
+            let values: string[]|Int32Array;
+            let factor: number;
+
+            if('SharedArrayBuffer' in self &&
+                setAttrQueue[attrName] instanceof SharedArrayBuffer) {
+                values = new Int32Array(<ArrayBuffer> setAttrQueue[attrName]);
+                factor = 1;
+            } else {
+                values = setAttrQueue[attrName] as string[];
+            }
+
+            for(let childIndex in values) {
+                // This skips all values that are 0 because the SharedArrayBuffer fills up with zeros.
+                //TODO(michaschwab): Find a solution for zero values.
+                if(values[childIndex] === 0) {
                     continue;
                 }
-                
-                let values: string[]|Int32Array;
-                let factor: number;
-                
-                if('SharedArrayBuffer' in self &&
-                    setAttrQueue[parentSelector][attrName] instanceof SharedArrayBuffer) {
-                    values = new Int32Array(<ArrayBuffer> setAttrQueue[parentSelector][attrName]);
-                    factor = 0.1;
-                } else {
-                    values = setAttrQueue[parentSelector][attrName] as string[];
+                const index = parseInt(childIndex);
+                const childNode = this.getNodeFromIndex(index);
+                if(!childNode) {
+                    continue;
                 }
-                
-                for(let childIndex in values) {
-                    const childNode = parentNode.children[childIndex];
-                    if(!childNode) {
-                        continue;
+                let value = factor ? factor * <number> values[childIndex] : values[childIndex];
+                if(attrNameStart === 'style;') {
+                    const styleName = attrName.substr('style;'.length);
+                    const specificityAttrName = 'styleSpecificity;' + styleName;
+                    try {
+                        const matchingSpecificity: number = setAttrQueue[specificityAttrName][childIndex];
+                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, matchingSpecificity);
+                        this.updateDeducedStyles(childNode, styleName, <string> value);
+                    } catch (e) {
+                        console.error(setAttrQueue, specificityAttrName, childIndex)
+                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, -1);
                     }
-                    let value = factor ? factor * <number> values[childIndex] : values[childIndex];
-                    if(attrNameStart === 'style;') {
-                        const styleName = attrName.substr('style;'.length);
-                        const specificityAttrName = 'styleSpecificity;' + styleName;
-                        try {
-                            const matchingSpecificity: number = setAttrQueue[parentSelector][specificityAttrName][childIndex];
-                            this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, matchingSpecificity);
-                            this.updateDeducedStyles(childNode, styleName, <string> value);
-                        } catch (e) {
-                            console.error(setAttrQueue, specificityAttrName, parentSelector, childIndex)
-                            this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, -1);
-                        }
 
-                    } else {
-                        if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
-                            value = Math.round(<number> value);
-                        }
-                        childNode[attrName] = value;
-                        this.updateDeducedStyles(childNode, attrName, <string> value);
+                } else {
+                    if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
+                        value = Math.round(<number> value);
                     }
+                    childNode[attrName] = value;
+                    this.updateDeducedStyles(childNode, attrName, <string> value);
                 }
             }
         }

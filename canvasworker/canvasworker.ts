@@ -1,4 +1,4 @@
-import { VdomManager } from "../util/vdomManager";
+import { VdomManager } from "../util/vdom/vdom-manager";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message"
 import Canvasrenderer from "./canvasrenderer";
 
@@ -20,7 +20,7 @@ workerContext.onmessage = function(e: MessageEvent) {
         switch(msg.cmd) {
             case 'INIT':
                 //console.log('init');
-                vdom = new VdomManager(msg.data.visData);
+                vdom = new VdomManager(msg.data.visData, false);
                 const safeMode = !!msg.data.safeMode;
                 worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode, () => {
                     workerContext.postMessage({msg: 'DRAWN'});
@@ -41,7 +41,7 @@ workerContext.onmessage = function(e: MessageEvent) {
                         if(!operation.keepChildren) {
                             operation.node.children = [];
                         }
-                        const node = vdom.addNode(operation.node, operation.parentNodeSelector);
+                        const node = vdom.addNode(operation.node, operation.parentNodeIndex);
                         if(worker.addNode) {
                             worker.addNode(node);
                         }

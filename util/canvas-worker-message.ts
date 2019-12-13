@@ -1,4 +1,4 @@
-import {VdomNode} from "./vdomManager";
+import {VdomNode} from "./vdom/vdom";
 
 export interface CanvasWorkerMessage {
     cmd: 'INIT'|'UPDATE_NODES'|'UPDATE_SIZE';
@@ -13,5 +13,5 @@ export interface CanvasUpdateWorkerMessage {
     };
 }
 
-export type CanvasUpdateData = ({ cmd: 'ENTER', node: VdomNode, parentNodeSelector: string, keepChildren: boolean }|
+export type CanvasUpdateData = ({ cmd: 'ENTER', node: VdomNode, parentNodeIndex: number, keepChildren: boolean }|
     { cmd: 'EXIT', childIndex: number, parentNodeSelector: string });

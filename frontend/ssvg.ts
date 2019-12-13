@@ -1,4 +1,5 @@
-import {VdomManager, VdomNode} from "../util/vdomManager";
+import {VdomManager} from "../util/vdom/vdom-manager";
+import {VdomNode} from "../util/vdom/vdom";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker-message"
 import Domhandler from "./domhandler";
 import CanvasWorker from "../canvasworker/canvasworker";
@@ -162,6 +163,17 @@ export default class SSVG {
                     //requestAnimationFrame(() => this.updateCanvas());
                     setTimeout(() => this.updateCanvas(), 1);
                     return;
+                }
+
+                for(let operation of  this.enterExitQueue) {
+                    if(operation.cmd === 'ENTER') {
+                        if(!operation.keepChildren) {
+                            operation.node.children = [];
+                        }
+                        this.vdom.addNode(operation.node, operation.parentNodeIndex);
+                    } else if(operation.cmd === 'EXIT') {
+                        this.vdom.removeNode(operation.childIndex, operation.parentNodeSelector);
+                    }
                 }
                 this.sendUpdateToWorker(queue);
             });
@@ -787,7 +799,7 @@ export default class SSVG {
                 me.enterExitQueue.push({
                     cmd: 'ENTER',
                     node: node,
-                    parentNodeSelector: parentSelector,
+                    parentNodeIndex: parentNode.globalElementIndex,
                     keepChildren: keepChildren
                 });
             } else {
@@ -926,6 +938,7 @@ export default class SSVG {
                     let childNode = this.nodeAtPosition(vdomNode, new_event.clientX-10, new_event.clientY-10);
                     if(childNode)
                     {
+                        //console.log(childNode);
                         /*let selector = parentSelector + ' > :nth-child(' + j + ')';
                         let svgEl = this.svg.querySelector(selector);*/
                         const svgEl = this.domHandler.getElementFromNode(vdomNode);

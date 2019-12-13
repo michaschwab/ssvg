@@ -1,6 +1,9 @@
-import {VdomManager, VdomNode} from "../util/vdomManager";
+import {VdomNode} from "../util/vdom/vdom";
+import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils from "./drawingUtils";
 import CanvasWorker from "./canvasworker";
+
+type DrawMode = 'start'|'normal'|'end'|'forcesingle';
 
 export default class Canvasrenderer implements CanvasWorker {
     
@@ -23,7 +26,6 @@ export default class Canvasrenderer implements CanvasWorker {
         }, 1000);
     }
     
-    //private lastDrawn: VdomNode = null;
     private lastFullSecond = 0;
     private countSinceLastFullSecond = 0;
     
@@ -105,7 +107,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
     
-    private drawSingleNode(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawSingleNode(elData: VdomNode, mode: DrawMode = 'normal') {
         const type: string = elData.type;
         const drawFct = this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)];
         if(!drawFct) {
@@ -119,7 +121,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
     
     private circlesByColor: {[color: string]: VdomNode[]} = {};
-    private drawCircle(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawCircle(elData: VdomNode, mode: DrawMode = 'normal') {
         if(mode === 'normal') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
             let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
@@ -145,9 +147,8 @@ export default class Canvasrenderer implements CanvasWorker {
 
                     this.ctx.fillStyle = fillColor;
                     let sampleData = this.circlesByColor[fillAndStrokeColor][0];
-                    const lineWidth = sampleData.style['stroke-width'] ?
-                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
-                    this.ctx.lineWidth = lineWidth ? lineWidth : 1;
+                    const lineWidth = this.getStrokeWidth(sampleData);
+                    this.ctx.lineWidth = lineWidth !== undefined ? lineWidth : 1;
                     this.ctx.strokeStyle = strokeColor;
 
                     this.ctx.beginPath();
@@ -185,8 +186,7 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.beginPath();
             this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, fillOpacity);
             this.ctx.strokeStyle = this.getStrokeStyle(elData);
-            this.ctx.lineWidth = elData.style['stroke-width'] ?
-                parseFloat(elData.style['stroke-width']) : parseFloat(elData.strokeWidth);
+            this.ctx.lineWidth = this.getStrokeWidth(elData);
             this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
             if(fill !== 'none'){
                 this.ctx.fill();
@@ -210,7 +210,7 @@ export default class Canvasrenderer implements CanvasWorker {
             return node.style['stroke-rgba'];
         }
         let stroke = node.style.stroke ? node.style.stroke : node.stroke;
-        if(stroke) {
+        if(stroke !== undefined) {
             let strokeOpacity = node.style['stroke-opacity'] === undefined ? node.style['opacity']
                 : node.style['stroke-opacity'];
             if(strokeOpacity === undefined) {
@@ -223,9 +223,14 @@ export default class Canvasrenderer implements CanvasWorker {
         return 'none';
     }
 
+    private getStrokeWidth(node: VdomNode) {
+        const width = node.style['stroke-width'] !== undefined ? node.style['stroke-width'] : node['stroke-width'];
+        return width === undefined ? undefined : parseFloat(width);
+    }
+
     private rectsByColor = {};
 
-    private drawRect(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawRect(elData: VdomNode, mode: DrawMode = 'normal') {
 
         if(mode === 'normal') {
             let fill = elData.style.fill ? elData.style.fill : elData.fill;
@@ -258,9 +263,8 @@ export default class Canvasrenderer implements CanvasWorker {
                     this.ctx.fillStyle = fillColor;
 
                     let sampleData = this.rectsByColor[fillAndStrokeColor][0];
-                    const lineWidth = sampleData.style['stroke-width'] ?
-                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData.strokeWidth);
-                    this.ctx.lineWidth = lineWidth ? lineWidth : 1;
+                    const lineWidth = this.getStrokeWidth(sampleData);
+                    this.ctx.lineWidth = lineWidth !== undefined ? lineWidth : 1;
                     this.ctx.strokeStyle = strokeColor;
 
                     this.ctx.beginPath();
@@ -297,7 +301,7 @@ export default class Canvasrenderer implements CanvasWorker {
             }
 
             let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-            if(stroke) {
+            if(stroke !== undefined) {
                 stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
                 this.ctx.strokeStyle = stroke;
                 this.ctx.beginPath();
@@ -309,19 +313,22 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private drawTexts: VdomNode[] = [];
 
-    private drawText(node: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawText(node: VdomNode, mode: DrawMode = 'normal') {
         const drawSingle = (elData: VdomNode) => {
             if(elData.text === '') {
                 return;
             }
-            const fontFamily = 'Arial';
-            const fontSize = elData['font-size'] ? DrawingUtils.convertSizeToPx(elData['font-size']) + 'px' : '30px';
+            const fontFamily = 'Times New Roman';
+            const fontSize = elData['font-size'] ? DrawingUtils.convertSizeToPx(elData['font-size']) + 'px' : '16px';
             let font = elData.style['font'] ? elData.style['font'] : elData['font'];
             if(!font) {
                 font = fontSize + ' ' + fontFamily;
             }
-            if(elData['text-anchor']) {
-                const align = elData['text-anchor'] === 'middle' ? 'center' : elData['text-anchor'];
+            let align = elData['text-anchor'] !== undefined ? elData['text-anchor'] : elData.style['text-anchor'];
+            if(align) {
+                if(align === 'middle') {
+                    align = 'center';
+                }
                 this.ctx.textAlign = align;
             }
             let fill = elData['fill'] ? elData['fill'] : elData.style['fill'];
@@ -355,7 +362,7 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private drawImages: VdomNode[] = [];
 
-    private drawImage(node: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawImage(node: VdomNode, mode: DrawMode = 'normal') {
         const drawSingle = (elData: VdomNode) => {
             if(elData.href === '') {
                 return;
@@ -394,22 +401,21 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
 
-    private drawPath(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawPath(elData: VdomNode, mode: DrawMode = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
 
         const fill = this.getFillStyle(elData);
         const stroke = this.getStrokeStyle(elData);
-        const strokeWidth = elData.style['stroke-width'] ? elData.style['stroke-width'] : elData['stroke-width'];
+        const strokeWidth = this.getStrokeWidth(elData);
 
         let p = new Path2D(elData.d);
         this.ctx.fillStyle = fill;
-        if(stroke && stroke !== 'none') {
-            if(strokeWidth) {
+        if(stroke !== undefined && stroke !== 'none') {
+            if(strokeWidth !== undefined) {
                 this.ctx.lineWidth = strokeWidth;
-                this.ctx.strokeStyle = stroke;
-            } else {
-                this.ctx.strokeStyle = stroke;
             }
+            this.ctx.strokeStyle = stroke;
+
             if(elData.style['stroke-linejoin']) {
                 const lineJoin = elData.style['stroke-linejoin'];
                 if(lineJoin === 'bevel' || lineJoin === 'round' || lineJoin === 'miter') {
@@ -426,7 +432,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
     
-    private drawTspan(elData: VdomNode, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawTspan(elData: VdomNode, mode: DrawMode = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
         
         this.ctx.font = "10px Arial";
@@ -441,42 +447,52 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private linesByColor: {[color: string]: VdomNode[]} = {};
-    private drawLine(elData, mode: ('start'|'normal'|'end'|'forcesingle') = 'normal') {
+    private drawLine(elData, mode: DrawMode = 'normal') {
         if(this.vdom.data.scale > 1) {
             //mode = 'forcesingle';
             // In my tests, drawing a long connected path is very slow for high DPI devices.
         }
         if(mode === 'normal') {
             const stroke = this.getStrokeStyle(elData);
-            if(stroke === 'none') {
+            const width = this.getStrokeWidth(elData);
+            if(stroke === 'none' || width === 0) {
                 return;
             }
-            if(!this.linesByColor[stroke]) {
-                this.linesByColor[stroke] = [];
+            const selector = `${stroke};${width}`;
+            if(!this.linesByColor[selector]) {
+                this.linesByColor[selector] = [];
             }
-            this.linesByColor[stroke].push(elData);
+            this.linesByColor[selector].push(elData);
         }
         if(mode === 'start') {
             this.linesByColor = {};
             return;
         }
         if(mode === 'end') {
-            for(let strokeColor in this.linesByColor) {
-                if(this.linesByColor.hasOwnProperty(strokeColor)) {
-                    this.ctx.strokeStyle = strokeColor;
+            //safeLog(Object.keys(this.linesByColor), this.linesByColor);
+            for(let selector in this.linesByColor) {
+                if(this.linesByColor.hasOwnProperty(selector)) {
+                    const split = selector.split(';');
+                    const strokeColor = split[0];
+                    const width = split[1];
 
-                    let sampleData = this.linesByColor[strokeColor][0];
-                    this.ctx.lineWidth = sampleData.style['stroke-width'] ?
-                        parseFloat(sampleData.style['stroke-width']) : parseFloat(sampleData['stroke-width']);
+                    this.ctx.strokeStyle = strokeColor;
+                    this.ctx.lineWidth = parseFloat(width);
 
                     this.ctx.beginPath();
-                    for(let elData of this.linesByColor[strokeColor]) {
-                        this.ctx.save();
-                        this.applyTransform(elData.transform);
-                        this.ctx.moveTo(elData.x1, elData.y1);
-                        this.ctx.lineTo(elData.x2, elData.y2);
-                        this.ctx.restore();
-                        //this.ctx.restore();
+                    for(let elData of this.linesByColor[selector]) {
+                        if(elData.transform) {
+                            this.ctx.save();
+                            this.applyTransform(elData.transform);
+                        }
+
+                        this.ctx.moveTo(elData.x1 || 0, elData.y1 || 0);
+                        this.ctx.lineTo(elData.x2 || 0, elData.y2 || 0);
+
+                        if(elData.transform) {
+                            //this.ctx.restore();
+                            this.ctx.restore();
+                        }
                     }
 
                     this.ctx.stroke();
@@ -486,10 +502,11 @@ export default class Canvasrenderer implements CanvasWorker {
         }
         if(mode === 'forcesingle') {
             this.ctx.beginPath();
-            this.ctx.moveTo(elData.x1, elData.y1);
-            this.ctx.lineTo(elData.x2, elData.y2);
+            this.ctx.moveTo(elData.x1 || 0, elData.y1 || 0);
+            this.ctx.lineTo(elData.x2 || 0, elData.y2 || 0);
 
-            this.ctx.strokeStyle = elData.style['stroke-rgba'];
+            this.ctx.strokeStyle = this.getStrokeStyle(elData);
+            this.ctx.lineWidth = this.getStrokeWidth(elData);
             //safeLog(stroke, this.ctx.strokeStyle);
             this.ctx.stroke();
         }
@@ -510,9 +527,10 @@ export default class Canvasrenderer implements CanvasWorker {
                 //console.log(transform.rotate);
             }
             //console.log(transformString);
+            this.ctx.rotate(transform.rotate * Math.PI / 180);
             this.ctx.transform(transform.scaleX, 0, 0, transform.scaleY, transform.translateX, transform.translateY);
             //ctx.rotate(transform.rotate / 2 / Math.PI);
-            this.ctx.rotate(transform.rotate * Math.PI / 180);
+
             //console.log(transform.rotate);
             return true;
         }
