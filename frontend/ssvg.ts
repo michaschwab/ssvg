@@ -165,7 +165,7 @@ export default class SSVG {
                     return;
                 }
 
-                for(let operation of  this.enterExitQueue) {
+                for(let operation of this.enterExitQueue) {
                     if(operation.cmd === 'ENTER') {
                         if(!operation.keepChildren) {
                             operation.node.children = [];
@@ -209,6 +209,7 @@ export default class SSVG {
                     safeMode: this.safeMode
                 }
             }, [offscreen]);
+            this.vdom.ensureNodesMapped();
         } else {
             this.renderer = new Canvasrenderer(this.vdom, this.canvas, this.safeMode, () => {});
         }

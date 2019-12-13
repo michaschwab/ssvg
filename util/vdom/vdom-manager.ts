@@ -9,6 +9,10 @@ export class VdomManager {
     private indexToNodeMap: {[index: number]: VdomNode} = {};
     
     constructor(public data: VDOM, private ignoreDesign: boolean) {
+        this.ensureNodesMapped();
+    }
+
+    ensureNodesMapped() {
         const addToMap = (node: VdomNode) => {
             if(node.globalElementIndex === undefined) {
                 console.error('no element index', node);
@@ -18,7 +22,7 @@ export class VdomManager {
                 addToMap(child);
             }
         };
-        addToMap(data);
+        addToMap(this.data);
     }
 
     enableFrontendDesignProperties() {
@@ -28,7 +32,7 @@ export class VdomManager {
     addNode(nodeData: VdomNode, parentNodeIndex: number) {
         let parentNode = this.getNodeFromIndex(parentNodeIndex);
         if(!parentNode) {
-            console.error('could not add node without parent', parentNodeIndex, nodeData, this.data);
+            console.error('could not add node without parent', parentNodeIndex, nodeData, JSON.stringify(Object.keys(this.indexToNodeMap)));
             new Error('parent not found');
             return;
         }
