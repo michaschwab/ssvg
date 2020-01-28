@@ -1,4 +1,4 @@
-import { VdomManager } from "../util/vdomManager";
+import {VdomManager} from "../util/vdom/vdom-manager";
 import CanvasWorker from "./canvasworker";
 import DrawingUtils from "./drawingUtils";
 if ('importScripts' in self) {
