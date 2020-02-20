@@ -31,10 +31,10 @@ export default class DrawingUtils {
                 //console.error('no translate found', transform);
             }
             
-            const scale = /\s*scale\(([-0-9.]+)\)/.exec(transformString);
+            const scale = /\s*scale\(([-0-9.]+)(,[-0-9.]+)?\)/.exec(transformString);
             if (scale) {
                 transformObject.scaleX = parseFloat(scale[1]);
-                transformObject.scaleY = parseFloat(scale[1]);
+                transformObject.scaleY = scale[2] ? parseFloat(scale[2].substr(1)) : parseFloat(scale[1]);
             }
             else {
                 //console.error('no scale found', transform);
@@ -48,7 +48,7 @@ export default class DrawingUtils {
                 //console.error('no rotate found', transform);
             }
             
-            const translateScale = /\s*translate\(([-0-9.]+),([-0-9.]+)\)scale\(([-0-9.]+)\)/.exec(transformString);
+            const translateScale = /\s*translate\(([-0-9.]+),([-0-9.]+)\)scale\(([-0-9.,]+)\)/.exec(transformString);
             if (translateScale) {
                 transformObject.translateBeforeScale = true;
             }
