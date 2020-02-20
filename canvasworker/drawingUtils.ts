@@ -98,9 +98,14 @@ export default class DrawingUtils {
         return defaultValue;
     }
     
-    static colorToRgba(color: string|{r: number, g: number, b: number}|{h: number, s: number, l: number}, opacity: string|number = 1): string {
-        if(!color || color === 'none') {
-            return 'none';
+    static colorToRgba(color: string|{r: number, g: number, b: number}|{h: number, s: number, l: number},
+                       opacity: string|number = 1,
+                       defaultColor ='none'): string {
+        if(color === 'none') {
+            return color;
+        }
+        if(!color) {
+            return defaultColor;
         }
         color = DrawingUtils.CssNamedColorToHex(color);
         if(opacity === 1 && typeof color === 'string') {

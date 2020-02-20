@@ -198,10 +198,10 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
 
-    private getFillStyle(node: VdomNode): string {
+    private getFillStyle(node: VdomNode, defaultColor = 'none'): string {
         let fill = node.style.fill ? node.style.fill : node.fill;
         let opacity = node.style['fill-opacity'] ? node.style['fill-opacity'] : node.style['opacity'];
-        fill = DrawingUtils.colorToRgba(fill, opacity);
+        fill = DrawingUtils.colorToRgba(fill, opacity, defaultColor);
         return fill;
     }
 
@@ -404,7 +404,7 @@ export default class Canvasrenderer implements CanvasWorker {
     private drawPath(elData: VdomNode, mode: DrawMode = 'normal') {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
 
-        const fill = this.getFillStyle(elData);
+        const fill = this.getFillStyle(elData, '#000000');
         const stroke = this.getStrokeStyle(elData);
         const strokeWidth = this.getStrokeWidth(elData);
 
