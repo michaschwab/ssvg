@@ -12,8 +12,8 @@ export default class Domhandler {
 
     constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign: boolean) {
         const visData: any = {
-            width: this.svg.getAttribute('width'),
-            height: this.svg.getAttribute('height'),
+            width: parseInt(this.svg.getAttribute('width')),
+            height: parseInt(this.svg.getAttribute('height')),
             scale: 1,
             children: [],
             globalElementIndex: 0,
