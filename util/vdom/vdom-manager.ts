@@ -1,6 +1,7 @@
 import DrawingUtils from "../../canvasworker/drawingUtils";
 import SetPropertyQueueData from "./set-property-queue-data";
 import {VDOM, VdomNode} from "./vdom";
+import SetPropertyQueue from "./set-property-queue";
 
 export class VdomManager {
 
@@ -104,6 +105,9 @@ export class VdomManager {
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueueData) {
                 
         for(let attrName in setAttrQueue) {
+            if(!setAttrQueue.hasOwnProperty(attrName)) {
+                continue;
+            }
             const attrNameStart = attrName.substr(0, 'style;'.length);
 
             if(this.ignoreDesign && (attrNameStart === 'style;' ||
@@ -112,12 +116,12 @@ export class VdomManager {
             }
 
             let values: string[]|Int32Array;
-            let factor: number;
+            let factor: number|undefined;
 
             if('SharedArrayBuffer' in self &&
                 setAttrQueue[attrName] instanceof SharedArrayBuffer) {
                 values = new Int32Array(<ArrayBuffer> setAttrQueue[attrName]);
-                factor = 1;
+                factor = 1 / SetPropertyQueue.BUFFER_PRECISION_FACTOR;
             } else {
                 values = setAttrQueue[attrName] as string[];
             }
@@ -125,6 +129,9 @@ export class VdomManager {
             for(let childIndex in values) {
                 // This skips all values that are 0 because the SharedArrayBuffer fills up with zeros.
                 //TODO(michaschwab): Find a solution for zero values.
+                if(!values.hasOwnProperty(childIndex)) {
+                    continue;
+                }
                 if(values[childIndex] === 0) {
                     continue;
                 }
@@ -142,7 +149,7 @@ export class VdomManager {
                         this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, matchingSpecificity);
                         this.updateDeducedStyles(childNode, styleName, <string> value);
                     } catch (e) {
-                        console.error(setAttrQueue, specificityAttrName, childIndex)
+                        console.error(setAttrQueue, specificityAttrName, childIndex);
                         this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, -1);
                     }
 

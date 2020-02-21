@@ -11,7 +11,7 @@ class CompleteSetPropertyQueueData {
 export default class SetPropertyQueue {
     private data: CompleteSetPropertyQueueData = {'raw': {}, 'shared': {}};
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];
-    private static BUFFER_PRECISION_FACTOR = 10;
+    static BUFFER_PRECISION_FACTOR = 10;
 
     ensureInitialized(attrName: string, useBuffer: boolean) {
         if(attrName === 'class') {
@@ -52,18 +52,23 @@ export default class SetPropertyQueue {
             console.error('No index', element);
             throw new Error('Element has no index');
         }
+        const index = element['globalElementIndex'];
         const storage = useBuffer && this.useSharedArrayFor.indexOf(attrName) !== -1 ? 'shared' : 'raw';
         try {
-            this.data[storage][attrName][element['globalElementIndex']] = value;
+            if(storage === 'shared') {
+                value *= SetPropertyQueue.BUFFER_PRECISION_FACTOR;
+            }
+            this.data[storage][attrName][index] = value;
         }
         catch(e) {
             console.log(e);
-            console.log(this.data, storage, attrName, element, element['globalElementIndex']);
+            console.log(this.data, storage, attrName, element, index);
         }
     }
 
     get(node: VdomNode, attrName: string) {
-        return this.data.raw[attrName][node['globalElementIndex']];
+        const index = node['globalElementIndex'];
+        return this.data.raw[attrName][index];
     }
 
     getData() {
