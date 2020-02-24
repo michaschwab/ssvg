@@ -528,7 +528,8 @@ export default class Canvasrenderer implements CanvasWorker {
             }
             //console.log(transformString);
             this.ctx.rotate(transform.rotate * Math.PI / 180);
-            this.ctx.transform(transform.scaleX, 0, 0, transform.scaleY, transform.translateX, transform.translateY);
+            this.ctx.transform(transform.scaleX, 0, 0, transform.scaleY,
+                transform.translateX * transform.scaleX, transform.translateY * transform.scaleY);
             //ctx.rotate(transform.rotate / 2 / Math.PI);
 
             //console.log(transform.rotate);
