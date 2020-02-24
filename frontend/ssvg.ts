@@ -85,6 +85,7 @@ export default class SSVG {
         this.setupElementsIfSvgExists(svg);
         
         this.canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
+        this.canvas.addEventListener('touchstart', e => this.propagateTouchEvent(e));
         this.canvas.addEventListener('mousemove', e => {
             const lastHovered = this.hoveredElement;
             this.hoveredElement = this.propagateMouseEvent(e);
@@ -95,7 +96,18 @@ export default class SSVG {
             }
             this.propagateMouseEvent(e, 'mouseover');
         });
+        this.canvas.addEventListener('touchmove', e => {
+            const lastHovered = this.hoveredElement;
+            this.hoveredElement = this.propagateTouchEvent(e);
+            if(lastHovered !== this.hoveredElement) {
+                if(lastHovered) {
+                    lastHovered.dispatchEvent(this.duplicateTouchEvent(e, 'mouseout'));
+                }
+            }
+            this.propagateTouchEvent(e, 'mouseover');
+        });
         this.canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
+        this.canvas.addEventListener('touchend', e => this.propagateTouchEvent(e));
         this.canvas.addEventListener('click', e => this.propagateMouseEvent(e));
         this.canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
 
@@ -913,12 +925,47 @@ export default class SSVG {
     private propagateMouseEvent(evt: MouseEvent, type?: string) {
         return this.propagateEvent(new MouseEvent(type? type : evt.type, evt));
     }
+
+    private duplicateTouchEvent(evt: TouchEvent, type?: string) {
+        const e = document.createEvent('TouchEvent');
+        if(!type) {
+            type = evt.type;
+        }
+        e.initEvent(type, true, false);
+        for(const prop in evt) {
+            if(prop !== 'isTrusted' && evt.hasOwnProperty(prop)) {
+                Object.defineProperty(e, prop, {
+                    writable: true,
+                    value: evt[prop],
+                });
+            }
+        }
+        Object.defineProperty(e, 'type', {
+            writable: true,
+            value: type,
+        });
+        const touches = [];
+        for(let i = 0; i < evt.touches.length; i++) {
+            const touch = evt.touches[i];
+            touches.push({identifier: touch.identifier, pageX: touch.pageX, pageY: touch.pageY,
+                clientX: touch.clientX, clientY: touch.clientY});
+        }
+        Object.defineProperty(e, 'touches', {
+            writable: true,
+            value: touches,
+        });
+        return e;
+    }
+
+    private propagateTouchEvent(evt: TouchEvent, type?: string) {
+        return this.propagateEvent(this.duplicateTouchEvent(evt, type));
+    }
     
     private propagateWheelEvent(evt: WheelEvent) {
         return this.propagateEvent(new WheelEvent(evt.type, evt));
     }
     
-    private propagateEvent(new_event: MouseEvent|WheelEvent): undefined|Element {
+    private propagateEvent(new_event: MouseEvent|TouchEvent|WheelEvent): undefined|Element {
         this.svg.dispatchEvent(new_event); // for EasyPZ
 
         let triggeredElement: undefined|Element;
@@ -936,7 +983,8 @@ export default class SSVG {
             } else {
                 for(let vdomNode of parentNode.children)
                 {
-                    let childNode = this.nodeAtPosition(vdomNode, new_event.clientX-10, new_event.clientY-10);
+                    const {x, y} = SSVG.getMousePosition(new_event);
+                    let childNode = this.nodeAtPosition(vdomNode, x - 10, y - 10);
                     if(childNode)
                     {
                         //console.log(childNode);
@@ -967,6 +1015,25 @@ export default class SSVG {
             }
         }
         return triggeredElement;
+    }
+
+    //TODO move this function somewhere else.
+    private static getMousePosition(event: MouseEvent|TouchEvent) : {x: number, y: number}|null
+    {
+        let pos = {x: 0, y: 0};
+
+        if(event.type.substr(0,5) === 'mouse' && event['clientX'])
+        {
+            pos = {x: event['clientX'], y: event['clientY']};
+        }
+        else if(event.type.substr(0,5) === 'touch')
+        {
+            const touches = event['touches'] ? event['touches'] : [];
+            if(touches.length < 1) return null;
+            pos = {x: touches[0].clientX, y: touches[0].clientY};
+        }
+
+        return pos;
     }
     
     private nodeAtPosition(visNode: VdomNode, x: number, y: number): false|VdomNode {
