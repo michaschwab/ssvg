@@ -3,7 +3,8 @@ export type Transformation = {
     translateY: number,
     scaleX: number,
     scaleY: number,
-    rotate: number
+    rotate: number,
+    translateBeforeScale: boolean
 }
 
 export default class DrawingUtils {
@@ -73,8 +74,10 @@ export default class DrawingUtils {
             translateY: transformA.translateY + transformB.translateY,
             scaleX: transformA.scaleX * transformB.scaleX,
             scaleY: transformA.scaleY * transformB.scaleY,
-            rotate: transformA.rotate + transformB.rotate
+            rotate: transformA.rotate + transformB.rotate,
+            translateBeforeScale: false
         };
+        //TODO: consider translateBeforeScale
     }
 
     static convertSizeToPx(size: string|number, fallback = true): number|undefined {
