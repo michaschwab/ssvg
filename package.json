@@ -1,6 +1,6 @@
 {
   "name": "ssvg",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Library to speed up interactive svg-based data visualizations by transforming them into canvases.",
   "main": "svgtocanvas.js",
   "dependencies": {
@@ -15,7 +15,8 @@
     "worker-loader": "^2.0.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "webpack && cp dist/ssvg.js ./ && cp dist/ssvg.js.map ./ && cp dist/ssvg-auto.js ./ && cp dist/ssvg-auto.js.map ./"
   },
   "repository": {
     "type": "git",
