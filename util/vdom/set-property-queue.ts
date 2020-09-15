@@ -8,16 +8,6 @@ class CompleteSetPropertyQueueData {
     };
 }
 
-const bufferX = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
-const bufferValuesX = new Int32Array(bufferX);
-const bufferY = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
-const bufferValuesY = new Int32Array(bufferY);
-
-const data = {
-    'raw': {'fill': ['red','red','red'], 'class': ['group1', 'group1', 'group1']},
-    'shared': {'cx': bufferValuesX, 'cy': bufferValuesY}
-};
-
 export default class SetPropertyQueue {
     private data: CompleteSetPropertyQueueData = {'raw': {}, 'shared': {}};
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];

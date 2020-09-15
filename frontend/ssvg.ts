@@ -417,6 +417,8 @@ export default class SSVG {
             return me.domHandler.getElementFromNode(childNodes[0]);
         };
     }
+
+    logged = 0;
     
     private replaceD3Attr() {
 
@@ -453,6 +455,8 @@ export default class SSVG {
                     // earlier versions, where selectAll() returned other values.
                     let elements = this._groups ? this._groups[0] : this[0];
 
+
+
                     if(typeof elements === 'object' && Object.keys(elements).length === 1 && elements.parentNode) {
                         const parentElement = elements.parentNode;
                         let parentNode: VdomNode;
@@ -471,6 +475,10 @@ export default class SSVG {
                         for(const child of parentNode.children) {
                             elements.push(me.domHandler.getElementFromNode(child));
                         }
+                    }
+                    if(name === 'opacity' && me.logged < 10) {
+                        me.logged++;
+                        console.log(elements, arguments, this, {...this._groups});
                     }
                     if(!elements) {
                         return originalFct.apply(this, arguments);

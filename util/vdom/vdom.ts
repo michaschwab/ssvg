@@ -14,6 +14,7 @@ export type VdomNode = {
     globalElementIndex: number,
     transform?: string,
     fill?: string,
+    opacity?: number,
     d?: string,
     stroke?: string,
     strokeWidth?: string,

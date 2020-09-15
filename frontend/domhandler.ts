@@ -104,7 +104,8 @@ export default class Domhandler {
             }
         }
     }
-    
+
+    logged = 0;
     queueSetAttributeOnSelection(elements: (HTMLElement & {__data__: any})[], attrName: string, value) {
         if(!elements.length) return;
         if(!elements[0]) {
@@ -226,6 +227,7 @@ export default class Domhandler {
             x2: getRoundedAttr(el, 'x2'),
             y1: getRoundedAttr(el, 'y1'),
             y2: getRoundedAttr(el, 'y2'),
+            opacity: getRoundedAttr(el, 'opacity'),
             width: getRoundedAttr(el, 'width'),
             height: getRoundedAttr(el, 'height'),
             stroke: el.getAttribute('stroke'),
@@ -384,6 +386,7 @@ export default class Domhandler {
                         setStyle('fill', rule, child);
                         setStyle('fill-opacity', rule, child);
                         setStyle('font', rule, child);
+                        setStyle('opacity', rule, child);
                     }
                 } else {
                     if(child['removedClasses']) {

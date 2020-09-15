@@ -123,12 +123,9 @@ export default class Canvasrenderer implements CanvasWorker {
     private circlesByColor: {[color: string]: VdomNode[]} = {};
     private drawCircle(elData: VdomNode, mode: DrawMode = 'normal') {
         if(mode === 'normal') {
-            let fill = elData.style.fill ? elData.style.fill : elData.fill;
-            let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
-            if(!fill) fill = 'rgb(0,0,0)';
-            const fillRgba = DrawingUtils.colorToRgba(fill, fillOpacity);
+            let fill = this.getFillStyle(elData, '#000');
             const stroke = this.getStrokeStyle(elData);
-            const handle = fillRgba + ';' + stroke;
+            const handle = fill + ';' + stroke;
             if(!this.circlesByColor[handle]) {
                 this.circlesByColor[handle] = [];
             }
@@ -176,15 +173,13 @@ export default class Canvasrenderer implements CanvasWorker {
             return;
         }
         if(mode === 'forcesingle') {
-            let fill = elData.style.fill ? elData.style.fill : elData.fill;
-            if(!fill) fill = '#000';
-            let fillOpacity = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
+            let fill = this.getFillStyle(elData, '#000');
 
             const cx = elData.cx || 0;
             const cy = elData.cy || 0;
 
             this.ctx.beginPath();
-            this.ctx.fillStyle = DrawingUtils.colorToRgba(fill, fillOpacity);
+            this.ctx.fillStyle = fill;
             this.ctx.strokeStyle = this.getStrokeStyle(elData);
             this.ctx.lineWidth = this.getStrokeWidth(elData);
             this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
@@ -200,7 +195,13 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private getFillStyle(node: VdomNode, defaultColor = 'none'): string {
         let fill = node.style.fill ? node.style.fill : node.fill;
-        let opacity = node.style['fill-opacity'] ? node.style['fill-opacity'] : node.style['opacity'];
+        let opacity = node.opacity;
+        if(node.style['fill-opacity']) {
+            opacity = parseFloat(node.style['fill-opacity']);
+        }
+        if(node.style['opacity']) {
+            opacity = parseFloat(node.style['opacity']);
+        }
         fill = DrawingUtils.colorToRgba(fill, opacity, defaultColor);
         return fill;
     }
