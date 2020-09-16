@@ -319,8 +319,20 @@ export default class Canvasrenderer implements CanvasWorker {
             if(elData.text === '') {
                 return;
             }
-            const fontFamily = 'Times New Roman';
-            const fontSize = elData['font-size'] ? DrawingUtils.convertSizeToPx(elData['font-size']) + 'px' : '16px';
+            let fontFamily = 'Times New Roman';
+            if(elData['font-family']) {
+                fontFamily = elData['font-family'];
+            }
+            if(elData.style['font-family']) {
+                fontFamily = elData.style['font-family'];
+            }
+            let fontSize = '16px';
+            if(elData['font-size']) {
+                fontSize = DrawingUtils.convertSizeToPx(elData['font-size']) + 'px';
+            }
+            if(elData.style['font-size']) {
+                fontSize = DrawingUtils.convertSizeToPx(elData.style['font-size']) + 'px';
+            }
             let font = elData.style['font'] ? elData.style['font'] : elData['font'];
             if(!font) {
                 font = fontSize + ' ' + fontFamily;

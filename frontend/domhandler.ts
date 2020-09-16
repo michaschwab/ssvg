@@ -4,6 +4,9 @@ import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 import drawingUtils from "../canvasworker/drawingUtils";
 
+export const CSS_STYLES = ['stroke', 'stroke-opacity', 'stroke-width', 'stroke-linejoin',
+    'fill', 'fill-opacity', 'font', 'opacity', 'font-family', 'font-size'];
+
 export default class Domhandler {
     private readonly vdom: VdomManager;
     private setAttrQueue = new SetPropertyQueue();
@@ -234,6 +237,7 @@ export default class Domhandler {
             "stroke-width": getRoundedAttr(el, 'stroke-width'),
             text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : undefined,
             'font-size': el.getAttribute('font-size'),
+            'font-family': el.getAttribute('font-family'),
             'font': el.getAttribute('font'),
             'text-anchor': el.getAttribute('text-anchor'),
             href: el.getAttribute('href'),
@@ -379,14 +383,9 @@ export default class Domhandler {
                     } else {
                         const parentSelector = this.getNodeSelector(currentNode);
 
-                        setStyle('stroke', rule, child);
-                        setStyle('stroke-opacity', rule, child);
-                        setStyle('stroke-width', rule, child);
-                        setStyle('stroke-linejoin', rule, child);
-                        setStyle('fill', rule, child);
-                        setStyle('fill-opacity', rule, child);
-                        setStyle('font', rule, child);
-                        setStyle('opacity', rule, child);
+                        for(const styleName of CSS_STYLES) {
+                            setStyle(styleName, rule, child);
+                        }
                     }
                 } else {
                     if(child['removedClasses']) {
