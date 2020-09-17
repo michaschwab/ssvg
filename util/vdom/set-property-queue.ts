@@ -24,7 +24,7 @@ export default class SetPropertyQueue {
             }
         } else {
             if(!this.data.shared[attrName]) {
-                const length = 10000; //Todo use number of elements in vdom
+                const length = 1000; //Todo use number of elements in vdom
                 const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
                 const values = new Int32Array(buffer);
 

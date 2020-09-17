@@ -10,7 +10,7 @@ export const CSS_STYLES = ['stroke', 'stroke-opacity', 'stroke-width', 'stroke-l
 export default class Domhandler {
     private readonly vdom: VdomManager;
     private setAttrQueue = new SetPropertyQueue();
-    private nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
+    public nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
 
     constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign: boolean) {
@@ -437,6 +437,7 @@ export default class Domhandler {
     removeNodeFromParent(element: Element, node: VdomNode) {
         const parentSelector = element['parentSelector'];
         const childIndex = element['childIndex'];
+        //console.log('removing', node, 'from', parentNode, [...parentNode.children], childIndex, childIndex2);
         this.vdom.removeNode(childIndex, parentSelector);
         let index = this.nodesToElements.nodes.indexOf(node);
         if(index === -1) {

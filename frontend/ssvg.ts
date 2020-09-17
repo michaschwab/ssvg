@@ -177,7 +177,7 @@ export default class SSVG {
                     return;
                 }
 
-                for(let operation of this.enterExitQueue) {
+                /*for(let operation of this.enterExitQueue) {
                     if(operation.cmd === 'ENTER') {
                         if(!operation.keepChildren) {
                             operation.node.children = [];
@@ -186,7 +186,7 @@ export default class SSVG {
                     } else if(operation.cmd === 'EXIT') {
                         this.vdom.removeNode(operation.childIndex, operation.parentNodeSelector);
                     }
-                }
+                }*/
                 this.sendUpdateToWorker(queue);
             });
         } else {
@@ -612,7 +612,6 @@ export default class SSVG {
                             }
                             newRemove.call(parentElement, element);
                         }
-
                     }
                     if(parentElement) {
                         me.updateChildSelectors(parentElement);
@@ -661,6 +660,10 @@ export default class SSVG {
             const childElement = this.domHandler.getElementFromNode(childNode);
             if(!childElement) {
                 console.error('element not found', childNode, parentNode.children.length, i);
+                console.log('current elements:', [...this.domHandler.nodesToElements.elements]);
+                console.log('current nodes:', [...this.domHandler.nodesToElements.nodes]);
+                console.log('parent node: ', parentNode);
+                console.log('children:', [...parentNode.children]);
                 continue;
             }
             const oldSelector = childElement['selector'];
@@ -795,6 +798,10 @@ export default class SSVG {
                     getPropertyValue: function(styleProp) {
                         me.domHandler.enableFrontendDesignProperties();
                         return node.style[styleProp];
+                    },
+                    removeProperty: function() {
+                        console.log('remove property not yet implemented.');
+                        //TODO implement removeProperty CSS function.
                     }
                 }
             });
