@@ -1,5 +1,4 @@
 import {VdomNode, VdomNodeType} from "../util/vdom/vdom";
-import SetPropertyQueue from "../util/vdom/set-property-queue";
 import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 import drawingUtils from "../canvasworker/drawingUtils";
@@ -9,7 +8,6 @@ export const CSS_STYLES = ['stroke', 'stroke-opacity', 'stroke-width', 'stroke-l
 
 export default class Domhandler {
     private readonly vdom: VdomManager;
-    private setAttrQueue = new SetPropertyQueue();
     public nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
 
@@ -70,13 +68,13 @@ export default class Domhandler {
             attrName = attrName.substr('style;'.length);
         }
         //attrName = this.checkAttrName(parentSelector, attrName, false);
-        this.setAttrQueue.ensureInitialized(attrName, false, this.nodesToElements.nodes.length);
+        this.vdom.ensureInitialized(attrName, false, this.nodesToElements.nodes.length);
 
         const evaluatedValue = typeof value === "function" ? value.call(<any> element, (<any> element).__data__, childIndex) : value;
         //const node = this.getNodeFromElement(element);
         //this.setAttrQueue.set(node, attrName, evaluatedValue, false);
         const node = this.getNodeFromElement(element);
-        this.setAttrQueue.set(node, attrName, evaluatedValue, false);
+        this.vdom.set(node, attrName, evaluatedValue, false);
 
         if(attrName === "href") {
             try {
@@ -85,8 +83,8 @@ export default class Domhandler {
                     .then(blob => createImageBitmap(blob))
                     .then(bitmap => {
                         //this.checkAttrName(parentSelector, "image", false);
-                        this.setAttrQueue.ensureInitialized("image", false, this.nodesToElements.nodes.length);
-                        this.setAttrQueue[parentSelector]["image"][childIndex] = bitmap;
+                        this.vdom.ensureInitialized("image", false, this.nodesToElements.nodes.length);
+                        this.vdom.set(node, 'image', bitmap, false);
                     });
             }
             catch(e) {console.log(e);}
@@ -124,7 +122,7 @@ export default class Domhandler {
             console.error('selector not found');
         }
 
-        this.setAttrQueue.ensureInitialized(attrName, useSharedArray, this.nodesToElements.nodes.length);
+        this.vdom.ensureInitialized(attrName, useSharedArray, this.nodesToElements.nodes.length);
 
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
@@ -132,7 +130,7 @@ export default class Domhandler {
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
             this.ensureElementIndex(svgEl);
 
-            this.setAttrQueue.set(svgEl, attrName, evaluatedValue, useSharedArray);
+            this.vdom.set(svgEl, attrName, evaluatedValue, useSharedArray);
 
             //TODO: re-implement.
             /*if(attrName === "href") {
@@ -179,12 +177,10 @@ export default class Domhandler {
             this.applyStyles();
         }
 
-        const data = this.setAttrQueue.getData();
+        const data = this.vdom.getQueue();
         cb(data);
         this.vdom.updatePropertiesFromQueue(data);
-
-        //this.setAttrQueue = {};
-        this.setAttrQueue.clearData();
+        this.vdom.clearQueue();
     }
 
     getAttributeFromSelector(element: Element, name: string) {
@@ -330,35 +326,35 @@ export default class Domhandler {
             if(rule.style[styleName]) {
                 const longName = 'style;' + styleName;
                 const longSpecName = 'styleSpecificity;' + styleName;
-                this.setAttrQueue.ensureInitialized(longName, false, this.nodesToElements.nodes.length);
-                this.setAttrQueue.ensureInitialized(longSpecName, false, this.nodesToElements.nodes.length);
+                this.vdom.ensureInitialized(longName, false, this.nodesToElements.nodes.length);
+                this.vdom.ensureInitialized(longSpecName, false, this.nodesToElements.nodes.length);
                 /*this.checkAttrName(parentSelector, longName);
                 this.checkAttrName(parentSelector, longSpecName);*/
                 let setValue = false;
 
-                if(!this.setAttrQueue.get(child, longName) && !child.style[styleName]) {
+                if(!this.vdom.getQueueValue(child, longName) && !child.style[styleName]) {
                     setValue = true;
                 } else {
                     if(child.styleSpecificity[styleName]) {
                         // If a later rule has the same or higher specificity, apply.
                         // Hence, later rules override earlier rules.
                         if(child.styleSpecificity[styleName] <= specificity) {
-                            if(this.setAttrQueue.get(child, longSpecName)) {
-                                setValue = this.setAttrQueue.get(child, longSpecName) <= specificity;
+                            if(this.vdom.getQueueValue(child, longSpecName)) {
+                                setValue = this.vdom.getQueueValue(child, longSpecName) <= specificity;
                             } else {
                                 setValue = true;
                             }
                         } else {
-                            setValue = this.setAttrQueue.get(child, longSpecName) <= specificity;
+                            setValue = this.vdom.getQueueValue(child, longSpecName) <= specificity;
                         }
                     } else {
-                        setValue = this.setAttrQueue.get(child, longSpecName) <= specificity;
+                        setValue = this.vdom.getQueueValue(child, longSpecName) <= specificity;
                     }
                 }
 
                 if(setValue) {
-                    this.setAttrQueue.set(child, longName, rule.style[styleName], false);
-                    this.setAttrQueue.set(child, longSpecName, specificity, false);
+                    this.vdom.set(child, longName, rule.style[styleName], false);
+                    this.vdom.set(child, longSpecName, specificity, false);
                     /*this.setAttrQueue[parentSelector][longName][childIndex] = rule.style[styleName];
                     this.setAttrQueue[parentSelector][longSpecName][childIndex] = specificity;*/
                 }
@@ -425,10 +421,10 @@ export default class Domhandler {
                 //this.checkAttrName(parentSelector, 'style;stroke-rgba');
                 //this.setAttrQueue[parentSelector]['style;stroke-rgba'][childIndex] = '';
 
-                this.setAttrQueue.ensureInitialized('style;stroke', false, this.nodesToElements.nodes.length);
-                this.setAttrQueue.ensureInitialized('style;stroke-rgba', false, this.nodesToElements.nodes.length);
-                this.setAttrQueue.set(child, 'style;stroke', '', false);
-                this.setAttrQueue.set(child, 'style;troke-rgba', '', false);
+                this.vdom.ensureInitialized('style;stroke', false, this.nodesToElements.nodes.length);
+                this.vdom.ensureInitialized('style;stroke-rgba', false, this.nodesToElements.nodes.length);
+                this.vdom.set(child, 'style;stroke', '', false);
+                this.vdom.set(child, 'style;troke-rgba', '', false);
             }
         }
         //TODO remove other styles.
@@ -447,11 +443,10 @@ export default class Domhandler {
         this.nodesToElements.elements.splice(index, 1);
 
         // Remove all pending changes on this element
-        this.setAttrQueue.removePendingChanges(node);
+        //this.setAttrQueue.removePendingChanges(node);
     }
 
-    addNodeToParent(parentNode, node) {
-        parentNode.children.push(node);
+    restyleNode(parentNode, node) {
         this.nodesToRestyle.push(node);
     }
     

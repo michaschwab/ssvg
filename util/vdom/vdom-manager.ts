@@ -1,16 +1,91 @@
 import DrawingUtils from "../../canvasworker/drawingUtils";
 import SetPropertyQueueData from "./set-property-queue-data";
 import {VDOM, VdomNode} from "./vdom";
-import SetPropertyQueue from "./set-property-queue";
 
 export class VdomManager {
     private sharedData: {[attrName: string]: Int32Array} = {};
-    private static ATTRIBUTES_NOT_IGNORED_WITH_IGNOREDESIGN = ['fill', 'stroke', 'opacity', 'x1', 'x2', 'y1', 'y2', 'x',
-        'y'];
+    private queue: SetPropertyQueueData = {};
+    private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];
+    private static IGNOREDESIGN_ATTRIBUTES = ['fill', 'stroke', 'opacity'];
     private indexToNodeMap: {[index: number]: VdomNode} = {};
+    private static BUFFER_PRECISION_FACTOR = 10;
     
     constructor(public data: VDOM, private ignoreDesign: boolean) {
         this.ensureNodesMapped();
+    }
+
+    ensureInitialized(attrName: string, useBuffer: boolean, numNodes?: number) {
+        if(attrName === 'class') {
+            attrName = 'className';
+        }
+
+        if(!useBuffer || this.useSharedArrayFor.indexOf(attrName) === -1) {
+            if(!this.queue[attrName]) {
+                this.queue[attrName] = [];
+            }
+        } else {
+            if(!this.sharedData[attrName]) {
+                const length = numNodes < 500 ? 1000 : numNodes * 2;
+                const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
+                const values = new Int32Array(buffer);
+
+                // If values have been previously set without a buffer, transfer them.
+                if(this.queue[attrName] &&
+                    !(this.queue[attrName] instanceof SharedArrayBuffer)) {
+                    const prevData: string[] = <any> this.queue[attrName];
+
+                    prevData.forEach((value, index) => {
+                        values[index] = parseFloat(value) * VdomManager.BUFFER_PRECISION_FACTOR;
+                    });
+                }
+
+                this.queue[attrName] = buffer;
+                this.sharedData[attrName] = values;
+            } else {
+                const newLength = numNodes < 500 ? 1000 : numNodes * 2;
+                const newByteLength = Int32Array.BYTES_PER_ELEMENT * newLength;
+                if(this.sharedData[attrName].byteLength / newByteLength < 0.8) {
+                    // Need to allocate more space
+                    //console.log('more space needed. prev:', this.sharedData[attrName].byteLength / Int32Array.BYTES_PER_ELEMENT, 'new', newLength);
+                    const buffer = new SharedArrayBuffer(newByteLength);
+                    const values = new Int32Array(buffer);
+                    const oldVals = new Int32Array(this.sharedData[attrName]);
+
+                    for(const i in oldVals) {
+                        values[i] = oldVals[i];
+                    }
+                    this.queue[attrName] = buffer;
+                    this.sharedData[attrName] = values;
+                }
+            }
+        }
+    }
+
+    set(element: VdomNode|HTMLElement, attrName: string, value: any, useBuffer: boolean) {
+        if(attrName === 'class') {
+            attrName = 'className';
+        }
+        if(element['globalElementIndex'] === undefined) {
+            console.error('No index', element);
+            throw new Error('Element has no index');
+        }
+        const index = element['globalElementIndex'];
+        const storage = useBuffer && this.useSharedArrayFor.indexOf(attrName) !== -1 ? 'shared' : 'raw';
+        try {
+            if(storage === 'shared') {
+                value *= VdomManager.BUFFER_PRECISION_FACTOR;
+                if(value === 0) {
+                    value = 133713371337; // magical constant
+                }
+                this.sharedData[attrName][index] = value;
+            } else {
+                this.queue[attrName][index] = value;
+            }
+        }
+        catch(e) {
+            console.error(e);
+            console.log(this.queue, this.sharedData, storage, attrName, element, index);
+        }
     }
 
     ensureNodesMapped() {
@@ -97,10 +172,25 @@ export class VdomManager {
 
     get(node: VdomNode, attrName: string) {
         if(this.sharedData[attrName] && this.sharedData[attrName][node.globalElementIndex]) {
-            return this.sharedData[attrName][node.globalElementIndex] / SetPropertyQueue.BUFFER_PRECISION_FACTOR;
+            if(this.sharedData[attrName][node.globalElementIndex] === 133713371337) {
+                return 0;
+            }
+            return this.sharedData[attrName][node.globalElementIndex] / VdomManager.BUFFER_PRECISION_FACTOR;
         } else {
             return node[attrName];
         }
+    }
+
+    getQueueValue(node: VdomNode, attrName: string) {
+        return this.queue[attrName][node.globalElementIndex];
+    }
+
+    getQueue() {
+        return this.queue;
+    }
+
+    clearQueue() {
+        this.queue = {};
     }
 
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueueData) {
@@ -110,20 +200,16 @@ export class VdomManager {
                 continue;
             }
             const attrNameStart = attrName.substr(0, 'style;'.length);
-
             if(this.ignoreDesign && (attrNameStart === 'style;' ||
-                VdomManager.ATTRIBUTES_NOT_IGNORED_WITH_IGNOREDESIGN.indexOf(attrName) !== -1)) {
+                VdomManager.IGNOREDESIGN_ATTRIBUTES.indexOf(attrName) !== -1)) {
                 continue;
             }
 
             let values: string[]|Int32Array;
-            let factor: number|undefined;
 
             if('SharedArrayBuffer' in self &&
                 setAttrQueue[attrName] instanceof SharedArrayBuffer) {
-                values = new Int32Array(<ArrayBuffer> setAttrQueue[attrName]);
-                //factor = 1 / SetPropertyQueue.BUFFER_PRECISION_FACTOR;
-                this.sharedData[attrName] = values;
+                this.sharedData[attrName] = new Int32Array(<ArrayBuffer> setAttrQueue[attrName]);
             } else {
                 values = setAttrQueue[attrName] as string[];
 
@@ -139,13 +225,10 @@ export class VdomManager {
                     const index = parseInt(childIndex);
                     const childNode = this.getNodeFromIndex(index);
                     if(!childNode) {
+                        console.error('node not found at index', index)
                         continue;
                     }
-                    //let value = factor ? factor * <number> values[childIndex] : values[childIndex];
                     let value: string|number = values[childIndex];
-                    /*if(values[childIndex] === 133713371337) { // magical constant
-                        value = 0;
-                    }*/
                     if(attrNameStart === 'style;') {
                         const styleName = attrName.substr('style;'.length);
                         const specificityAttrName = 'styleSpecificity;' + styleName;

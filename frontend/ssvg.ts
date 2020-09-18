@@ -171,11 +171,12 @@ export default class SSVG {
         }
         if(this.useWorker) {
             this.domHandler.useAttrQueue(queue => {
-                if(Object.keys(queue).length === 0) {
+                /*if(Object.keys(queue).length === 0) {
                     //requestAnimationFrame(() => this.updateCanvas());
                     setTimeout(() => this.updateCanvas(), 1);
+                    //console.log('nothing new');
                     return;
-                }
+                }*/
 
                 /*for(let operation of this.enterExitQueue) {
                     if(operation.cmd === 'ENTER') {
@@ -812,7 +813,8 @@ export default class SSVG {
             });
     
             me.domHandler.linkNodeToElement(node, el);
-            me.domHandler.addNodeToParent(parentNode, node);
+            me.vdom.addNode(node, parentNode.globalElementIndex);
+            me.domHandler.restyleNode(parentNode, node);
             me.updateChildSelectors(el as unknown as Element, node);
             
             if(me.useWorker) {
@@ -1045,8 +1047,8 @@ export default class SSVG {
     
     private nodeAtPosition(visNode: VdomNode, x: number, y: number): false|VdomNode {
         if (visNode.type === 'circle') {
-            let cx = visNode.cx || 0;
-            let cy = visNode.cy || 0;
+            let cx = this.vdom.get(visNode, 'cx') || 0;
+            let cy = this.vdom.get(visNode, 'cy') || 0;
             if (visNode.transform) {
                 const transform = DrawingUtils.parseTransform(visNode.transform);
                 if (transform.translateX) {
@@ -1060,8 +1062,8 @@ export default class SSVG {
             return distance < visNode.r ? visNode : false;
         } else if(visNode.type === 'rect' || visNode.type === 'image') {
 
-            let elX = visNode.x || 0;
-            let elY = visNode.y || 0;
+            let elX = this.vdom.get(visNode, 'x') || 0;
+            let elY = this.vdom.get(visNode, 'y') || 0;
             const width = visNode.width;
             const height = visNode.height;
 
