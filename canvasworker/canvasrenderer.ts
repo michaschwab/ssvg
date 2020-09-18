@@ -151,7 +151,7 @@ export default class Canvasrenderer implements CanvasWorker {
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillAndStrokeColor]) {
                         const cx = this.vdom.get(elData, 'cx') ? this.vdom.get(elData, 'cx') : 0;
-                        const cy = this.vdom.get(elData, 'cx') ? this.vdom.get(elData, 'cy') : 0;
+                        const cy = this.vdom.get(elData, 'cy') ? this.vdom.get(elData, 'cy') : 0;
                         const r = this.vdom.get(elData, 'r');
                         this.ctx.save();
                         this.applyTransform(elData.transform);
@@ -182,6 +182,7 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.fillStyle = fill;
             this.ctx.strokeStyle = this.getStrokeStyle(elData);
             this.ctx.lineWidth = this.getStrokeWidth(elData);
+            this.ctx.moveTo(cx + elData.r, cy);
             this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
             if(fill !== 'none'){
                 this.ctx.fill();

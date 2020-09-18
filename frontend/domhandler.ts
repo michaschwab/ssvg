@@ -205,43 +205,27 @@ export default class Domhandler {
     }
     
     getNodeDataFromEl(el: HTMLElement): VdomNode {
-        const getRoundedAttr = (el: Element, attrName: string) => {
-            const val = el.getAttribute(attrName);
-            return val ? parseFloat(val) : null;
-        };
-        
+        const roundedAttrs = ['cx', 'cy', 'r', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'width', 'height', 'stroke-width'];
+
         const node = {
             type: el.tagName.toLowerCase() as VdomNodeType,
-            transform: el.getAttribute('transform'),
-            d: el.getAttribute('d'),
             className: el.getAttribute('class'),
-            id: el.getAttribute('id'),
-            r: getRoundedAttr(el, 'r'),
-            fill: el.getAttribute('fill'),
-            cx: getRoundedAttr(el, 'cx'),
-            cy: getRoundedAttr(el, 'cy'),
-            x: getRoundedAttr(el, 'x'),
-            y: getRoundedAttr(el, 'y'),
-            x1: getRoundedAttr(el, 'x1'),
-            x2: getRoundedAttr(el, 'x2'),
-            y1: getRoundedAttr(el, 'y1'),
-            y2: getRoundedAttr(el, 'y2'),
-            opacity: getRoundedAttr(el, 'opacity'),
-            width: getRoundedAttr(el, 'width'),
-            height: getRoundedAttr(el, 'height'),
-            stroke: el.getAttribute('stroke'),
-            "stroke-width": getRoundedAttr(el, 'stroke-width'),
-            text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName) ? el.textContent : undefined,
-            'font-size': el.getAttribute('font-size'),
-            'font-family': el.getAttribute('font-family'),
-            'font': el.getAttribute('font'),
-            'text-anchor': el.getAttribute('text-anchor'),
-            href: el.getAttribute('href'),
             style: {},
             styleSpecificity: {},
             children: [],
             globalElementIndex: -1,
+            text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName)
+                ? el.textContent : undefined,
         };
+
+        for(let i = 0; i < el.attributes.length; i++) {
+            let value: string|number = el.attributes[i].nodeValue;
+            if(roundedAttrs.indexOf(el.attributes[i].nodeName) !== -1) {
+                value = parseFloat(value);
+            }
+            node[el.attributes[i].nodeName] = value;
+        }
+        node.style = {};
 
         for(const styleProp in el.style) {
             if(el.style.hasOwnProperty(styleProp)) {
@@ -310,7 +294,6 @@ export default class Domhandler {
         
         const selectorPartsLooseStrict = selector.split(' ')
             .map(part => part.split('>'));
-
 
         const parentsOfInterest = [];
         for(const nodeToBeStyled of this.nodesToRestyle) {
