@@ -44,15 +44,8 @@ export class VdomManager {
         return nodeData;
     }
 
-    removeNode(childIndex: number, parentNodeSelector: string) {
-        let parentNode = this.getVisNodeFromSelector(parentNodeSelector);
-        if(!parentNode) {
-            if(parentNodeSelector === "") {
-                parentNode = this.data;
-            } else {
-                console.error(parentNode, parentNodeSelector);
-            }
-        }
+    removeNode(childIndex: number, parentNodeIndex: number) {
+        const parentNode = this.getNodeFromIndex(parentNodeIndex);
 
         parentNode.children.splice(childIndex, 1);
         this.cachedListSelections = {}; //TODO only remove relevant cache.
@@ -141,6 +134,9 @@ export class VdomManager {
                     continue;
                 }
                 let value = factor ? factor * <number> values[childIndex] : values[childIndex];
+                if(values[childIndex] === 133713371337) { // magical constant
+                    value = 0;
+                }
                 if(attrNameStart === 'style;') {
                     const styleName = attrName.substr('style;'.length);
                     const specificityAttrName = 'styleSpecificity;' + styleName;

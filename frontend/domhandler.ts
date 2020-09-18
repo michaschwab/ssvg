@@ -434,11 +434,10 @@ export default class Domhandler {
         //TODO remove other styles.
     }
 
-    removeNodeFromParent(element: Element, node: VdomNode) {
-        const parentSelector = element['parentSelector'];
+    removeNodeFromParent(element: Element, node: VdomNode, parentNode: VdomNode) {
         const childIndex = element['childIndex'];
         //console.log('removing', node, 'from', parentNode, [...parentNode.children], childIndex, childIndex2);
-        this.vdom.removeNode(childIndex, parentSelector);
+        this.vdom.removeNode(childIndex, parentNode.globalElementIndex);
         let index = this.nodesToElements.nodes.indexOf(node);
         if(index === -1) {
             return console.error('node not found', node);
@@ -448,19 +447,7 @@ export default class Domhandler {
         this.nodesToElements.elements.splice(index, 1);
 
         // Remove all pending changes on this element
-        const selector = element['selector'];
-        delete this.setAttrQueue[selector];
-
-        // Update indices
-        for(let i = index; i < this.nodesToElements.nodes.length; i++) {
-            this.nodesToElements.nodes[i].globalElementIndex = i;
-        }
-
-        for(let attrName in this.setAttrQueue[parentSelector]) {
-            for(let i = childIndex + 1; i < this.setAttrQueue[parentSelector][attrName].length; i++) {
-                this.setAttrQueue[parentSelector][attrName][i-1] = this.setAttrQueue[parentSelector][attrName][i];
-            }
-        }
+        this.setAttrQueue.removePendingChanges(node);
     }
 
     addNodeToParent(parentNode, node) {

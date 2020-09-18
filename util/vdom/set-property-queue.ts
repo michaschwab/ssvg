@@ -57,6 +57,9 @@ export default class SetPropertyQueue {
         try {
             if(storage === 'shared') {
                 value *= SetPropertyQueue.BUFFER_PRECISION_FACTOR;
+                if(value === 0) {
+                    value = 133713371337; // magical constant
+                }
             }
             this.data[storage][attrName][index] = value;
         }
@@ -64,6 +67,22 @@ export default class SetPropertyQueue {
             console.log(e);
             console.log(this.data, storage, attrName, element, index);
         }
+    }
+
+    removePendingChanges(node: VdomNode) {
+        /*const selector = element['selector'];
+        delete this.setAttrQueue[selector];
+
+        // Update indices
+        for(let i = index; i < this.nodesToElements.nodes.length; i++) {
+            this.nodesToElements.nodes[i].globalElementIndex = i;
+        }
+
+        for(let attrName in this.setAttrQueue[parentSelector]) {
+            for(let i = childIndex + 1; i < this.setAttrQueue[parentSelector][attrName].length; i++) {
+                this.setAttrQueue[parentSelector][attrName][i-1] = this.setAttrQueue[parentSelector][attrName][i];
+            }
+        }*/
     }
 
     get(node: VdomNode, attrName: string) {

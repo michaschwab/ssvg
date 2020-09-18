@@ -46,7 +46,7 @@ workerContext.onmessage = function(e: MessageEvent) {
                             worker.addNode(node);
                         }
                     } else if(operation.cmd === 'EXIT') {
-                        vdom.removeNode(operation.childIndex, operation.parentNodeSelector);
+                        vdom.removeNode(operation.childIndex, operation.parentGlobalIndex);
                     }
                 }
 

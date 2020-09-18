@@ -715,10 +715,10 @@ export default class SSVG {
             me.enterExitQueue.push({
                 cmd: 'EXIT',
                 childIndex: el['childIndex'],
-                parentNodeSelector: parentSelector
+                parentGlobalIndex: parentNode.globalElementIndex
             });
 
-            me.domHandler.removeNodeFromParent(<Element> <any> el, node);
+            me.domHandler.removeNodeFromParent(<Element> <any> el, node, parentNode);
 
             // Fix child indices of all children.
             if(!skipUpdateSelectors) {
