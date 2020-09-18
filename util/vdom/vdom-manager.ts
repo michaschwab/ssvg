@@ -96,7 +96,7 @@ export class VdomManager {
     private static ROUNDED_ATTRS = ['cx', 'cy'];
 
     get(node: VdomNode, attrName: string) {
-        if(attrName in this.sharedData) {
+        if(this.sharedData[attrName] && this.sharedData[attrName][node.globalElementIndex]) {
             return this.sharedData[attrName][node.globalElementIndex] / SetPropertyQueue.BUFFER_PRECISION_FACTOR;
         } else {
             return node[attrName];
