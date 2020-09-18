@@ -4,7 +4,7 @@ import {VDOM, VdomNode} from "./vdom";
 import SetPropertyQueue from "./set-property-queue";
 
 export class VdomManager {
-
+    private sharedData: {[attrName: string]: Int32Array} = {};
     private static ATTRIBUTES_NOT_IGNORED_WITH_IGNOREDESIGN = ['fill', 'stroke', 'opacity', 'x1', 'x2', 'y1', 'y2', 'x',
         'y'];
     private indexToNodeMap: {[index: number]: VdomNode} = {};
@@ -95,6 +95,14 @@ export class VdomManager {
 
     private static ROUNDED_ATTRS = ['cx', 'cy'];
 
+    get(node: VdomNode, attrName: string) {
+        if(attrName in this.sharedData) {
+            return this.sharedData[attrName][node.globalElementIndex] / SetPropertyQueue.BUFFER_PRECISION_FACTOR;
+        } else {
+            return node[attrName];
+        }
+    }
+
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueueData) {
                 
         for(let attrName in setAttrQueue) {
@@ -114,47 +122,49 @@ export class VdomManager {
             if('SharedArrayBuffer' in self &&
                 setAttrQueue[attrName] instanceof SharedArrayBuffer) {
                 values = new Int32Array(<ArrayBuffer> setAttrQueue[attrName]);
-                factor = 1 / SetPropertyQueue.BUFFER_PRECISION_FACTOR;
+                //factor = 1 / SetPropertyQueue.BUFFER_PRECISION_FACTOR;
+                this.sharedData[attrName] = values;
             } else {
                 values = setAttrQueue[attrName] as string[];
-            }
 
-            for(let childIndex in values) {
-                // This skips all values that are 0 because the SharedArrayBuffer fills up with zeros.
-                //TODO(michaschwab): Find a solution for zero values.
-                if(!values.hasOwnProperty(childIndex)) {
-                    continue;
-                }
-                if(values[childIndex] === 0) {
-                    continue;
-                }
-                const index = parseInt(childIndex);
-                const childNode = this.getNodeFromIndex(index);
-                if(!childNode) {
-                    continue;
-                }
-                let value = factor ? factor * <number> values[childIndex] : values[childIndex];
-                if(values[childIndex] === 133713371337) { // magical constant
-                    value = 0;
-                }
-                if(attrNameStart === 'style;') {
-                    const styleName = attrName.substr('style;'.length);
-                    const specificityAttrName = 'styleSpecificity;' + styleName;
-                    try {
-                        const matchingSpecificity: number = setAttrQueue[specificityAttrName][childIndex];
-                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, matchingSpecificity);
-                        this.updateDeducedStyles(childNode, styleName, <string> value);
-                    } catch (e) {
-                        console.error(setAttrQueue, specificityAttrName, childIndex);
-                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, -1);
+                for(let childIndex in values) {
+                    // This skips all values that are 0 because the SharedArrayBuffer fills up with zeros.
+                    //TODO(michaschwab): Find a solution for zero values.
+                    if(!values.hasOwnProperty(childIndex)) {
+                        continue;
                     }
+                    /*if(values[childIndex] === 0) {
+                        continue;
+                    }*/
+                    const index = parseInt(childIndex);
+                    const childNode = this.getNodeFromIndex(index);
+                    if(!childNode) {
+                        continue;
+                    }
+                    //let value = factor ? factor * <number> values[childIndex] : values[childIndex];
+                    let value: string|number = values[childIndex];
+                    /*if(values[childIndex] === 133713371337) { // magical constant
+                        value = 0;
+                    }*/
+                    if(attrNameStart === 'style;') {
+                        const styleName = attrName.substr('style;'.length);
+                        const specificityAttrName = 'styleSpecificity;' + styleName;
+                        try {
+                            const matchingSpecificity: number = setAttrQueue[specificityAttrName][childIndex];
+                            this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, matchingSpecificity);
+                            this.updateDeducedStyles(childNode, styleName, <string> value);
+                        } catch (e) {
+                            console.error(setAttrQueue, specificityAttrName, childIndex);
+                            this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, -1);
+                        }
 
-                } else {
-                    if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
-                        value = Math.round(<number> value);
+                    } else {
+                        if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
+                            value = Math.round(<number> parseFloat(value));
+                        }
+                        childNode[attrName] = value;
+                        this.updateDeducedStyles(childNode, attrName, <string> value);
                     }
-                    childNode[attrName] = value;
-                    this.updateDeducedStyles(childNode, attrName, <string> value);
                 }
             }
         }

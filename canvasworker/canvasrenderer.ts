@@ -150,9 +150,9 @@ export default class Canvasrenderer implements CanvasWorker {
 
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillAndStrokeColor]) {
-                        const cx = elData.cx ? elData.cx : 0;
-                        const cy = elData.cy ? elData.cy : 0;
-                        const r = elData.r;
+                        const cx = this.vdom.get(elData, 'cx') ? this.vdom.get(elData, 'cx') : 0;
+                        const cy = this.vdom.get(elData, 'cx') ? this.vdom.get(elData, 'cy') : 0;
+                        const r = this.vdom.get(elData, 'r');
                         this.ctx.save();
                         this.applyTransform(elData.transform);
                         this.ctx.moveTo(cx + r, cy);
@@ -175,8 +175,8 @@ export default class Canvasrenderer implements CanvasWorker {
         if(mode === 'forcesingle') {
             let fill = this.getFillStyle(elData, '#000');
 
-            const cx = elData.cx || 0;
-            const cy = elData.cy || 0;
+            const cx = this.vdom.get(elData, 'cx') || 0;
+            const cy = this.vdom.get(elData, 'cy') || 0;
 
             this.ctx.beginPath();
             this.ctx.fillStyle = fill;
@@ -270,8 +270,8 @@ export default class Canvasrenderer implements CanvasWorker {
 
                     this.ctx.beginPath();
                     for(let elData of this.rectsByColor[fillAndStrokeColor]) {
-                        const x = elData.x ? elData.x : 0;
-                        const y = elData.y ? elData.y : 0;
+                        const x = this.vdom.get(elData, 'x') || 0;
+                        const y = this.vdom.get(elData, 'y') || 0;
                         this.ctx.save();
                         this.applyTransform(elData.transform);
                         this.ctx.moveTo(x, y);
@@ -298,7 +298,8 @@ export default class Canvasrenderer implements CanvasWorker {
 
             if(fill && fill !== 'none') {
                 this.ctx.fillStyle = elData.style.fill ? elData.style.fill : elData.fill;
-                this.ctx.fillRect(elData.x, elData.y, elData.width, elData.height);
+                this.ctx.fillRect(this.vdom.get(elData, 'x'), this.vdom.get(elData, 'y'),
+                    elData.width, elData.height);
             }
 
             let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
@@ -306,7 +307,7 @@ export default class Canvasrenderer implements CanvasWorker {
                 stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
                 this.ctx.strokeStyle = stroke;
                 this.ctx.beginPath();
-                this.ctx.rect(elData.x, elData.y, elData.width, elData.height);
+                this.ctx.rect(this.vdom.get(elData, 'x'), this.vdom.get(elData, 'y'), elData.width, elData.height);
                 this.ctx.stroke();
             }
         }
@@ -348,8 +349,8 @@ export default class Canvasrenderer implements CanvasWorker {
             if(!fill) fill = '#000';
             this.ctx.font = font;
             this.ctx.fillStyle = fill;
-            let x = elData.x || 0;
-            let y = elData.y || 0;
+            let x = this.vdom.get(elData, 'x') || 0;
+            let y = this.vdom.get(elData, 'y') || 0;
             let dx = DrawingUtils.convertSizeToPx(elData.dx, false) || 0;
             let dy = DrawingUtils.convertSizeToPx(elData.dy, false) || 0;
             this.ctx.fillText(elData.text, x + dx, y + dy);
@@ -383,8 +384,8 @@ export default class Canvasrenderer implements CanvasWorker {
             let fill = elData['fill'] ? elData['fill'] : elData.style['fill'];
             if(!fill) fill = '#000';
             this.ctx.fillStyle = fill;
-            let x = elData.x || 0;
-            let y = elData.y || 0;
+            let x = this.vdom.get(elData, 'x') || 0;
+            let y = this.vdom.get(elData, 'y') || 0;
             let width = elData.width || 0;
             let height = elData.height || 0;
             if(elData.image) {
@@ -452,7 +453,7 @@ export default class Canvasrenderer implements CanvasWorker {
         this.ctx.fillStyle = "#000000";
         const textAlign = <CanvasTextAlign> (elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor);
         this.ctx.textAlign = textAlign;
-        this.ctx.fillText(elData.text, elData.x, elData.y);
+        this.ctx.fillText(elData.text, this.vdom.get(elData, 'x'), this.vdom.get(elData, 'y'));
     }
 
     private drawTextpath(elData: VdomNode) {
@@ -499,8 +500,8 @@ export default class Canvasrenderer implements CanvasWorker {
                             this.applyTransform(elData.transform);
                         }
 
-                        this.ctx.moveTo(elData.x1 || 0, elData.y1 || 0);
-                        this.ctx.lineTo(elData.x2 || 0, elData.y2 || 0);
+                        this.ctx.moveTo(this.vdom.get(elData, 'x1') || 0, this.vdom.get(elData, 'y1') || 0);
+                        this.ctx.lineTo(this.vdom.get(elData, 'x2') || 0, this.vdom.get(elData, 'y2') || 0);
 
                         if(elData.transform) {
                             //this.ctx.restore();
@@ -515,8 +516,8 @@ export default class Canvasrenderer implements CanvasWorker {
         }
         if(mode === 'forcesingle') {
             this.ctx.beginPath();
-            this.ctx.moveTo(elData.x1 || 0, elData.y1 || 0);
-            this.ctx.lineTo(elData.x2 || 0, elData.y2 || 0);
+            this.ctx.moveTo(this.vdom.get(elData, 'x1') || 0, this.vdom.get(elData, 'y1') || 0);
+            this.ctx.lineTo(this.vdom.get(elData, 'x2') || 0, this.vdom.get(elData, 'y2') || 0);
 
             this.ctx.strokeStyle = this.getStrokeStyle(elData);
             this.ctx.lineWidth = this.getStrokeWidth(elData);

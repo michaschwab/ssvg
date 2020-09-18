@@ -10,10 +10,11 @@ class CompleteSetPropertyQueueData {
 
 export default class SetPropertyQueue {
     private data: CompleteSetPropertyQueueData = {'raw': {}, 'shared': {}};
+    //private sharedData: {[attrName: string]: SharedArrayBuffer} = {};
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];
-    static BUFFER_PRECISION_FACTOR = 10;
+    public static BUFFER_PRECISION_FACTOR = 10;
 
-    ensureInitialized(attrName: string, useBuffer: boolean) {
+    ensureInitialized(attrName: string, useBuffer: boolean, numNodes?: number) {
         if(attrName === 'class') {
             attrName = 'className';
         }
@@ -24,7 +25,7 @@ export default class SetPropertyQueue {
             }
         } else {
             if(!this.data.shared[attrName]) {
-                const length = 1000; //Todo use number of elements in vdom
+                const length = numNodes < 500 ? 1000 : numNodes * 2;
                 const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
                 const values = new Int32Array(buffer);
 
@@ -40,6 +41,20 @@ export default class SetPropertyQueue {
 
                 this.data.raw[attrName] = buffer;
                 this.data.shared[attrName] = values;
+            } else {
+                const newLength = numNodes < 500 ? 1000 : numNodes * 2;
+                const newByteLength = Int32Array.BYTES_PER_ELEMENT * newLength;
+                if(this.data.shared[attrName].byteLength / newByteLength < 0.8) {
+                    // Need to allocate more space
+                    console.log('more space needed. prev:', this.data.shared[attrName].byteLength / Int32Array.BYTES_PER_ELEMENT, 'new', newLength);
+                    const buffer = new SharedArrayBuffer(newByteLength);
+                    const values = new Int32Array(buffer);
+                    const oldVals = new Int32Array(this.data.shared[attrName]);
+
+                    for(const i in oldVals) {
+                        values[i] = oldVals[i];
+                    }
+                }
             }
         }
     }

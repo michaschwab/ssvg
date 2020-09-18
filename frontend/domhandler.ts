@@ -70,7 +70,7 @@ export default class Domhandler {
             attrName = attrName.substr('style;'.length);
         }
         //attrName = this.checkAttrName(parentSelector, attrName, false);
-        this.setAttrQueue.ensureInitialized(attrName, false);
+        this.setAttrQueue.ensureInitialized(attrName, false, this.nodesToElements.nodes.length);
 
         const evaluatedValue = typeof value === "function" ? value.call(<any> element, (<any> element).__data__, childIndex) : value;
         //const node = this.getNodeFromElement(element);
@@ -85,7 +85,7 @@ export default class Domhandler {
                     .then(blob => createImageBitmap(blob))
                     .then(bitmap => {
                         //this.checkAttrName(parentSelector, "image", false);
-                        this.setAttrQueue.ensureInitialized("image", false);
+                        this.setAttrQueue.ensureInitialized("image", false, this.nodesToElements.nodes.length);
                         this.setAttrQueue[parentSelector]["image"][childIndex] = bitmap;
                     });
             }
@@ -124,7 +124,7 @@ export default class Domhandler {
             console.error('selector not found');
         }
 
-        this.setAttrQueue.ensureInitialized(attrName, useSharedArray);
+        this.setAttrQueue.ensureInitialized(attrName, useSharedArray, this.nodesToElements.nodes.length);
 
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
@@ -330,8 +330,8 @@ export default class Domhandler {
             if(rule.style[styleName]) {
                 const longName = 'style;' + styleName;
                 const longSpecName = 'styleSpecificity;' + styleName;
-                this.setAttrQueue.ensureInitialized(longName, false);
-                this.setAttrQueue.ensureInitialized(longSpecName, false);
+                this.setAttrQueue.ensureInitialized(longName, false, this.nodesToElements.nodes.length);
+                this.setAttrQueue.ensureInitialized(longSpecName, false, this.nodesToElements.nodes.length);
                 /*this.checkAttrName(parentSelector, longName);
                 this.checkAttrName(parentSelector, longSpecName);*/
                 let setValue = false;
@@ -425,8 +425,8 @@ export default class Domhandler {
                 //this.checkAttrName(parentSelector, 'style;stroke-rgba');
                 //this.setAttrQueue[parentSelector]['style;stroke-rgba'][childIndex] = '';
 
-                this.setAttrQueue.ensureInitialized('style;stroke', false);
-                this.setAttrQueue.ensureInitialized('style;stroke-rgba', false);
+                this.setAttrQueue.ensureInitialized('style;stroke', false, this.nodesToElements.nodes.length);
+                this.setAttrQueue.ensureInitialized('style;stroke-rgba', false, this.nodesToElements.nodes.length);
                 this.setAttrQueue.set(child, 'style;stroke', '', false);
                 this.setAttrQueue.set(child, 'style;troke-rgba', '', false);
             }
