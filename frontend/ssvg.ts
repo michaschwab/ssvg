@@ -276,7 +276,9 @@ export default class SSVG {
             const getReplacement = (original) => {
                 return function(selector: string|(()=>{})) {
                     if(typeof selector === 'string') {
-
+                        if(selector === 'body') {
+                            return original.apply(this, arguments);
+                        }
                         let element: HTMLElement|SVGElement;
                         if(this === d3) {
                             element = me.svg;
@@ -649,6 +651,9 @@ export default class SSVG {
     }
 
     private updateChildSelectors(parentElement: Element, parentNode?: VdomNode) {
+        if(!this.isWithinSvg(parentElement)) {
+            return;
+        }
         const parentSelector = parentElement['selector'];
         if(!parentSelector) {
             console.error('this node has no selector', parentElement)
