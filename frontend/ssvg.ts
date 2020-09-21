@@ -822,8 +822,7 @@ export default class SSVG {
             me.vdom.addNode(node, parentNode.globalElementIndex);
             me.domHandler.restyleNode(parentNode, node);
             me.updateChildSelectors(el, node);
-            el.globalElementIndex = node.globalElementIndex;
-            
+
             if(me.useWorker) {
                 me.enterExitQueue.push({
                     cmd: 'ENTER',

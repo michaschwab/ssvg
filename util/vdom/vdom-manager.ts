@@ -1,6 +1,7 @@
 import DrawingUtils from "../../canvasworker/drawingUtils";
 import SetPropertyQueueData from "./set-property-queue-data";
 import {VDOM, VdomNode} from "./vdom";
+import {SsvgElement} from "../../frontend/domhandler";
 
 export class VdomManager {
     private sharedData: {[attrName: string]: Int32Array} = {};
@@ -61,15 +62,15 @@ export class VdomManager {
         }
     }
 
-    set(element: VdomNode|HTMLElement, attrName: string, value: any, useBuffer: boolean) {
+    set(element: VdomNode|SsvgElement, attrName: string, value: any, useBuffer: boolean) {
         if(attrName === 'class') {
             attrName = 'className';
         }
-        if(element['globalElementIndex'] === undefined) {
+        if(element.globalElementIndex === undefined) {
             console.error('No index', element);
             throw new Error('Element has no index');
         }
-        const index = element['globalElementIndex'];
+        const index = element.globalElementIndex;
         const storage = useBuffer && this.useSharedArrayFor.indexOf(attrName) !== -1 ? 'shared' : 'raw';
         try {
             if(storage === 'shared') {
