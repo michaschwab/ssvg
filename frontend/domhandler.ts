@@ -566,6 +566,8 @@ export default class Domhandler {
         node.globalElementIndex = this.globalElementIndexCounter;
         element.globalElementIndex = this.globalElementIndexCounter;
         this.globalElementIndexCounter++;
+
+        this.vdom.addNode(node);
     }
 
     getElementFromNode(node: VdomNode): SsvgElement {

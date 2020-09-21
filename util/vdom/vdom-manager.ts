@@ -105,19 +105,21 @@ export class VdomManager {
     enableFrontendDesignProperties() {
         this.ignoreDesign = false;
     }
-    
-    addNode(nodeData: VdomNode, parentNodeIndex: number) {
+
+    addNodeToParent(nodeData: VdomNode, parentNodeIndex: number) {
         let parentNode = this.getNodeFromIndex(parentNodeIndex);
         if(!parentNode) {
-            console.error('could not add node without parent', parentNodeIndex, nodeData, JSON.stringify(Object.keys(this.indexToNodeMap)));
+            console.error('could not add node without parent', parentNodeIndex, nodeData, Object.keys(this.indexToNodeMap));
             new Error('parent not found');
             return;
         }
         this.applyParentStyles(parentNode, nodeData);
-        
+
         parentNode.children.push(nodeData);
+    }
+    
+    addNode(nodeData: VdomNode) {
         this.indexToNodeMap[nodeData.globalElementIndex] = nodeData;
-        return nodeData;
     }
 
     removeNode(childIndex: number, parentNodeIndex: number) {

@@ -41,9 +41,10 @@ workerContext.onmessage = function(e: MessageEvent) {
                         if(!operation.keepChildren) {
                             operation.node.children = [];
                         }
-                        const node = vdom.addNode(operation.node, operation.parentNodeIndex);
+                        vdom.addNode(operation.node);
+                        vdom.addNodeToParent(operation.node, operation.parentNodeIndex);
                         if(worker.addNode) {
-                            worker.addNode(node);
+                            worker.addNode(operation.node);
                         }
                     } else if(operation.cmd === 'EXIT') {
                         vdom.removeNode(operation.childIndex, operation.parentGlobalIndex);

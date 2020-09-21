@@ -819,7 +819,7 @@ export default class SSVG {
             });
     
             me.domHandler.linkNodeToElement(node, el);
-            me.vdom.addNode(node, parentNode.globalElementIndex);
+            me.vdom.addNodeToParent(node, parentNode.globalElementIndex);
             me.domHandler.restyleNode(parentNode, node);
             me.updateChildSelectors(el, node);
 
