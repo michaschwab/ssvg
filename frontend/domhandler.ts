@@ -10,6 +10,7 @@ export default class Domhandler {
     private readonly vdom: VdomManager;
     public nodesToElements: { nodes: VdomNode[], elements: SsvgElement[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
+    private globalElementIndexCounter = 0;
 
     constructor(private svg: SVGElement & SsvgElement, useWorker: boolean, private ignoreDesign: boolean) {
         const visData: any = {
@@ -69,7 +70,7 @@ export default class Domhandler {
             attrName = attrName.substr('style;'.length);
         }
         //attrName = this.checkAttrName(parentSelector, attrName, false);
-        this.vdom.ensureInitialized(attrName, false, this.nodesToElements.nodes.length);
+        this.vdom.ensureInitialized(attrName, false, this.globalElementIndexCounter);
 
         const evaluatedValue = typeof value === "function" ? value.call(element, element.__data__, childIndex) : value;
         //const node = this.getNodeFromElement(element);
@@ -78,7 +79,7 @@ export default class Domhandler {
         this.vdom.set(node, attrName, evaluatedValue, false);
         if(attrName.indexOf('style;') === 0) {
             const longSpecName = 'styleSpecificity;' + attrName.substr(6);
-            this.vdom.ensureInitialized(longSpecName, false, this.nodesToElements.nodes.length);
+            this.vdom.ensureInitialized(longSpecName, false, this.globalElementIndexCounter);
             this.vdom.set(node, longSpecName, 3000, false);
         }
 
@@ -90,7 +91,7 @@ export default class Domhandler {
                     .then(blob => createImageBitmap(blob))
                     .then(bitmap => {
                         //this.checkAttrName(parentSelector, "image", false);
-                        this.vdom.ensureInitialized("image", false, this.nodesToElements.nodes.length);
+                        this.vdom.ensureInitialized("image", false, this.globalElementIndexCounter);
                         this.vdom.set(node, 'image', bitmap, false);
                     });
             }
@@ -129,11 +130,11 @@ export default class Domhandler {
             console.error('selector not found');
         }
 
-        this.vdom.ensureInitialized(attrName, useSharedArray, this.nodesToElements.nodes.length);
+        this.vdom.ensureInitialized(attrName, useSharedArray, this.globalElementIndexCounter);
         let longSpecName;
         if(attrName.indexOf('style;') === 0) {
             longSpecName = 'styleSpecificity;' + attrName.substr(6);
-            this.vdom.ensureInitialized(longSpecName, useSharedArray, this.nodesToElements.nodes.length);
+            this.vdom.ensureInitialized(longSpecName, useSharedArray, this.globalElementIndexCounter);
         }
 
         for(let i = 0; i < elements.length; i++) {
@@ -215,13 +216,17 @@ export default class Domhandler {
     }
     
     getVisNode(element: SsvgElement): VdomNode|null {
-        const selector = this.getElementSelector(element);
+        if(element === this.svg) {
+            return this.vdom.data;
+        }
+        return this.vdom.getNodeFromIndex(element.globalElementIndex);
+        /*const selector = this.getElementSelector(element);
 
         if(selector === null) {
             return null;
         }
         
-        return this.vdom.getVisNodeFromSelector(selector);
+        return this.vdom.getVisNodeFromSelector(selector);*/
     }
     
     getNodeDataFromEl(el: HTMLElement): VdomNode {
@@ -329,8 +334,8 @@ export default class Domhandler {
             if(rule.style[styleName]) {
                 const longName = 'style;' + styleName;
                 const longSpecName = 'styleSpecificity;' + styleName;
-                this.vdom.ensureInitialized(longName, false, this.nodesToElements.nodes.length);
-                this.vdom.ensureInitialized(longSpecName, false, this.nodesToElements.nodes.length);
+                this.vdom.ensureInitialized(longName, false, this.globalElementIndexCounter);
+                this.vdom.ensureInitialized(longSpecName, false, this.globalElementIndexCounter);
                 /*this.checkAttrName(parentSelector, longName);
                 this.checkAttrName(parentSelector, longSpecName);*/
                 let setValue = false;
@@ -422,8 +427,8 @@ export default class Domhandler {
                 //this.checkAttrName(parentSelector, 'style;stroke-rgba');
                 //this.setAttrQueue[parentSelector]['style;stroke-rgba'][childIndex] = '';
 
-                this.vdom.ensureInitialized('style;stroke', false, this.nodesToElements.nodes.length);
-                this.vdom.ensureInitialized('style;stroke-rgba', false, this.nodesToElements.nodes.length);
+                this.vdom.ensureInitialized('style;stroke', false, this.globalElementIndexCounter);
+                this.vdom.ensureInitialized('style;stroke-rgba', false, this.globalElementIndexCounter);
                 this.vdom.set(child, 'style;stroke', '', false);
                 this.vdom.set(child, 'style;stroke-rgba', '', false);
             }
@@ -560,8 +565,9 @@ export default class Domhandler {
 
     linkNodeToElement(node: VdomNode, element: SsvgElement) {
         this.nodesToElements.nodes.push(node);
-        node.globalElementIndex = this.nodesToElements.elements.length;
+        node.globalElementIndex = this.globalElementIndexCounter;
         this.nodesToElements.elements.push(element);
+        this.globalElementIndexCounter++;
     }
 
     getElementFromNode(node: VdomNode): SsvgElement {
@@ -576,8 +582,7 @@ export default class Domhandler {
         if(element === this.svg) {
             return this.vdom.data;
         }
-        const elementIndex = this.nodesToElements.elements.indexOf(element);
-        return this.nodesToElements.nodes[elementIndex];
+        return this.vdom.getNodeFromIndex(element.globalElementIndex);
     }
 
     getParentNode(node: VdomNode): VdomNode|null {

@@ -164,7 +164,7 @@ export class VdomManager {
         }
     }
 
-    private getNodeFromIndex(index: number): VdomNode {
+    getNodeFromIndex(index: number): VdomNode {
         return this.indexToNodeMap[index];
     }
 
