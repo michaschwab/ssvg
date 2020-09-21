@@ -95,12 +95,14 @@ export default class Canvasrenderer implements CanvasWorker {
             
             //this.lastDrawn = elData;
         }
-        
-        if(elData.children) {
-            for(let i = 0; i < elData.children.length; i++) {
-                this.drawNodeAndChildren(elData.children[i], forceSingle);
+        if(elData.type !== 'clippath') {
+            if(elData.children) {
+                for(let i = 0; i < elData.children.length; i++) {
+                    this.drawNodeAndChildren(elData.children[i], forceSingle);
+                }
             }
         }
+
         ctx.restore();
         if(hasTransformed) {
             //ctx.restore();
@@ -117,7 +119,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private drawClippath(elData: VdomNode) {
-        console.warn('clippaths can not be rendered yet.')
+        safeLog('clippaths can not be rendered yet.')
     }
     
     private circlesByColor: {[color: string]: VdomNode[]} = {};

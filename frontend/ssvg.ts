@@ -287,7 +287,7 @@ export default class SSVG {
                         }
 
                         if(!element) {
-                            console.error('no element', this, selector);
+                            safeLog('element not found within svg, using normal execution', this, selector);
                             return original.apply(this, arguments);
                         }
                         const node = me.domHandler.getVisNode(element);
