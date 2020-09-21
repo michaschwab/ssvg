@@ -65,20 +65,47 @@ export default class Canvasrenderer implements CanvasWorker {
         this.countSinceLastFullSecond++;
     }
     
-    private drawNodeAndChildren(elData: VdomNode, forceSingle: boolean) {
+    private drawNodeAndChildren(elData: VdomNode, forceSingle: boolean, drawClip = false) {
+        if(elData.type === 'clippath' && !drawClip) {
+            return;
+        }
+
         const ctx = this.ctx;
 
-        ctx.save();
+        if(!drawClip) {
+            //safeLog('saving ctx', elData);
+            ctx.save();
+        }
+
         const hasTransformed = this.applyTransform(elData.transform);
 
-        if(elData.transform) {
+        if(elData.transform || drawClip) {
             forceSingle = true;
+        }
+
+        if(elData['clip-path']) {
+            if(elData['clip-path'].substr(0, 5) === 'url(#') {
+                const clipPathId = elData['clip-path'].substr(5, elData['clip-path'].length - 6);
+                const clipNode = this.vdom.getNodeById(clipPathId);
+                forceSingle = true;
+
+                if(!clipNode) {
+                    //safeErrorLog('clip node not found', elData['clip-path'], clipPathId, this.vdom.data)
+                } else {
+                    this.drawNodeAndChildren(clipNode, forceSingle, true);
+                    ctx.clip();
+                }
+            } else {
+                safeErrorLog('clip path format not supported:', elData['clip-path']);
+            }
         }
         
         if(elData.type && elData.type !== 'g' && (!elData.style.display || elData.style.display !== 'none')) {
             if(elData.type === 'title') {
                 return;
             }
+
+            const hidden = drawClip;
             
             if(!forceSingle) {
                 /*if(!this.lastDrawn || (this.lastDrawn && this.lastDrawn.type !== elData.type)) {
@@ -88,42 +115,45 @@ export default class Canvasrenderer implements CanvasWorker {
                     this.drawSingleNode(elData, 'start');
                 }*/
     
-                this.drawSingleNode(elData);
+                this.drawSingleNode(elData, 'normal', hidden);
             } else {
-                this.drawSingleNode(elData, 'forcesingle');
+                this.drawSingleNode(elData, 'forcesingle', hidden);
             }
             
             //this.lastDrawn = elData;
         }
-        if(elData.type !== 'clippath') {
-            if(elData.children) {
-                for(let i = 0; i < elData.children.length; i++) {
-                    this.drawNodeAndChildren(elData.children[i], forceSingle);
-                }
+
+        if(elData.children) {
+            for(let i = 0; i < elData.children.length; i++) {
+                this.drawNodeAndChildren(elData.children[i], forceSingle, drawClip);
             }
         }
 
-        ctx.restore();
+        if(!drawClip) {
+            //safeLog('restoring ctx', elData);
+            ctx.restore();
+        }
+
         if(hasTransformed) {
             //ctx.restore();
         }
     }
     
-    private drawSingleNode(elData: VdomNode, mode: DrawMode = 'normal') {
+    private drawSingleNode(elData: VdomNode, mode: DrawMode = 'normal', hidden = false) {
         const type: string = elData.type;
         const drawFct = this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)];
         if(!drawFct) {
             return console.error('no draw function yet for ', type);
         }
-        drawFct.call(this, elData, mode);
+        drawFct.call(this, elData, mode, hidden);
     }
 
     private drawClippath(elData: VdomNode) {
-        safeLog('clippaths can not be rendered yet.')
+        //safeLog('clippaths can not be rendered yet.')
     }
     
     private circlesByColor: {[color: string]: VdomNode[]} = {};
-    private drawCircle(elData: VdomNode, mode: DrawMode = 'normal') {
+    private drawCircle(elData: VdomNode, mode: DrawMode = 'normal', hidden = false) {
         if(mode === 'normal') {
             let fill = this.getFillStyle(elData, '#000');
             const stroke = this.getStrokeStyle(elData);
@@ -186,11 +216,11 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.lineWidth = this.getStrokeWidth(elData);
             this.ctx.moveTo(cx + elData.r, cy);
             this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
-            if(fill !== 'none'){
+            if(fill !== 'none' && !hidden){
                 this.ctx.fill();
             }
 
-            if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none') {
+            if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none' && !hidden) {
                 this.ctx.stroke();
             }
         }
@@ -234,21 +264,11 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private rectsByColor = {};
 
-    private drawRect(elData: VdomNode, mode: DrawMode = 'normal') {
-
+    private drawRect(elData: VdomNode, mode: DrawMode = 'normal', hidden = false) {
         if(mode === 'normal') {
-            let fill = elData.style.fill ? elData.style.fill : elData.fill;
-            let fillOpacity = elData['fill-opacity'] ? elData['fill-opacity'] : elData['opacity'];
-            let fillOpacityStyle = elData.style['fill-opacity'] ? elData.style['fill-opacity'] : elData.style['opacity'];
-
-            if(fillOpacityStyle !== undefined) {
-                fillOpacity = fillOpacityStyle;
-            }
-
-            //if(!fill) fill = '#000';
-            const fillRgba = DrawingUtils.colorToRgba(fill, fillOpacity);
+            let fill = this.getFillStyle(elData, '#000');
             const stroke = this.getStrokeStyle(elData);
-            const handle = fillRgba + ';' + stroke;
+            const handle = fill + ';' + stroke;
             if(!this.rectsByColor[handle]) {
                 this.rectsByColor[handle] = [];
             }
@@ -294,23 +314,21 @@ export default class Canvasrenderer implements CanvasWorker {
             return;
         }
         if(mode === 'forcesingle') {
-            let fill = elData.style.fill ? elData.style.fill : elData.fill;
-            if(fill) {
-                fill = DrawingUtils.colorToRgba(fill, elData.style['fill-opacity']);
+            let fill = this.getFillStyle(elData, '#000');
+            const stroke = this.getStrokeStyle(elData);
+
+            const x = this.vdom.get(elData, 'x') || 0;
+            const y = this.vdom.get(elData, 'y') || 0;
+
+            if(fill && fill !== 'none' && !hidden) {
+                this.ctx.fillStyle = fill;
+                this.ctx.fillRect(x, y, elData.width, elData.height);
             }
 
-            if(fill && fill !== 'none') {
-                this.ctx.fillStyle = elData.style.fill ? elData.style.fill : elData.fill;
-                this.ctx.fillRect(this.vdom.get(elData, 'x'), this.vdom.get(elData, 'y'),
-                    elData.width, elData.height);
-            }
-
-            let stroke = elData.style.stroke ? elData.style.stroke : elData.stroke;
-            if(stroke !== undefined) {
-                stroke = DrawingUtils.colorToRgba(stroke, elData.style['stroke-opacity']);
+            if(stroke !== undefined && !hidden) {
                 this.ctx.strokeStyle = stroke;
                 this.ctx.beginPath();
-                this.ctx.rect(this.vdom.get(elData, 'x'), this.vdom.get(elData, 'y'), elData.width, elData.height);
+                this.ctx.rect(x, y, elData.width, elData.height);
                 this.ctx.stroke();
             }
         }
@@ -318,7 +336,7 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private drawTexts: VdomNode[] = [];
 
-    private drawText(node: VdomNode, mode: DrawMode = 'normal') {
+    private drawText(node: VdomNode, mode: DrawMode = 'normal', hidden = false) {
         const drawSingle = (elData: VdomNode) => {
             if(elData.text === '') {
                 return;
@@ -418,10 +436,10 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
 
-    private drawPath(elData: VdomNode, mode: DrawMode = 'normal') {
+    private drawPath(elData: VdomNode, mode: DrawMode = 'normal', hidden = false) {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
 
-        const fill = this.getFillStyle(elData, '#000000');
+        const fill = this.getFillStyle(elData, '#000');
         const stroke = this.getStrokeStyle(elData);
         const strokeWidth = this.getStrokeWidth(elData);
 
@@ -444,7 +462,7 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.stroke(p);
         }
 
-        if(fill && fill !== 'none') {
+        if(fill && fill !== 'none' && !hidden) {
             this.ctx.fill(p);
         }
     }

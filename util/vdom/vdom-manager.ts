@@ -168,6 +168,16 @@ export class VdomManager {
         return this.indexToNodeMap[index];
     }
 
+    getNodeById(id: string): VdomNode {
+        const filtered = Object.values(this.indexToNodeMap).filter(node => node.id === id);
+        if(!filtered || filtered.length !== 1) {
+            safeLog('node not found', Object.values(this.indexToNodeMap)
+                .filter(node => node.id).map(node => node.id), id);
+            safeLog(filtered.length, filtered);
+        }
+        return !filtered || filtered.length !== 1 ? null : filtered[0];
+    }
+
     private static ROUNDED_ATTRS = ['cx', 'cy'];
 
     get(node: VdomNode, attrName: string) {
