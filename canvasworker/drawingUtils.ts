@@ -108,7 +108,7 @@ export default class DrawingUtils {
             return color;
         }
         if(!color) {
-            return defaultColor;
+            color = defaultColor;
         }
         color = DrawingUtils.CssNamedColorToHex(color);
         if(opacity === 1 && typeof color === 'string') {
