@@ -279,28 +279,34 @@ export default class SSVG {
                         if(selector === 'body') {
                             return original.apply(this, arguments);
                         }
-                        let element: SsvgElement;
+                        let elements: SsvgElement[];
                         if(this === d3) {
-                            element = me.svg;
+                            elements = [me.svg];
                         } else {
-                            element = this._groups ? this._groups[0][0] : this[0][0];
+                            elements = this._groups ? this._groups[0] : this[0];
                         }
 
-                        if(!element) {
+                        if(!elements.filter(e => e).length) {
                             safeLog('element not found within svg, using normal execution', this, selector);
                             return original.apply(this, arguments);
                         }
-                        const node = me.domHandler.getVisNode(element);
 
-                        if(!node) {
-                            console.warn('node not found', element);
-                            return original.apply(this, arguments);
+                        let childElements: SsvgElement[] = [];
+
+                        for(let i = 0; i < elements.length; i++) {
+                            const element = elements[i];
+                            const node = me.domHandler.getVisNode(element);
+
+                            if(!node) {
+                                console.warn('node not found', element);
+                                return original.apply(this, arguments);
+                            }
+
+                            const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
+                            childElements = childElements.concat(childNodes.map(node => {
+                                return me.domHandler.getElementFromNode(node);
+                            }));
                         }
-
-                        const childNodes = me.vdom.getVisNodesFromSelector(node, selector);
-                        const childElements = childNodes.map(node => {
-                            return me.domHandler.getElementFromNode(node);
-                        });
 
                         const returnValue = original.apply(this, arguments);
                         const elementsOutsideSvg: NodeList = returnValue._groups ? returnValue._groups[0]
