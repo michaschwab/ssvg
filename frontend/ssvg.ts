@@ -20,7 +20,7 @@ export default class SSVG {
     private readonly canvas: HTMLCanvasElement;
     private svgAssignedAndSizeSet = false;
     
-    private lastTenCanvasDrawTimes: number[] = [];
+    private lastCanvasDrawTimes: number[] = [];
     
     private enterExitQueue: CanvasUpdateData[] = [];
 
@@ -62,7 +62,7 @@ export default class SSVG {
             this.worker.onmessage = e => {
                 if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
                     this.logDrawn();
-                    this.updateCanvas();
+                    requestAnimationFrame(() => this.updateCanvas());
                 }
             };
             const raf = () => {
@@ -1116,17 +1116,17 @@ export default class SSVG {
     }
     
     private logDrawn() {
-        this.lastTenCanvasDrawTimes.push(Date.now());
+        this.lastCanvasDrawTimes.push(Date.now());
         
-        if(this.lastTenCanvasDrawTimes.length > 100) {
-            this.lastTenCanvasDrawTimes.shift(); // Remove first item
+        if(this.lastCanvasDrawTimes.length > 100) {
+            this.lastCanvasDrawTimes.shift(); // Remove first item
         }
     }
     
     private updateFps() {
-        if(this.lastTenCanvasDrawTimes.length) {
-            const timeForTenDrawsMs = Date.now() - this.lastTenCanvasDrawTimes[0];
-            const fps = Math.round(this.lastTenCanvasDrawTimes.length / timeForTenDrawsMs * 1000);
+        if(this.lastCanvasDrawTimes.length) {
+            const timeForTenDrawsMs = Date.now() - this.lastCanvasDrawTimes[0];
+            const fps = Math.round(this.lastCanvasDrawTimes.length / timeForTenDrawsMs * 1000);
             this.getFps(fps);
         }
     }
