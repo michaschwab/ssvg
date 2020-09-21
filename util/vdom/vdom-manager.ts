@@ -173,8 +173,8 @@ export class VdomManager {
 
     getNodeById(id: string): VdomNode {
         const filtered = Object.values(this.indexToNodeMap).filter(node => node.id === id);
-        if(!filtered || filtered.length !== 1) {
-            safeLog('node not found', Object.values(this.indexToNodeMap)
+        if(!filtered || filtered.length > 1) {
+            safeLog('multiple nodes with this id!', Object.values(this.indexToNodeMap)
                 .filter(node => node.id).map(node => node.id), id);
             safeLog(filtered.length, filtered);
         }

@@ -73,7 +73,6 @@ export default class Canvasrenderer implements CanvasWorker {
         const ctx = this.ctx;
 
         if(!drawClip) {
-            //safeLog('saving ctx', elData);
             ctx.save();
         }
 
@@ -228,13 +227,16 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private getFillStyle(node: VdomNode, defaultColor = 'none'): string {
         let fill = node.style.fill ? node.style.fill : node.fill;
-        let opacity = node.opacity;
-        if(node.style['fill-opacity']) {
-            opacity = parseFloat(node.style['fill-opacity']);
-        }
+        let opacity = node.opacity || 1;
         if(node.style['opacity']) {
             opacity = parseFloat(node.style['opacity']);
         }
+        if(node['fill-opacity'] || node.style['fill-opacity']) {
+            const fillOp = node['fill-opacity'] ? parseFloat(node['fill-opacity']) :
+                parseFloat(node.style['fill-opacity']);
+            opacity *= fillOp;
+        }
+
         fill = DrawingUtils.colorToRgba(fill, opacity, defaultColor);
         return fill;
     }
