@@ -8,10 +8,10 @@ export const CSS_STYLES = ['stroke', 'stroke-opacity', 'stroke-width', 'stroke-l
 
 export default class Domhandler {
     private readonly vdom: VdomManager;
-    public nodesToElements: { nodes: VdomNode[], elements: Element[]} = { nodes: [], elements: []};
+    public nodesToElements: { nodes: VdomNode[], elements: SsvgElement[]} = { nodes: [], elements: []};
     private nodesToRestyle: VdomNode[] = [];
 
-    constructor(private svg: SVGElement, useWorker: boolean, private ignoreDesign: boolean) {
+    constructor(private svg: SVGElement & SsvgElement, useWorker: boolean, private ignoreDesign: boolean) {
         const visData: any = {
             width: parseInt(this.svg.getAttribute('width')),
             height: parseInt(this.svg.getAttribute('height')),
@@ -47,11 +47,12 @@ export default class Domhandler {
         return this.vdom;
     }
     
-    queueSetAttributeOnElement(element: Element, attrName: string, value: any) {
+    queueSetAttributeOnElement(element: SsvgElement, attrName: string,
+                               value: (number|string|((el: HTMLElement) => (number|string)))) {
         //TODO: merge with updatePropertiesFromQueue from VdomManager?
         const parent = element.parentNode;
-        let parentSelector = parent === this.svg ? "svg" : (element as any)['parentSelector'] as string;
-        let childIndex = (element as any)['childIndex'];
+        let parentSelector = parent === this.svg ? "svg" : element.parentSelector;
+        let childIndex = element.childIndex;
     
         if(!parentSelector && element === this.svg) {
             parentSelector = 'SVG_PARENT';
@@ -70,7 +71,7 @@ export default class Domhandler {
         //attrName = this.checkAttrName(parentSelector, attrName, false);
         this.vdom.ensureInitialized(attrName, false, this.nodesToElements.nodes.length);
 
-        const evaluatedValue = typeof value === "function" ? value.call(<any> element, (<any> element).__data__, childIndex) : value;
+        const evaluatedValue = typeof value === "function" ? value.call(element, element.__data__, childIndex) : value;
         //const node = this.getNodeFromElement(element);
         //this.setAttrQueue.set(node, attrName, evaluatedValue, false);
         const node = this.getNodeFromElement(element);
@@ -113,7 +114,7 @@ export default class Domhandler {
     }
 
     logged = 0;
-    queueSetAttributeOnSelection(elements: (HTMLElement & {__data__: any})[], attrName: string, value) {
+    queueSetAttributeOnSelection(elements: SsvgElement[], attrName: string, value) {
         if(!elements.length) return;
         if(!elements[0]) {
             //console.error('selection elements not found', elements);
@@ -140,6 +141,10 @@ export default class Domhandler {
 
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
             this.ensureElementIndex(svgEl);
+
+            if(svgEl.globalElementIndex === 39) {
+                console.log(svgEl, attrName, evaluatedValue);
+            }
 
             this.vdom.set(svgEl, attrName, evaluatedValue, useSharedArray);
 
@@ -180,10 +185,10 @@ export default class Domhandler {
         }
     }
 
-    ensureElementIndex(svgEl: HTMLElement) {
-        if(!svgEl['globalElementIndex']) {
+    ensureElementIndex(svgEl: SsvgElement) {
+        if(!svgEl.globalElementIndex) {
             const node = this.getNodeFromElement(svgEl);
-            svgEl['globalElementIndex'] = node.globalElementIndex;
+            svgEl.globalElementIndex = node.globalElementIndex;
         }
     }
 
@@ -198,7 +203,7 @@ export default class Domhandler {
         this.vdom.clearQueue();
     }
 
-    getAttributeFromSelector(element: Element, name: string) {
+    getAttributeFromSelector(element: SsvgElement, name: string) {
         const node = this.getNodeFromElement(element);
         
         if(!node) {
@@ -209,7 +214,7 @@ export default class Domhandler {
         return node[name];
     }
     
-    getVisNode(element: Element): VdomNode|null {
+    getVisNode(element: SsvgElement): VdomNode|null {
         const selector = this.getElementSelector(element);
 
         if(selector === null) {
@@ -450,15 +455,15 @@ export default class Domhandler {
         const parentEl = this.getElementFromNode(parentNode);
 
         for(let i  = 0; i < childEls.length; i++) {
-            let el = childEls[i] as HTMLElement;
+            let el = childEls[i] as SsvgElement;
             
             try
             {
                 const node = this.getNodeDataFromEl(el);
 
-                (el as any)['parentSelector'] = this.getElementSelector(parentEl);
-                (el as any)['selector'] = this.getElementSelector(<Element><any> el);
-                (el as any)['childIndex'] = parentNode.children.length;
+                el.parentSelector = this.getElementSelector(parentEl);
+                el.selector = this.getElementSelector(el);
+                el.childIndex = parentNode.children.length;
 
                 parentNode.children.push(node);
                 this.linkNodeToElement(node, el);
@@ -499,8 +504,8 @@ export default class Domhandler {
         return this.getElementSelector(element, undefined, node);
     }
     
-    getElementSelector(element: Element, parentNode?: VdomNode, node?: VdomNode): string|null {
-        let sel = (element as any)['selector'];
+    getElementSelector(element: SsvgElement, parentNode?: VdomNode, node?: VdomNode): string|null {
+        let sel = element['selector'];
         
         if(sel)
         {
@@ -511,8 +516,7 @@ export default class Domhandler {
             if(element === this.svg) {
                 sel = 'svg';
             } else {
-                let parentSelector = (element as any)['parentSelector'] ?
-                    (element as any)['parentSelector'] as string : '';
+                let parentSelector = element.parentSelector ? element.parentSelector : '';
 
                 if(!parentNode) {
                     parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
@@ -550,17 +554,17 @@ export default class Domhandler {
         if(!el) {
             return null;
         }
-        const parentEl = el.parentNode as Element;
+        const parentEl = el.parentNode as SsvgElement;
         return this.getNodeFromElement(parentEl);
     }
 
-    linkNodeToElement(node: VdomNode, element: Node) {
+    linkNodeToElement(node: VdomNode, element: SsvgElement) {
         this.nodesToElements.nodes.push(node);
         node.globalElementIndex = this.nodesToElements.elements.length;
-        this.nodesToElements.elements.push(element as Element);
+        this.nodesToElements.elements.push(element);
     }
 
-    getElementFromNode(node: VdomNode): Element {
+    getElementFromNode(node: VdomNode): SsvgElement {
         if(node === this.vdom.data) {
             return this.svg;
         }
@@ -568,7 +572,7 @@ export default class Domhandler {
         return this.nodesToElements.elements[nodeIndex];
     }
 
-    getNodeFromElement(element: Element): VdomNode {
+    getNodeFromElement(element: SsvgElement): VdomNode {
         if(element === this.svg) {
             return this.vdom.data;
         }
@@ -578,7 +582,7 @@ export default class Domhandler {
 
     getParentNode(node: VdomNode): VdomNode|null {
         const element = this.getElementFromNode(node);
-        const parentElement = element.parentNode as Element;
+        const parentElement = element.parentNode as SsvgElement;
         return this.getNodeFromElement(parentElement);
     }
 
@@ -626,3 +630,11 @@ function safeErrorLog(...logContents) {
         console.error(...logContents);
     }
 }
+
+export type SsvgElement = HTMLElement & {
+    __data__: any,
+    globalElementIndex: number,
+    parentSelector: string,
+    selector: string,
+    childIndex: number
+};

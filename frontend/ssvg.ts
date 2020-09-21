@@ -1,7 +1,7 @@
 import {VdomManager} from "../util/vdom/vdom-manager";
 import {VdomNode} from "../util/vdom/vdom";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker-message"
-import Domhandler from "./domhandler";
+import Domhandler, {SsvgElement} from "./domhandler";
 import CanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
 import DrawingUtils from "../canvasworker/drawingUtils";
@@ -12,11 +12,11 @@ export default class SSVG {
     private worker: Worker;
     private domHandler: Domhandler;
     private vdom: VdomManager;
-    private interactionSelections: HTMLElement[] = [];
+    private interactionSelections: SsvgElement[] = [];
     
     private renderer: CanvasWorker;
 
-    private svg: SVGElement|undefined;
+    private svg: (SVGElement & SsvgElement)|undefined;
     private readonly canvas: HTMLCanvasElement;
     private svgAssignedAndSizeSet = false;
     
@@ -36,7 +36,7 @@ export default class SSVG {
         maxPixelRatio?: number,
         useWorker?: boolean,
         getFps?: (fps: number) => void,
-        svg?: SVGElement,
+        svg?: SVGElement & SsvgElement,
     }) {
         if(options) {
             if(options.safeMode !== undefined) {
@@ -127,7 +127,7 @@ export default class SSVG {
         }, 1000);
     }
     
-    private setupElementsIfSvgExists(svgEl?: SVGElement) {
+    private setupElementsIfSvgExists(svgEl?: SVGElement & SsvgElement) {
         
         if(this.svg) {
             return true;
@@ -145,7 +145,7 @@ export default class SSVG {
             'To inspect the SVG, please open the following URL:\r\n' +
             svgSwitchUrl + '\r\n');
         
-        this.svg = svg;
+        this.svg = svg as SVGElement & SsvgElement;
         const parent = this.svg.parentElement;
 
         if(this.svg.nextSibling) {
@@ -279,7 +279,7 @@ export default class SSVG {
                         if(selector === 'body') {
                             return original.apply(this, arguments);
                         }
-                        let element: HTMLElement|SVGElement;
+                        let element: SsvgElement;
                         if(this === d3) {
                             element = me.svg;
                         } else {
@@ -306,7 +306,7 @@ export default class SSVG {
                         const elementsOutsideSvg: NodeList = returnValue._groups ? returnValue._groups[0]
                             : returnValue[0];
                         elementsOutsideSvg.forEach(childNode => {
-                            const childEl = <Element> <any> childNode;
+                            const childEl = <SsvgElement> <any> childNode;
                             if(childElements.indexOf(childEl) === -1) {
                                 childElements.push();
                             }
@@ -383,7 +383,7 @@ export default class SSVG {
         const origGetComputedStyle = window.getComputedStyle;
         const me = this;
 
-        window.getComputedStyle = function(element: HTMLElement) {
+        window.getComputedStyle = function(element: SsvgElement) {
             if(element && !me.isWithinSvg(element) && (<Window> <any> element) !== window) {
                 return origGetComputedStyle.call(this, element);
             }
@@ -406,7 +406,7 @@ export default class SSVG {
         const origQuerySelector = Element.prototype.querySelector;
         const me = this;
 
-        Element.prototype.querySelector = function(selector: string) {
+        Element.prototype.querySelector = function(this: SsvgElement, selector: string) {
             if(!me.isWithinSvg(this)) {
                 return origQuerySelector.apply(this, arguments);
             }
@@ -543,7 +543,7 @@ export default class SSVG {
                                 continue;
                             }
                             const prevClassNames = node.className || '';
-                            const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
+                            const evaluatedValue = typeof value === "function" ? value(element.__data__, i) : value;
                             if(evaluatedValue === true) {
                                 if(prevClassNames.indexOf(className) === -1) {
                                     let newClassNames = (prevClassNames + ' ' + className).trim();
@@ -577,14 +577,13 @@ export default class SSVG {
             };
 
             const originalText = d3.selection.prototype.text;
-            d3.selection.prototype.text = function(value?: boolean|((data: any, index: number) => boolean)) {
+            d3.selection.prototype.text = function(value?: (number|string|((el: HTMLElement) => (number|string)))) {
                 if(value !== undefined) {
                     let elements = this._groups ? this._groups[0] : this[0];
                     let i = 0;
                     for(let element of elements) {
                         if(element && me.isWithinSvg(element)) {
-                            const evaluatedValue = typeof value === "function" ? value((<any> element).__data__, i) : value;
-                            me.domHandler.queueSetAttributeOnElement(element, 'text', evaluatedValue);
+                            me.domHandler.queueSetAttributeOnElement(element, 'text', value);
                         }
 
                         i++;
@@ -605,7 +604,7 @@ export default class SSVG {
                 let elements = this._groups ? this._groups[0] : this[0];
 
                 if(elements.length) {
-                    let parentElement: HTMLElement = null;
+                    let parentElement: SsvgElement = null;
                     for(let i = elements.length - 1; i > -1; i--) {
                         const element = elements[i];
                         if(element) {
@@ -650,11 +649,11 @@ export default class SSVG {
         }
     }
 
-    private updateChildSelectors(parentElement: Element, parentNode?: VdomNode) {
+    private updateChildSelectors(parentElement: SsvgElement, parentNode?: VdomNode) {
         if(!this.isWithinSvg(parentElement)) {
             return;
         }
-        const parentSelector = parentElement['selector'];
+        const parentSelector = parentElement.selector;
         if(!parentSelector) {
             console.error('this node has no selector', parentElement)
         }
@@ -666,7 +665,8 @@ export default class SSVG {
             const childElement = this.domHandler.getElementFromNode(childNode);
             if(!childElement) {
                 console.error('element not found', childNode, parentNode.children.length, i);
-                console.log('current element indices:', this.domHandler.nodesToElements.elements.map(e => (e as any)['globalElementIndex']));
+                console.log('current element indices:',
+                    this.domHandler.nodesToElements.elements.map(e => e.globalElementIndex));
                 console.log('current elements:', [...this.domHandler.nodesToElements.elements]);
                 console.log('current nodes:', [...this.domHandler.nodesToElements.nodes]);
                 console.log('parent node: ', parentNode);
@@ -675,9 +675,9 @@ export default class SSVG {
             }
             const oldSelector = childElement['selector'];
 
-            childElement['childIndex'] = i;
-            childElement['parentSelector'] = parentSelector;
-            childElement['selector'] = this.domHandler.combineElementSelectors(parentSelector, childNode.type, i+1);
+            childElement.childIndex = i;
+            childElement.parentSelector = parentSelector;
+            childElement.selector = this.domHandler.combineElementSelectors(parentSelector, childNode.type, i+1);
 
             this.domHandler.updateNodeSelector(oldSelector, childElement['selector']);
 
@@ -689,17 +689,17 @@ export default class SSVG {
         skipUpdateSelectors = false) {
         const me = this;
 
-        return function<T extends Node>(this: Element, el: T) {
+        return function<T extends Node>(this: SsvgElement, el: T & SsvgElement) {
             if(!this) {
                 console.error('context not defined');
                 return el;
             }
-            if(!me.isWithinSvg(<Element> <any> el)) {
+            if(!me.isWithinSvg(el)) {
                 return origRemoveChild.apply(this, arguments);
             }
-            const parentNode = me.domHandler.getNodeFromElement(<Element> <any> this);
-            const parentSelector = this['selector'];
-            const node = me.domHandler.getNodeFromElement(<Element> <any> el);
+            const parentNode = me.domHandler.getNodeFromElement(this);
+            const parentSelector = this.selector;
+            const node = me.domHandler.getNodeFromElement(el);
 
             if(!node) {
                 console.error('node not found', node, el, this, parentNode);
@@ -725,7 +725,7 @@ export default class SSVG {
                 parentGlobalIndex: parentNode.globalElementIndex
             });
 
-            me.domHandler.removeNodeFromParent(<Element> <any> el, node, parentNode);
+            me.domHandler.removeNodeFromParent(el, node, parentNode);
 
             // Fix child indices of all children.
             if(!skipUpdateSelectors) {
@@ -748,11 +748,11 @@ export default class SSVG {
     private getNewAppendChild(origAppend) {
         const me = this;
         
-        return function<T extends Node>(this: Element, el: T) {
+        return function<T extends Node>(this: SsvgElement, el: T & SsvgElement) {
             if(!me.svgAssignedAndSizeSet) {
                 if(!me.svg && el['tagName'] === 'svg') {
                     const appended = origAppend.apply(this, arguments);
-                    me.setupElementsIfSvgExists(<SVGElement> <any> el);
+                    me.setupElementsIfSvgExists(<SVGElement & SsvgElement> <any> el);
                     return appended;
                     
                 } else {
@@ -784,23 +784,23 @@ export default class SSVG {
             let keepChildren = false;
 
             if(el['parentSelector']) {
-                node = me.domHandler.getVisNode(<Element> <any> el);
+                node = me.domHandler.getVisNode(el);
 
                 me.getNewRemoveChild(() => {}).call(this, el);
                 keepChildren = true; // If the element is being moved around, keep children.
             } else {
-                node = me.domHandler.getNodeDataFromEl(<HTMLElement><any> el);
+                node = me.domHandler.getNodeDataFromEl(el);
             }
 
-            (el as any)['parentSelector'] = parentSelector;
-            (el as any)['selector'] = me.domHandler.getElementSelector(<Element><any> el, parentNode);
-            (el as any)['childIndex'] = parentNode.children.length;
+            el.parentSelector = parentSelector;
+            el.selector = me.domHandler.getElementSelector(el, parentNode);
+            el.childIndex = parentNode.children.length;
 
             Object.defineProperty(el, 'style', {
                 writable: true,
                 value: {
                     setProperty: function(styleProp: string, value: string) {
-                        me.domHandler.queueSetAttributeOnElement(el as any, 'style;' + styleProp, value);
+                        me.domHandler.queueSetAttributeOnElement(el, 'style;' + styleProp, value);
                     },
                     getPropertyValue: function(styleProp) {
                         me.domHandler.enableFrontendDesignProperties();
@@ -821,8 +821,8 @@ export default class SSVG {
             me.domHandler.linkNodeToElement(node, el);
             me.vdom.addNode(node, parentNode.globalElementIndex);
             me.domHandler.restyleNode(parentNode, node);
-            me.updateChildSelectors(el as unknown as Element, node);
-            (el as any)['globalElementIndex'] = node.globalElementIndex;
+            me.updateChildSelectors(el, node);
+            el.globalElementIndex = node.globalElementIndex;
             
             if(me.useWorker) {
                 me.enterExitQueue.push({
@@ -890,7 +890,7 @@ export default class SSVG {
         const origGetAttr = Element.prototype.getAttribute;
         const me = this;
     
-        Element.prototype.setAttribute = function(name: string, value: any) {
+        Element.prototype.setAttribute = function(this: SsvgElement, name: string, value: any) {
             if(name === 'easypz' || me.unassignedNodes.indexOf(this) !== -1) {
                 // Update the original SVG
                 origSetAttr.apply(this, arguments);
@@ -909,7 +909,7 @@ export default class SSVG {
             safeLog(this, arguments);
             me.elementHandler.queueSetAttributeOnElement(this, 'style;' + name, value);
         };*/
-        Element.prototype.setAttributeNS = function(name: string, value: any) {
+        Element.prototype.setAttributeNS = function(this: SsvgElement, name: string, value: any) {
             if(name === 'easypz' || me.unassignedNodes.indexOf(this) !== -1) {
                 // Update the original SVG
                 origSetAttrNS.apply(this, arguments);
@@ -924,7 +924,7 @@ export default class SSVG {
             me.domHandler.queueSetAttributeOnElement(this, name, value);
         };
     
-        Element.prototype.getAttribute = function(name) {
+        Element.prototype.getAttribute = function(this: SsvgElement, name) {
             if(me.unassignedNodes.indexOf(this) !== -1) {
                 return origGetAttr.apply(this, arguments);
             } else {
