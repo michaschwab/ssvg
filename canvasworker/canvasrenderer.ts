@@ -65,7 +65,7 @@ export default class Canvasrenderer implements CanvasWorker {
         this.countSinceLastFullSecond++;
     }
     
-    private drawNodeAndChildren(elData: VdomNode, forceSingle: boolean, drawClip = false) {
+    private drawNodeAndChildren(elData: VdomNode, forceSingle: boolean, drawClip?: Path2D) {
         if(elData.type === 'clippath' && !drawClip) {
             return;
         }
@@ -92,8 +92,9 @@ export default class Canvasrenderer implements CanvasWorker {
                 if(!clipNode) {
                     //safeErrorLog('clip node not found', elData['clip-path'], clipPathId, this.vdom.data)
                 } else {
-                    this.drawNodeAndChildren(clipNode, forceSingle, true);
-                    ctx.clip();
+                    const path = new Path2D();
+                    this.drawNodeAndChildren(clipNode, forceSingle, path);
+                    ctx.clip(path);
                 }
             } else {
                 safeErrorLog('clip path format not supported:', elData['clip-path']);
@@ -105,8 +106,6 @@ export default class Canvasrenderer implements CanvasWorker {
                 return;
             }
 
-            const hidden = drawClip;
-            
             if(!forceSingle) {
                 /*if(!this.lastDrawn || (this.lastDrawn && this.lastDrawn.type !== elData.type)) {
                     if(this.lastDrawn) {
@@ -115,9 +114,9 @@ export default class Canvasrenderer implements CanvasWorker {
                     this.drawSingleNode(elData, 'start');
                 }*/
     
-                this.drawSingleNode(elData, 'normal', hidden);
+                this.drawSingleNode(elData, 'normal', drawClip);
             } else {
-                this.drawSingleNode(elData, 'forcesingle', hidden);
+                this.drawSingleNode(elData, 'forcesingle', drawClip);
             }
             
             //this.lastDrawn = elData;
@@ -139,13 +138,13 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
     
-    private drawSingleNode(elData: VdomNode, mode: DrawMode = 'normal', hidden = false) {
+    private drawSingleNode(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
         const type: string = elData.type;
         const drawFct = this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)];
         if(!drawFct) {
             return console.error('no draw function yet for ', type);
         }
-        drawFct.call(this, elData, mode, hidden);
+        drawFct.call(this, elData, mode, path);
     }
 
     private drawClippath(elData: VdomNode) {
@@ -153,7 +152,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
     
     private circlesByColor: {[color: string]: VdomNode[]} = {};
-    private drawCircle(elData: VdomNode, mode: DrawMode = 'normal', hidden = false) {
+    private drawCircle(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
         if(mode === 'normal') {
             let fill = this.getFillStyle(elData, '#000');
             const stroke = this.getStrokeStyle(elData);
@@ -215,12 +214,13 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.strokeStyle = this.getStrokeStyle(elData);
             this.ctx.lineWidth = this.getStrokeWidth(elData);
             this.ctx.moveTo(cx + elData.r, cy);
-            this.ctx.arc(cx, cy, elData.r, 0, 2 * Math.PI);
-            if(fill !== 'none' && !hidden){
+            const context = path ? path : this.ctx;
+            context.arc(cx, cy, elData.r, 0, 2 * Math.PI);
+            if(fill !== 'none' && !path){
                 this.ctx.fill();
             }
 
-            if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none' && !hidden) {
+            if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none' && !path) {
                 this.ctx.stroke();
             }
         }
@@ -264,7 +264,7 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private rectsByColor = {};
 
-    private drawRect(elData: VdomNode, mode: DrawMode = 'normal', hidden = false) {
+    private drawRect(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
         if(mode === 'normal') {
             let fill = this.getFillStyle(elData, '#000');
             const stroke = this.getStrokeStyle(elData);
@@ -320,12 +320,15 @@ export default class Canvasrenderer implements CanvasWorker {
             const x = this.vdom.get(elData, 'x') || 0;
             const y = this.vdom.get(elData, 'y') || 0;
 
-            if(fill && fill !== 'none' && !hidden) {
+            if(fill && fill !== 'none' && !path) {
                 this.ctx.fillStyle = fill;
                 this.ctx.fillRect(x, y, elData.width, elData.height);
             }
+            if(path) {
+                path.rect(x, y, elData.width, elData.height);
+            }
 
-            if(stroke !== undefined && !hidden) {
+            if(stroke !== undefined && !path) {
                 this.ctx.strokeStyle = stroke;
                 this.ctx.beginPath();
                 this.ctx.rect(x, y, elData.width, elData.height);
@@ -336,7 +339,7 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private drawTexts: VdomNode[] = [];
 
-    private drawText(node: VdomNode, mode: DrawMode = 'normal', hidden = false) {
+    private drawText(node: VdomNode, mode: DrawMode = 'normal', isClip = false) {
         const drawSingle = (elData: VdomNode) => {
             if(elData.text === '') {
                 return;
@@ -436,7 +439,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
 
-    private drawPath(elData: VdomNode, mode: DrawMode = 'normal', hidden = false) {
+    private drawPath(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
         if(mode !== 'normal' && mode !== 'forcesingle') return;
 
         const fill = this.getFillStyle(elData, '#000');
@@ -459,11 +462,16 @@ export default class Canvasrenderer implements CanvasWorker {
                     console.error('unknown line join value:', lineJoin)
                 }
             }
-            this.ctx.stroke(p);
+            if(!path) {
+                this.ctx.stroke(p);
+            }
         }
 
-        if(fill && fill !== 'none' && !hidden) {
+        if(fill && fill !== 'none' && !path) {
             this.ctx.fill(p);
+        }
+        if(path) {
+            path.addPath(p);
         }
     }
     
