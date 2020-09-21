@@ -143,10 +143,6 @@ export default class Domhandler {
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
             this.ensureElementIndex(svgEl);
 
-            if(svgEl.globalElementIndex === 39) {
-                console.log(svgEl, attrName, evaluatedValue);
-            }
-
             this.vdom.set(svgEl, attrName, evaluatedValue, useSharedArray);
 
             if(longSpecName) {
