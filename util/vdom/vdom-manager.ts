@@ -237,7 +237,7 @@ export class VdomManager {
                             this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, matchingSpecificity);
                             this.updateDeducedStyles(childNode, styleName, <string> value);
                         } catch (e) {
-                            console.error(setAttrQueue, specificityAttrName, childIndex);
+                            console.error(e, setAttrQueue, specificityAttrName, childIndex);
                             this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, -1);
                         }
 

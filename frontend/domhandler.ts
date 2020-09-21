@@ -75,6 +75,12 @@ export default class Domhandler {
         //this.setAttrQueue.set(node, attrName, evaluatedValue, false);
         const node = this.getNodeFromElement(element);
         this.vdom.set(node, attrName, evaluatedValue, false);
+        if(attrName.indexOf('style;') === 0) {
+            const longSpecName = 'styleSpecificity;' + attrName.substr(6);
+            this.vdom.ensureInitialized(longSpecName, false, this.nodesToElements.nodes.length);
+            this.vdom.set(node, longSpecName, 3000, false);
+        }
+
 
         if(attrName === "href") {
             try {
@@ -123,6 +129,11 @@ export default class Domhandler {
         }
 
         this.vdom.ensureInitialized(attrName, useSharedArray, this.nodesToElements.nodes.length);
+        let longSpecName;
+        if(attrName.indexOf('style;') === 0) {
+            longSpecName = 'styleSpecificity;' + attrName.substr(6);
+            this.vdom.ensureInitialized(longSpecName, useSharedArray, this.nodesToElements.nodes.length);
+        }
 
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
@@ -131,6 +142,10 @@ export default class Domhandler {
             this.ensureElementIndex(svgEl);
 
             this.vdom.set(svgEl, attrName, evaluatedValue, useSharedArray);
+
+            if(longSpecName) {
+                this.vdom.set(svgEl, longSpecName, 3000, false);
+            }
 
             //TODO: re-implement.
             /*if(attrName === "href") {
@@ -360,8 +375,6 @@ export default class Domhandler {
                     } else if(selectorPartsLooseStrict.length > looseIndex + 1) {
                         checkNode(child, looseIndex + 1, strictIndex);
                     } else {
-                        const parentSelector = this.getNodeSelector(currentNode);
-
                         for(const styleName of CSS_STYLES) {
                             setStyle(styleName, rule, child);
                         }
@@ -407,7 +420,7 @@ export default class Domhandler {
                 this.vdom.ensureInitialized('style;stroke', false, this.nodesToElements.nodes.length);
                 this.vdom.ensureInitialized('style;stroke-rgba', false, this.nodesToElements.nodes.length);
                 this.vdom.set(child, 'style;stroke', '', false);
-                this.vdom.set(child, 'style;troke-rgba', '', false);
+                this.vdom.set(child, 'style;stroke-rgba', '', false);
             }
         }
         //TODO remove other styles.
@@ -551,7 +564,8 @@ export default class Domhandler {
         if(node === this.vdom.data) {
             return this.svg;
         }
-        return this.nodesToElements.elements[node.globalElementIndex];
+        const nodeIndex = this.nodesToElements.nodes.indexOf(node);
+        return this.nodesToElements.elements[nodeIndex];
     }
 
     getNodeFromElement(element: Element): VdomNode {

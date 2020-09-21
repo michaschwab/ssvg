@@ -666,6 +666,7 @@ export default class SSVG {
             const childElement = this.domHandler.getElementFromNode(childNode);
             if(!childElement) {
                 console.error('element not found', childNode, parentNode.children.length, i);
+                console.log('current element indices:', this.domHandler.nodesToElements.elements.map(e => (e as any)['globalElementIndex']));
                 console.log('current elements:', [...this.domHandler.nodesToElements.elements]);
                 console.log('current nodes:', [...this.domHandler.nodesToElements.nodes]);
                 console.log('parent node: ', parentNode);
@@ -706,10 +707,10 @@ export default class SSVG {
             }
 
             // Remove all child elements.
-            for(const childNode of node.children) {
+            /*for(const childNode of node.children) {
                 const childEl = me.domHandler.getElementFromNode(childNode);
-                //el.removeChild(childEl);
-            }
+                el.removeChild(childEl);
+            }*/
 
             // Remove from current parent first.
             Object.defineProperty(el, 'parentNode', {
@@ -821,6 +822,7 @@ export default class SSVG {
             me.vdom.addNode(node, parentNode.globalElementIndex);
             me.domHandler.restyleNode(parentNode, node);
             me.updateChildSelectors(el as unknown as Element, node);
+            (el as any)['globalElementIndex'] = node.globalElementIndex;
             
             if(me.useWorker) {
                 me.enterExitQueue.push({
