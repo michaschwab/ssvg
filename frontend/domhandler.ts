@@ -398,7 +398,7 @@ export default class Domhandler {
                             let newPartialMatch = VdomManager.isCssRulePartialMatch(selPart, child, currentNode);
                             if(newPartialMatch) {
                                 const parentSelector = this.getNodeSelector(currentNode);
-                                this.removeRuleStylesFromNode(parentSelector, child, childIndex, rule);
+                                this.removeRuleStylesFromNode(parentSelector, child, childIndex, rule, specificity);
                             }
 
                             child.className = child.className.substr(0, child.className.length -
@@ -418,7 +418,7 @@ export default class Domhandler {
     }
 
     removeRuleStylesFromNode(parentSelector: string, child: VdomNode, childIndex: number,
-                             rule: {style: {[settingName: string]: string}}) {
+                             rule: {style: {[settingName: string]: string}}, specificity: number) {
         if(rule.style['stroke']) {
             const color = drawingUtils.colorToRgba(rule.style['stroke']);
             if(child.style['stroke'] === color || child.style['stroke-rgba'] === color) {
@@ -428,9 +428,13 @@ export default class Domhandler {
                 //this.setAttrQueue[parentSelector]['style;stroke-rgba'][childIndex] = '';
 
                 this.vdom.ensureInitialized('style;stroke', false, this.globalElementIndexCounter);
+                this.vdom.ensureInitialized('styleSpecificity;stroke', false, this.globalElementIndexCounter);
                 this.vdom.ensureInitialized('style;stroke-rgba', false, this.globalElementIndexCounter);
+                this.vdom.ensureInitialized('styleSpecificity;stroke-rgba', false, this.globalElementIndexCounter);
                 this.vdom.set(child, 'style;stroke', '', false);
+                this.vdom.set(child, 'styleSpecificity;stroke', specificity, false);
                 this.vdom.set(child, 'style;stroke-rgba', '', false);
+                this.vdom.set(child, 'styleSpecificity;stroke-rgba', specificity, false);
             }
         }
         //TODO remove other styles.
