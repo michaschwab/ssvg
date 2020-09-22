@@ -1,4 +1,4 @@
-import {VdomNode, VdomNodeType} from "../util/vdom/vdom";
+import {VDOM, VdomNode, VdomNodeType} from "../util/vdom/vdom";
 import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 import drawingUtils from "../canvasworker/drawingUtils";
@@ -13,12 +13,15 @@ export default class Domhandler {
     private globalElementIndexCounter = 0;
 
     constructor(private svg: SVGElement & SsvgElement, useWorker: boolean, private ignoreDesign: boolean) {
-        const visData: any = {
+        const visData: VDOM = {
+            type: 'svg',
             width: parseInt(this.svg.getAttribute('width')),
             height: parseInt(this.svg.getAttribute('height')),
             scale: 1,
             children: [],
             globalElementIndex: 0,
+            style: {},
+            styleSpecificity: {},
         };
 
         this.vdom = new VdomManager(visData, ignoreDesign);

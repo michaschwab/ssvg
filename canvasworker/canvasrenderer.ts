@@ -8,6 +8,7 @@ type DrawMode = 'start'|'normal'|'end'|'forcesingle';
 export default class Canvasrenderer implements CanvasWorker {
     
     private ctx: CanvasRenderingContext2D;
+    private parentValues: {[prop: string]: string|number} = {};
     
     constructor(private vdom: VdomManager, private canvas: HTMLCanvasElement,
                 private forceSingle = false, private onDrawn = () => {}) {
@@ -71,6 +72,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }
 
         const ctx = this.ctx;
+        const parentValuesBackup = {...this.parentValues};
 
         if(!drawClip) {
             ctx.save();
@@ -99,27 +101,24 @@ export default class Canvasrenderer implements CanvasWorker {
                 safeErrorLog('clip path format not supported:', elData['clip-path']);
             }
         }
-        
-        if(elData.type && elData.type !== 'g' && (!elData.style.display || elData.style.display !== 'none')) {
-            if(elData.type === 'title') {
-                return;
-            }
 
+        if(!elData.style.display || elData.style.display !== 'none') {
             if(!forceSingle) {
-                /*if(!this.lastDrawn || (this.lastDrawn && this.lastDrawn.type !== elData.type)) {
-                    if(this.lastDrawn) {
-                        this.drawSingleNode(this.lastDrawn, 'end');
-                    }
-                    this.drawSingleNode(elData, 'start');
-                }*/
-    
                 this.drawSingleNode(elData, 'normal', drawClip);
             } else {
                 this.drawSingleNode(elData, 'forcesingle', drawClip);
             }
-            
-            //this.lastDrawn = elData;
         }
+
+        const fill = this.getFillStyle(elData, 'undefined');
+        if(fill !== 'undefined') {
+            this.parentValues['fill'] = fill;
+        }
+        const stroke = this.getStrokeStyle(elData, 'undefined');
+        if(stroke !== 'undefined') {
+            this.parentValues['stroke'] = stroke;
+        }
+        this.parentValues['opacity'] = elData.opacity;
 
         if(elData.children) {
             for(let i = 0; i < elData.children.length; i++) {
@@ -130,6 +129,7 @@ export default class Canvasrenderer implements CanvasWorker {
         if(!drawClip) {
             //safeLog('restoring ctx', elData);
             ctx.restore();
+            this.parentValues = parentValuesBackup;
         }
 
         if(hasTransformed) {
@@ -149,6 +149,10 @@ export default class Canvasrenderer implements CanvasWorker {
     private drawClippath(elData: VdomNode) {
         //safeLog('clippaths can not be rendered yet.')
     }
+
+    private drawSvg() {}
+    private drawTitle() {}
+    private drawG() {}
     
     private circlesByColor: {[color: string]: VdomNode[]} = {};
     private drawCircle(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
@@ -237,11 +241,22 @@ export default class Canvasrenderer implements CanvasWorker {
             opacity *= fillOp;
         }
 
-        fill = DrawingUtils.colorToRgba(fill, opacity, defaultColor);
+        let defaultCol = '';
+        if(this.parentValues['fill']) {
+            defaultCol = this.parentValues['fill'] as string;
+        }
+        if(this.parentValues['style;fill']) {
+            defaultCol = this.parentValues['style;fill'] as string;
+        }
+        if(!this.parentValues['fill'] && !this.parentValues['style;fill']) {
+            defaultCol = defaultColor;
+        }
+
+        fill = DrawingUtils.colorToRgba(fill, opacity, defaultCol);
         return fill;
     }
 
-    private getStrokeStyle(node: VdomNode): string {
+    private getStrokeStyle(node: VdomNode, defaultColor = 'none'): string {
         if(node.style['stroke-rgba']) {
             return node.style['stroke-rgba'];
         }
@@ -256,7 +271,7 @@ export default class Canvasrenderer implements CanvasWorker {
             node.style['stroke-rgba'] = DrawingUtils.colorToRgba(stroke, strokeOpacity);
             return node.style['stroke-rgba'];
         }
-        return 'none';
+        return defaultColor;
     }
 
     private getStrokeWidth(node: VdomNode) {
