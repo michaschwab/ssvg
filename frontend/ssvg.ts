@@ -990,6 +990,7 @@ export default class SSVG {
         this.svg.dispatchEvent(new_event); // for EasyPZ
 
         let triggeredElement: undefined|Element;
+        const {x, y} = SSVG.getMousePosition(new_event);
 
         for(let interactionSel of this.interactionSelections)
         {
@@ -1004,13 +1005,10 @@ export default class SSVG {
             } else {
                 for(let vdomNode of parentNode.children)
                 {
-                    const {x, y} = SSVG.getMousePosition(new_event);
+
                     let childNode = this.nodeAtPosition(vdomNode, x - 10, y - 10);
                     if(childNode)
                     {
-                        //console.log(childNode);
-                        /*let selector = parentSelector + ' > :nth-child(' + j + ')';
-                        let svgEl = this.svg.querySelector(selector);*/
                         const svgEl = this.domHandler.getElementFromNode(vdomNode);
                         const svgChildEl = this.domHandler.getElementFromNode(childNode);
 
@@ -1045,7 +1043,7 @@ export default class SSVG {
     {
         let pos = {x: 0, y: 0};
 
-        if(event.type.substr(0,5) === 'mouse' && event['clientX'])
+        if((event.type.substr(0,5) === 'mouse' || event.type === 'click') && event['clientX'])
         {
             pos = {x: event['clientX'], y: event['clientY']};
         }
