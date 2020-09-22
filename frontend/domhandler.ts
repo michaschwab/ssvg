@@ -257,6 +257,7 @@ export default class Domhandler {
                 if(val !== '' && typeof el.style[styleProp] !== 'function') {
                     const kebabCase = styleProp.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
                     node.style[kebabCase] = el.style[styleProp];
+                    node.styleSpecificity[kebabCase] = 5000;
                 }
             }
         }

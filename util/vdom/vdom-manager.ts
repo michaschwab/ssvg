@@ -81,6 +81,10 @@ export class VdomManager {
                 this.sharedData[attrName][index] = value;
             } else {
                 this.queue[attrName][index] = value;
+                if(this.sharedData[attrName] && this.sharedData[attrName][index]) {
+                    // un-set.
+                    this.sharedData[attrName][index] = 0;
+                }
             }
         }
         catch(e) {
@@ -246,7 +250,8 @@ export class VdomManager {
                         const styleName = attrName.substr('style;'.length);
                         const specificityAttrName = 'styleSpecificity;' + styleName;
                         try {
-                            const matchingSpecificity: number = setAttrQueue[specificityAttrName][childIndex];
+                            const matchingSpecificity: number = setAttrQueue[specificityAttrName] ?
+                                setAttrQueue[specificityAttrName][childIndex] : 1000;
                             this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, matchingSpecificity);
                             this.updateDeducedStyles(childNode, styleName, <string> value);
                         } catch (e) {
