@@ -1024,7 +1024,7 @@ export default class SSVG {
                             svgChildEl.dispatchEvent(new_event);
                         }
 
-                        if(svgEl) {
+                        if(svgEl !== svgChildEl) {
                             if(!triggeredElement) {
                                 triggeredElement = svgEl;
                             }

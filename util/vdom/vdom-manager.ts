@@ -128,6 +128,8 @@ export class VdomManager {
 
     removeNode(childIndex: number, parentNodeIndex: number) {
         const parentNode = this.getNodeFromIndex(parentNodeIndex);
+        const child = parentNode.children[childIndex];
+        delete this.indexToNodeMap[child.globalElementIndex];
 
         parentNode.children.splice(childIndex, 1);
         this.cachedListSelections = {}; //TODO only remove relevant cache.
