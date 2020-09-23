@@ -833,7 +833,7 @@ export default class SSVG {
                 me.enterExitQueue.push({
                     cmd: 'ENTER',
                     node: node,
-                    parentNodeIndex: parentNode.globalElementIndex,
+                    parentGlobalIndex: parentNode.globalElementIndex,
                     keepChildren: keepChildren
                 });
             } else {

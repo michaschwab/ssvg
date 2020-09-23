@@ -42,7 +42,7 @@ workerContext.onmessage = function(e: MessageEvent) {
                             operation.node.children = [];
                         }
                         vdom.addNode(operation.node);
-                        vdom.addNodeToParent(operation.node, operation.parentNodeIndex);
+                        vdom.addNodeToParent(operation.node, operation.parentGlobalIndex);
                         if(worker.addNode) {
                             worker.addNode(operation.node);
                         }
