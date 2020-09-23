@@ -476,8 +476,9 @@ export default class Canvasrenderer implements CanvasWorker {
             }
             this.ctx.strokeStyle = stroke;
 
-            if(elData.style['stroke-linejoin']) {
-                const lineJoin = elData.style['stroke-linejoin'];
+            const lineJoin = this.getAttributeStyleCss(elData, 'stroke-linejoin')
+
+            if(lineJoin) {
                 if(lineJoin === 'bevel' || lineJoin === 'round' || lineJoin === 'miter') {
                     this.ctx.lineJoin = lineJoin;
                 } else {
