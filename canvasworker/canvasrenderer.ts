@@ -585,17 +585,18 @@ export default class Canvasrenderer implements CanvasWorker {
     private applyTransform(transformString: string) {
         const transform = transformString ? DrawingUtils.parseTransform(transformString) : null;
         if(transform) {
-            if(transform.rotate) {
-                //console.log(transform.rotate);
+            if(!transform.rotateLast) {
+                this.ctx.rotate(transform.rotate * Math.PI / 180);
             }
-            //console.log(transformString);
-            this.ctx.rotate(transform.rotate * Math.PI / 180);
+
             const x = transform.translateBeforeScale ? transform.translateX : transform.translateX * transform.scaleX;
             const y = transform.translateBeforeScale ? transform.translateY : transform.translateY * transform.scaleY;
             this.ctx.transform(transform.scaleX, 0, 0, transform.scaleY, x, y);
-            //ctx.rotate(transform.rotate / 2 / Math.PI);
 
-            //console.log(transform.rotate);
+            if(transform.rotateLast) {
+                this.ctx.rotate(transform.rotate * Math.PI / 180);
+            }
+
             return true;
         }
         return false;

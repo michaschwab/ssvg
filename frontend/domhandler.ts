@@ -615,7 +615,8 @@ export default class Domhandler {
             scaleX: 0,
             scaleY: 0,
             rotate: 0,
-            translateBeforeScale: false
+            translateBeforeScale: false,
+            rotateLast: false,
         };
 
         while(parent) {

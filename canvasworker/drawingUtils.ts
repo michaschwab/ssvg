@@ -4,12 +4,21 @@ export type Transformation = {
     scaleX: number,
     scaleY: number,
     rotate: number,
-    translateBeforeScale: boolean
+    translateBeforeScale: boolean,
+    rotateLast: boolean,
 }
 
 export default class DrawingUtils {
     static parseTransform(transform: string|{}): Transformation {
-        const transformObject = {translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotate: 0, translateBeforeScale: false};
+        const transformObject: Transformation = {
+            translateX: 0,
+            translateY: 0,
+            scaleX: 1,
+            scaleY: 1,
+            rotate: 0,
+            translateBeforeScale: false,
+            rotateLast: false
+        };
         
         if (transform) {
             if(typeof transform !== "string") {
@@ -17,6 +26,7 @@ export default class DrawingUtils {
                 transformObject.scaleY = transform['k'];
                 transformObject.translateX = transform['x'];
                 transformObject.translateY = transform['y'];
+                transformObject.translateBeforeScale = true;
                 return transformObject;
             }
             let transformString = <string> transform;
@@ -53,6 +63,11 @@ export default class DrawingUtils {
             if (translateScale) {
                 transformObject.translateBeforeScale = true;
             }
+
+            const rotateLast = /\s*rotate\(([-0-9.,]+)\)$/.exec(transformString);
+            if (rotateLast) {
+                transformObject.rotateLast = true;
+            }
             
             const matrix = /\s*matrix\(([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+),([-0-9.]+)\)/.exec(transformString);
             if(matrix) {
@@ -75,9 +90,10 @@ export default class DrawingUtils {
             scaleX: transformA.scaleX * transformB.scaleX,
             scaleY: transformA.scaleY * transformB.scaleY,
             rotate: transformA.rotate + transformB.rotate,
-            translateBeforeScale: false
+            translateBeforeScale: false,
+            rotateLast: false
         };
-        //TODO: consider translateBeforeScale
+        //TODO: consider translateBeforeScale and rotateLast
     }
 
     static convertSizeToPx(size: string|number, fallback = true): number|undefined {
