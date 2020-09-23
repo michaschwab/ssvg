@@ -1043,15 +1043,16 @@ export default class SSVG {
     {
         let pos = {x: 0, y: 0};
 
-        if((event.type.substr(0,5) === 'mouse' || event.type === 'click') && event['clientX'])
-        {
+        const mouseEvents = ['wheel', 'click', 'mousemove', 'mousedown', 'mouseup', 'dblclick', 'contextmenu',
+            'mouseenter', 'mouseleave', 'mouseout', 'mouseover'];
+        if(mouseEvents.indexOf(event.type) !== -1 && event['clientX']) {
             pos = {x: event['clientX'], y: event['clientY']};
-        }
-        else if(event.type.substr(0,5) === 'touch')
-        {
+        } else if(event.type.substr(0,5) === 'touch') {
             const touches = event['touches'] ? event['touches'] : [];
             if(touches.length < 1) return null;
             pos = {x: touches[0].clientX, y: touches[0].clientY};
+        } else {
+            safeErrorLog('no event pos for event type ', event);
         }
 
         return pos;
