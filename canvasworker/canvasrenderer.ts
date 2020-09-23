@@ -184,9 +184,10 @@ export default class Canvasrenderer implements CanvasWorker {
 
                     this.ctx.beginPath();
                     for(let elData of this.circlesByColor[fillAndStrokeColor]) {
-                        const cx = this.vdom.get(elData, 'cx') ? this.vdom.get(elData, 'cx') : 0;
-                        const cy = this.vdom.get(elData, 'cy') ? this.vdom.get(elData, 'cy') : 0;
-                        const r = this.vdom.get(elData, 'r');
+                        // Round values so that paths are connected correctly and there are no rendering glitches
+                        const cx = Math.round(this.vdom.get(elData, 'cx')) || 0;
+                        const cy = Math.round(this.vdom.get(elData, 'cy')) || 0;
+                        const r = Math.round(this.vdom.get(elData, 'r'));
                         this.ctx.save();
                         this.applyTransform(elData.transform);
                         this.ctx.moveTo(cx + r, cy);
@@ -310,8 +311,9 @@ export default class Canvasrenderer implements CanvasWorker {
 
                     this.ctx.beginPath();
                     for(let elData of this.rectsByColor[fillAndStrokeColor]) {
-                        const x = this.vdom.get(elData, 'x') || 0;
-                        const y = this.vdom.get(elData, 'y') || 0;
+                        // Round values so that paths are connected correctly and there are no rendering glitches
+                        const x = Math.round(this.vdom.get(elData, 'x')) || 0;
+                        const y = Math.round(this.vdom.get(elData, 'y')) || 0;
                         this.ctx.save();
                         this.applyTransform(elData.transform);
                         this.ctx.moveTo(x, y);
