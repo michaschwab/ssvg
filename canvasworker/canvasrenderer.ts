@@ -357,7 +357,7 @@ export default class Canvasrenderer implements CanvasWorker {
                 path.rect(x, y, elData.width, elData.height);
             }
 
-            if(stroke !== undefined && !path) {
+            if(stroke !== 'none' && !path) {
                 this.ctx.strokeStyle = stroke;
                 this.ctx.beginPath();
                 this.ctx.rect(x, y, elData.width, elData.height);
