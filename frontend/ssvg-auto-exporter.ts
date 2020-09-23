@@ -1,7 +1,7 @@
 import SSVG from "./ssvg";
 
 if(!location.search.match(/(\?|&)svg($|&)/)) {
-    new SSVG();
+    window['ssvg'] = new SSVG();
 }
 
 export = SSVG;

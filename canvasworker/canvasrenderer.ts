@@ -548,8 +548,11 @@ export default class Canvasrenderer implements CanvasWorker {
                             this.applyTransform(elData.transform);
                         }
 
-                        this.ctx.moveTo(this.vdom.get(elData, 'x1') || 0, this.vdom.get(elData, 'y1') || 0);
-                        this.ctx.lineTo(this.vdom.get(elData, 'x2') || 0, this.vdom.get(elData, 'y2') || 0);
+                        const [x1, x2, y1, y2] = this.vdom.get(elData, ['x1', 'x2', 'y1', 'y2'])
+                            .map(val => Math.round(val) || 0);
+
+                        this.ctx.moveTo(x1, y1);
+                        this.ctx.lineTo(x2, y2);
 
                         if(elData.transform) {
                             //this.ctx.restore();
@@ -564,8 +567,12 @@ export default class Canvasrenderer implements CanvasWorker {
         }
         if(mode === 'forcesingle') {
             this.ctx.beginPath();
-            this.ctx.moveTo(this.vdom.get(elData, 'x1') || 0, this.vdom.get(elData, 'y1') || 0);
-            this.ctx.lineTo(this.vdom.get(elData, 'x2') || 0, this.vdom.get(elData, 'y2') || 0);
+
+            const [x1, x2, y1, y2] = this.vdom.get(elData, ['x1', 'x2', 'y1', 'y2'])
+                .map(val => Math.round(val) || 0);
+
+            this.ctx.moveTo(x1, y1);
+            this.ctx.lineTo(x2, y2);
 
             this.ctx.strokeStyle = this.getStrokeStyle(elData);
             this.ctx.lineWidth = this.getStrokeWidth(elData);

@@ -189,7 +189,15 @@ export class VdomManager {
 
     private static ROUNDED_ATTRS = ['cx', 'cy'];
 
-    get(node: VdomNode, attrName: string) {
+    get(node: VdomNode, attrs: string|string[]) {
+        if(Array.isArray(attrs)) {
+            return attrs.map(attrName => this.getSingle(node, attrName));
+        } else {
+            return this.getSingle(node, attrs);
+        }
+    }
+
+    private getSingle(node: VdomNode, attrName: string) {
         if(this.sharedData[attrName] && this.sharedData[attrName][node.globalElementIndex]) {
             if(this.sharedData[attrName][node.globalElementIndex] === 133713371337) {
                 return 0;
