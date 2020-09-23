@@ -15,7 +15,7 @@ export class VdomManager {
         this.ensureNodesMapped();
     }
 
-    ensureInitialized(attrName: string, useBuffer: boolean, numNodes?: number) {
+    ensureInitialized(attrName: string, useBuffer = true, numNodes?: number) {
         if(attrName === 'class') {
             attrName = 'className';
         }
@@ -62,7 +62,7 @@ export class VdomManager {
         }
     }
 
-    set(element: VdomNode|SsvgElement, attrName: string, value: any, useBuffer: boolean) {
+    set(element: VdomNode|SsvgElement, attrName: string, value: any, useBuffer = true) {
         if(attrName === 'class') {
             attrName = 'className';
         }
@@ -160,15 +160,29 @@ export class VdomManager {
         return parentNode;
     }
 
-    applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string, specificity: number) {
-        if(!node['styleSpecificity'][styleName] || node['styleSpecificity'][styleName] <= specificity) {
-            node['style'][styleName] = styleValue;
-            node['styleSpecificity'][styleName] = specificity;
+    applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string) {
+        node.style[styleName] = styleValue;
+
+        if(node.children) {
+            for(let child of node.children) {
+                this.applyStyleToNodeAndChildren(child, styleName, styleValue);
+            }
+        }
+    }
+
+    applyCssToNodeAndChildren(node: VdomNode, selector: string, styleName: string, value: string) {
+        if(styleName === '*' && !value) {
+            delete node.css[selector];
+        } else {
+            if(!node.css[selector]) {
+                node.css[selector] = {};
+            }
+            node.css[selector][styleName] = value;
         }
 
         if(node.children) {
             for(let child of node.children) {
-                this.applyStyleToNodeAndChildren(child, styleName, styleValue, specificity);
+                this.applyCssToNodeAndChildren(child, selector, styleName, value);
             }
         }
     }
@@ -258,40 +272,18 @@ export class VdomManager {
                     let value: string|number = values[childIndex];
                     if(attrNameStart === 'style;') {
                         const styleName = attrName.substr('style;'.length);
-                        const specificityAttrName = 'styleSpecificity;' + styleName;
-                        try {
-                            const matchingSpecificity: number = setAttrQueue[specificityAttrName] ?
-                                setAttrQueue[specificityAttrName][childIndex] : 1000;
-                            this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, matchingSpecificity);
-                            this.updateDeducedStyles(childNode, styleName, <string> value);
-                        } catch (e) {
-                            console.error(e, setAttrQueue, specificityAttrName, childIndex);
-                            this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, -1);
-                        }
+                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value);
+                    } else if(attrName.substr(0, 4) === 'css;') {
+                        const [selector, styleName] = attrName.substr(4).split(';');
 
+                        this.applyCssToNodeAndChildren(childNode, selector, styleName, value);
                     } else {
                         if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
                             value = Math.round(<number> parseFloat(value));
                         }
                         childNode[attrName] = value;
-                        this.updateDeducedStyles(childNode, attrName, <string> value);
                     }
                 }
-            }
-        }
-    }
-
-    updateDeducedStyles(node: VdomNode, attrName: string, value: string) {
-        if(['opacity', 'fill-opacity', 'stroke-opacity', 'stroke', 'fill'].indexOf(attrName) !== -1) {
-            let stroke = node.style.stroke ? node.style.stroke : node.stroke;
-            if(stroke) {
-                let strokeOpacity = node.style['stroke-opacity'] === undefined ? node.style['opacity']
-                    : node.style['stroke-opacity'];
-                if(strokeOpacity === undefined) {
-                    strokeOpacity = node['stroke-opacity'] === undefined ? node['opacity'] : node['stroke-opacity'];
-                }
-
-                node.style['stroke-rgba'] = DrawingUtils.colorToRgba(stroke, strokeOpacity);
             }
         }
     }
@@ -447,7 +439,7 @@ export class VdomManager {
 
 let safeLogCount = 0;
 function safeLog(...logContents) {
-    if(safeLogCount < 50) {
+    if(safeLogCount < 300) {
         safeLogCount++;
         console.log(...logContents);
     }

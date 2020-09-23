@@ -1005,8 +1005,8 @@ export default class SSVG {
             } else {
                 for(let vdomNode of parentNode.children)
                 {
-
                     let childNode = this.nodeAtPosition(vdomNode, x - 10, y - 10);
+
                     if(childNode)
                     {
                         const svgEl = this.domHandler.getElementFromNode(vdomNode);
@@ -1159,14 +1159,14 @@ export default class SSVG {
 let safeLogCount = 0;
 function safeLog(...logContents) {
     
-    if(safeLogCount < 50) {
+    if(safeLogCount < 200) {
         safeLogCount++;
         console.log(...logContents);
     }
 }
 function safeErrorLog(...logContents) {
     
-    if(safeLogCount < 50) {
+    if(safeLogCount < 200) {
         safeLogCount++;
         console.error(...logContents);
     }

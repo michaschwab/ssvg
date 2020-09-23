@@ -200,7 +200,7 @@ export default class Canvasrenderer implements CanvasWorker {
                         this.ctx.fill();
                     }
 
-                    if(sampleData.style['stroke-rgba'] && sampleData.style['stroke-rgba'] !== 'none') {
+                    if(strokeColor && strokeColor !== 'none') {
                         this.ctx.stroke();
                     }
                 }
@@ -209,13 +209,14 @@ export default class Canvasrenderer implements CanvasWorker {
         }
         if(mode === 'forcesingle') {
             let fill = this.getFillStyle(elData, '#000');
+            const strokeStyle = this.getStrokeStyle(elData);
 
             const cx = this.vdom.get(elData, 'cx') || 0;
             const cy = this.vdom.get(elData, 'cy') || 0;
 
             this.ctx.beginPath();
             this.ctx.fillStyle = fill;
-            this.ctx.strokeStyle = this.getStrokeStyle(elData);
+            this.ctx.strokeStyle = strokeStyle;
             this.ctx.lineWidth = this.getStrokeWidth(elData);
             this.ctx.moveTo(cx + elData.r, cy);
             const context = path ? path : this.ctx;
@@ -224,22 +225,19 @@ export default class Canvasrenderer implements CanvasWorker {
                 this.ctx.fill();
             }
 
-            if(elData.style['stroke-rgba'] && elData.style['stroke-rgba'] !== 'none' && !path) {
+            if(strokeStyle && strokeStyle !== 'none' && !path) {
                 this.ctx.stroke();
             }
         }
     }
 
     private getFillStyle(node: VdomNode, defaultColor = 'none'): string {
-        let fill = node.style.fill ? node.style.fill : node.fill;
-        let opacity = node.opacity || 1;
-        if(node.style['opacity']) {
-            opacity = parseFloat(node.style['opacity']);
-        }
-        if(node['fill-opacity'] || node.style['fill-opacity']) {
-            const fillOp = node['fill-opacity'] ? parseFloat(node['fill-opacity']) :
-                parseFloat(node.style['fill-opacity']);
-            opacity *= fillOp;
+        let fill = this.getAttributeStyleCss(node, 'fill');
+        let opacity = this.getAttributeStyleCss(node, 'opacity') || 1;
+        const fillOpacity = this.getAttributeStyleCss(node, 'fill-opacity')
+
+        if(fillOpacity) {
+            opacity *= fillOpacity;
         }
 
         let defaultCol = '';
@@ -257,26 +255,38 @@ export default class Canvasrenderer implements CanvasWorker {
         return fill;
     }
 
-    private getStrokeStyle(node: VdomNode, defaultColor = 'none'): string {
-        if(node.style['stroke-rgba']) {
-            return node.style['stroke-rgba'];
-        }
-        let stroke = node.style.stroke ? node.style.stroke : node.stroke;
-        if(stroke !== undefined) {
-            let strokeOpacity = node.style['stroke-opacity'] === undefined ? node.style['opacity']
-                : node.style['stroke-opacity'];
-            if(strokeOpacity === undefined) {
-                strokeOpacity = node['stroke-opacity'] === undefined ? node['opacity'] : node['stroke-opacity'];
-            }
+    private getAttributeStyleCss(node: VdomNode, style: string) {
+        if(node.style[style]) {
+            return node.style[style];
+        } else {
+            let value = node[style];
 
-            node.style['stroke-rgba'] = DrawingUtils.colorToRgba(stroke, strokeOpacity);
-            return node.style['stroke-rgba'];
+            let highestSpec = -1;
+            for(const selector in node.css) {
+                if(node.css[selector][style]) {
+                    const specificity = DrawingUtils.getCssRuleSpecificityNumber(selector);
+                    if(specificity > highestSpec) {
+                        value = node.css[selector][style];
+                        highestSpec = specificity;
+                    }
+                }
+            }
+            return value;
+        }
+    }
+
+    private getStrokeStyle(node: VdomNode, defaultColor = 'none'): string {
+        const stroke = this.getAttributeStyleCss(node, 'stroke');
+
+        if(stroke !== undefined) {
+            const strokeOpacity = this.getAttributeStyleCss(node, 'stroke-opacity');
+            return DrawingUtils.colorToRgba(stroke, strokeOpacity);
         }
         return defaultColor;
     }
 
     private getStrokeWidth(node: VdomNode) {
-        const width = node.style['stroke-width'] !== undefined ? node.style['stroke-width'] : node['stroke-width'];
+        const width = this.getAttributeStyleCss(node, 'stroke-width');
         return width === undefined ? undefined : parseFloat(width);
     }
 
@@ -325,7 +335,7 @@ export default class Canvasrenderer implements CanvasWorker {
                         this.ctx.fill();
                     }
 
-                    if(sampleData.style['stroke-rgba'] && sampleData.style['stroke-rgba'] !== 'none') {
+                    if(strokeColor && strokeColor !== 'none') {
                         this.ctx.stroke();
                     }
                 }
@@ -363,32 +373,25 @@ export default class Canvasrenderer implements CanvasWorker {
             if(elData.text === '') {
                 return;
             }
-            let fontFamily = 'Times New Roman';
-            if(elData['font-family']) {
-                fontFamily = elData['font-family'];
-            }
-            if(elData.style['font-family']) {
-                fontFamily = elData.style['font-family'];
-            }
+            let fontFamily = this.getAttributeStyleCss(elData, 'font-family') || 'Times New Roman';
+
             let fontSize = '16px';
-            if(elData['font-size']) {
-                fontSize = DrawingUtils.convertSizeToPx(elData['font-size']) + 'px';
+            const customSize = this.getAttributeStyleCss(elData, 'font-size');
+            if(customSize) {
+                fontSize = DrawingUtils.convertSizeToPx(customSize) + 'px';
             }
-            if(elData.style['font-size']) {
-                fontSize = DrawingUtils.convertSizeToPx(elData.style['font-size']) + 'px';
-            }
-            let font = elData.style['font'] ? elData.style['font'] : elData['font'];
+            let font = this.getAttributeStyleCss(elData, 'font');
             if(!font) {
                 font = fontSize + ' ' + fontFamily;
             }
-            let align = elData['text-anchor'] !== undefined ? elData['text-anchor'] : elData.style['text-anchor'];
+            let align = this.getAttributeStyleCss(elData, 'text-anchor');
             if(align) {
                 if(align === 'middle') {
                     align = 'center';
                 }
                 this.ctx.textAlign = align;
             }
-            let fill = elData['fill'] ? elData['fill'] : elData.style['fill'];
+            let fill = this.getAttributeStyleCss(elData, 'fill');
             if(!fill) fill = '#000';
             this.ctx.font = font;
             this.ctx.fillStyle = fill;
@@ -614,7 +617,7 @@ export default class Canvasrenderer implements CanvasWorker {
 let safeLogCount = 0;
 function safeLog(...logContents) {
     
-    if(safeLogCount < 50) {
+    if(safeLogCount < 300) {
         safeLogCount++;
         console.log(...logContents);
     }

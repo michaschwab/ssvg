@@ -8,7 +8,7 @@ export type VdomNodeType = 'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'tex
 
 export type VdomNode = {
     style: {[styleName: string]: string},
-    styleSpecificity: {[styleName: string]: number},
+    css: {[selector: string]: {[styleName: string]: string}},
     type: VdomNodeType,
     children: VdomNode[],
     globalElementIndex: number,

@@ -21,7 +21,7 @@ export default class Domhandler {
             children: [],
             globalElementIndex: 0,
             style: {},
-            styleSpecificity: {},
+            css: {},
         };
 
         this.vdom = new VdomManager(visData, ignoreDesign);
@@ -69,23 +69,17 @@ export default class Domhandler {
             return;
         }
 
-        if(element === this.svg && attrName.indexOf('style;') === 0) {
-            attrName = attrName.substr('style;'.length);
-        }
-        //attrName = this.checkAttrName(parentSelector, attrName, false);
-        this.vdom.ensureInitialized(attrName, false, this.globalElementIndexCounter);
+        this.vdom.ensureInitialized(attrName, false);
 
         const evaluatedValue = typeof value === "function" ? value.call(element, element.__data__, childIndex) : value;
         //const node = this.getNodeFromElement(element);
         //this.setAttrQueue.set(node, attrName, evaluatedValue, false);
         const node = this.getNodeFromElement(element);
-        this.vdom.set(node, attrName, evaluatedValue, false);
-        if(attrName.indexOf('style;') === 0) {
-            const longSpecName = 'styleSpecificity;' + attrName.substr(6);
-            this.vdom.ensureInitialized(longSpecName, false, this.globalElementIndexCounter);
-            this.vdom.set(node, longSpecName, 3000, false);
+        if(!node) {
+            console.error('node not found for ', element);
+            return;
         }
-
+        this.vdom.set(node, attrName, evaluatedValue, false);
 
         if(attrName === "href") {
             try {
@@ -94,7 +88,7 @@ export default class Domhandler {
                     .then(blob => createImageBitmap(blob))
                     .then(bitmap => {
                         //this.checkAttrName(parentSelector, "image", false);
-                        this.vdom.ensureInitialized("image", false, this.globalElementIndexCounter);
+                        this.vdom.ensureInitialized("image", false);
                         this.vdom.set(node, 'image', bitmap, false);
                     });
             }
@@ -124,7 +118,6 @@ export default class Domhandler {
             //console.error('selection elements not found', elements);
             return;
         }
-        const useSharedArray = 'SharedArrayBuffer' in self;
 
         let parentElement = elements[0].parentNode;
         let parentSelector = parentElement === this.svg ? "svg" : parentElement['selector'];
@@ -133,12 +126,8 @@ export default class Domhandler {
             console.error('selector not found');
         }
 
-        this.vdom.ensureInitialized(attrName, useSharedArray, this.globalElementIndexCounter);
+        this.vdom.ensureInitialized(attrName, true, this.globalElementIndexCounter);
         let longSpecName;
-        if(attrName.indexOf('style;') === 0) {
-            longSpecName = 'styleSpecificity;' + attrName.substr(6);
-            this.vdom.ensureInitialized(longSpecName, useSharedArray, this.globalElementIndexCounter);
-        }
 
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
@@ -146,7 +135,7 @@ export default class Domhandler {
             const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
             this.ensureElementIndex(svgEl);
 
-            this.vdom.set(svgEl, attrName, evaluatedValue, useSharedArray);
+            this.vdom.set(svgEl, attrName, evaluatedValue);
 
             if(longSpecName) {
                 this.vdom.set(svgEl, longSpecName, 3000, false);
@@ -193,7 +182,7 @@ export default class Domhandler {
     }
 
     useAttrQueue(cb: (data) => void = () => {}) {
-        if(this.nodesToRestyle) {
+        if(this.nodesToRestyle && this.nodesToRestyle.length) {
             this.applyStyles();
         }
 
@@ -235,7 +224,7 @@ export default class Domhandler {
             type: el.tagName.toLowerCase() as VdomNodeType,
             className: el.getAttribute('class'),
             style: {},
-            styleSpecificity: {},
+            css: {},
             children: [],
             globalElementIndex: -1,
             text: !el.childNodes || (el.childNodes.length === 1 && !(el.childNodes[0] as HTMLElement).tagName)
@@ -257,7 +246,6 @@ export default class Domhandler {
                 if(val !== '' && typeof el.style[styleProp] !== 'function') {
                     const kebabCase = styleProp.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
                     node.style[kebabCase] = el.style[styleProp];
-                    node.styleSpecificity[kebabCase] = 5000;
                 }
             }
         }
@@ -328,44 +316,13 @@ export default class Domhandler {
                 parent = this.getNodeParent(parent);
             }
         }
-        const specificity = DrawingUtils.getCssRuleSpecificityNumber(selectorString);
 
         const setStyle = (styleName: string, rule: {style: {[settingName: string]: string}}, child: VdomNode) => {
             if(rule.style[styleName]) {
-                const longName = 'style;' + styleName;
-                const longSpecName = 'styleSpecificity;' + styleName;
-                this.vdom.ensureInitialized(longName, false, this.globalElementIndexCounter);
-                this.vdom.ensureInitialized(longSpecName, false, this.globalElementIndexCounter);
-                /*this.checkAttrName(parentSelector, longName);
-                this.checkAttrName(parentSelector, longSpecName);*/
-                let setValue = false;
+                const longSpecName = `css;${selectorString};${styleName}`;
+                this.vdom.ensureInitialized(longSpecName);
 
-                if(!this.vdom.getQueueValue(child, longName) && !child.style[styleName]) {
-                    setValue = true;
-                } else {
-                    if(child.styleSpecificity[styleName]) {
-                        // If a later rule has the same or higher specificity, apply.
-                        // Hence, later rules override earlier rules.
-                        if(child.styleSpecificity[styleName] <= specificity) {
-                            if(this.vdom.getQueueValue(child, longSpecName)) {
-                                setValue = this.vdom.getQueueValue(child, longSpecName) <= specificity;
-                            } else {
-                                setValue = true;
-                            }
-                        } else {
-                            setValue = this.vdom.getQueueValue(child, longSpecName) <= specificity;
-                        }
-                    } else {
-                        setValue = this.vdom.getQueueValue(child, longSpecName) <= specificity;
-                    }
-                }
-
-                if(setValue) {
-                    this.vdom.set(child, longName, rule.style[styleName], false);
-                    this.vdom.set(child, longSpecName, specificity, false);
-                    /*this.setAttrQueue[parentSelector][longName][childIndex] = rule.style[styleName];
-                    this.setAttrQueue[parentSelector][longSpecName][childIndex] = specificity;*/
-                }
+                this.vdom.set(child, longSpecName, rule.style[styleName]);
             }
         };
 
@@ -385,8 +342,10 @@ export default class Domhandler {
                     } else if(selectorPartsLooseStrict.length > looseIndex + 1) {
                         checkNode(child, looseIndex + 1, strictIndex);
                     } else {
-                        for(const styleName of CSS_STYLES) {
-                            setStyle(styleName, rule, child);
+                        if(!child.css[selectorString]) {
+                            for(const styleName of CSS_STYLES) {
+                                setStyle(styleName, rule, child);
+                            }
                         }
                     }
                 } else {
@@ -397,8 +356,7 @@ export default class Domhandler {
 
                             let newPartialMatch = VdomManager.isCssRulePartialMatch(selPart, child, currentNode);
                             if(newPartialMatch) {
-                                const parentSelector = this.getNodeSelector(currentNode);
-                                this.removeRuleStylesFromNode(parentSelector, child, childIndex, rule, specificity);
+                                this.removeRuleStylesFromNode(selectorString, child);
                             }
 
                             child.className = child.className.substr(0, child.className.length -
@@ -417,27 +375,11 @@ export default class Domhandler {
         return checkNode(this.vdom.data);
     }
 
-    removeRuleStylesFromNode(parentSelector: string, child: VdomNode, childIndex: number,
-                             rule: {style: {[settingName: string]: string}}, specificity: number) {
-        if(rule.style['stroke']) {
-            const color = drawingUtils.colorToRgba(rule.style['stroke']);
-            if(child.style['stroke'] === color || child.style['stroke-rgba'] === color) {
-                //this.checkAttrName(parentSelector, 'style;stroke');
-                //this.setAttrQueue[parentSelector]['style;stroke'][childIndex] = '';
-                //this.checkAttrName(parentSelector, 'style;stroke-rgba');
-                //this.setAttrQueue[parentSelector]['style;stroke-rgba'][childIndex] = '';
-
-                this.vdom.ensureInitialized('style;stroke', false, this.globalElementIndexCounter);
-                this.vdom.ensureInitialized('styleSpecificity;stroke', false, this.globalElementIndexCounter);
-                this.vdom.ensureInitialized('style;stroke-rgba', false, this.globalElementIndexCounter);
-                this.vdom.ensureInitialized('styleSpecificity;stroke-rgba', false, this.globalElementIndexCounter);
-                this.vdom.set(child, 'style;stroke', '', false);
-                this.vdom.set(child, 'styleSpecificity;stroke', specificity, false);
-                this.vdom.set(child, 'style;stroke-rgba', '', false);
-                this.vdom.set(child, 'styleSpecificity;stroke-rgba', specificity, false);
-            }
+    removeRuleStylesFromNode(selector: string, child: VdomNode) {
+        if(child.css[selector]) {
+            this.vdom.ensureInitialized(`css;${selector};*`);
+            this.vdom.set(child, `css;${selector};*`, '');
         }
-        //TODO remove other styles.
     }
 
     removeNodeFromParent(element: Element, node: VdomNode, parentNode: VdomNode) {
