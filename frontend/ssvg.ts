@@ -537,15 +537,13 @@ export default class SSVG {
                 if(value !== undefined) {
                     me.domHandler.enableFrontendDesignProperties();
                     let elements = this._groups ? this._groups[0] : this[0];
-                    let i = 0;
+                    let i = -1;
                     for(let element of elements) {
+                        i++;
                         if(element) {
-                            const indexOfParent = element.childIndex;
-                            const parentSelector = element['parentSelector'];
-                            const parent = me.vdom.getParentNodeFromSelector(parentSelector);
-                            const node = parent.children[indexOfParent];
+                            const node = me.domHandler.getNodeFromElement(element);
                             if(!node) {
-                                console.warn('node not found', element, parent, indexOfParent, className);
+                                console.warn('node not found', element);
                                 continue;
                             }
                             const prevClassNames = node.className || '';
@@ -570,7 +568,6 @@ export default class SSVG {
                             }
                         }
 
-                        i++;
                     }
                 }
                 return originalClassed.apply(this, arguments);

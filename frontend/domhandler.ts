@@ -54,26 +54,12 @@ export default class Domhandler {
     queueSetAttributeOnElement(element: SsvgElement, attrName: string,
                                value: (number|string|((el: HTMLElement) => (number|string)))) {
         //TODO: merge with updatePropertiesFromQueue from VdomManager?
-        const parent = element.parentNode;
-        let parentSelector = parent === this.svg ? "svg" : element.parentSelector;
         let childIndex = element.childIndex;
-    
-        if(!parentSelector && element === this.svg) {
-            parentSelector = 'SVG_PARENT';
-            childIndex = 0;
-        }
-    
-        if(!parentSelector) {
-            safeLog(element, parent);
-            console.error('selector not found');
-            return;
-        }
-
         this.vdom.ensureInitialized(attrName, false);
 
-        const evaluatedValue = typeof value === "function" ? value.call(element, element.__data__, childIndex) : value;
-        //const node = this.getNodeFromElement(element);
-        //this.setAttrQueue.set(node, attrName, evaluatedValue, false);
+        const evaluatedValue = typeof value === "function" ?
+            value.call(element, element.__data__, childIndex) : value;
+
         const node = this.getNodeFromElement(element);
         if(!node) {
             console.error('node not found for ', element);
@@ -87,8 +73,7 @@ export default class Domhandler {
                     .then(resp => resp.blob())
                     .then(blob => createImageBitmap(blob))
                     .then(bitmap => {
-                        //this.checkAttrName(parentSelector, "image", false);
-                        this.vdom.ensureInitialized("image", false);
+                        this.vdom.ensureInitialized('image', false);
                         this.vdom.set(node, 'image', bitmap, false);
                     });
             }
@@ -97,7 +82,6 @@ export default class Domhandler {
 
         if(attrName === 'class' || attrName.indexOf('style') !== -1) {
             // Apply classes immediately so styles can be applied correctly.
-
             if(attrName === 'class') {
                 node.className = evaluatedValue;
                 this.nodesToRestyle.push(node);
@@ -111,7 +95,6 @@ export default class Domhandler {
         }
     }
 
-    logged = 0;
     queueSetAttributeOnSelection(elements: SsvgElement[], attrName: string, value) {
         if(!elements.length) return;
         if(!elements[0]) {
@@ -119,15 +102,7 @@ export default class Domhandler {
             return;
         }
 
-        let parentElement = elements[0].parentNode;
-        let parentSelector = parentElement === this.svg ? "svg" : parentElement['selector'];
-        if(!parentSelector) {
-            safeLog(elements, parentElement);
-            console.error('selector not found');
-        }
-
         this.vdom.ensureInitialized(attrName, true, this.globalElementIndexCounter);
-        let longSpecName;
 
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
@@ -136,10 +111,6 @@ export default class Domhandler {
             this.ensureElementIndex(svgEl);
 
             this.vdom.set(svgEl, attrName, evaluatedValue);
-
-            if(longSpecName) {
-                this.vdom.set(svgEl, longSpecName, 3000, false);
-            }
 
             //TODO: re-implement.
             /*if(attrName === "href") {
