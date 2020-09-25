@@ -234,11 +234,8 @@ export default class Canvasrenderer implements CanvasWorker {
     private getFillStyle(node: VdomNode, defaultColor = 'none'): string {
         let fill = this.getAttributeStyleCss(node, 'fill');
         let opacity = this.getAttributeStyleCss(node, 'opacity') || 1;
-        const fillOpacity = this.getAttributeStyleCss(node, 'fill-opacity')
-
-        if(fillOpacity) {
-            opacity *= fillOpacity;
-        }
+        const fillOpacity = this.getAttributeStyleCss(node, 'fill-opacity') || 1;
+        opacity *= fillOpacity;
 
         let defaultCol = '';
         if(this.parentValues['fill']) {

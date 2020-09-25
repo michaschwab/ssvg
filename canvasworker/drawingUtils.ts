@@ -116,7 +116,8 @@ export default class DrawingUtils {
         console.warn('size in unsupported format: ', size);
         return defaultValue;
     }
-    
+
+    static rgbaCache = {};
     static colorToRgba(color: string|{r: number, g: number, b: number}|{h: number, s: number, l: number},
                        opacity: string|number = 1,
                        defaultColor ='none'): string {
@@ -126,10 +127,17 @@ export default class DrawingUtils {
         if(!color) {
             color = defaultColor;
         }
+        const cacheKey = `${color}-${opacity}`;
+        if(DrawingUtils.rgbaCache[cacheKey]) {
+            return DrawingUtils.rgbaCache[cacheKey];
+        }
+
         color = DrawingUtils.CssNamedColorToHex(color);
         if(opacity === 1 && typeof color === 'string') {
+            DrawingUtils.rgbaCache[cacheKey] = color;
             return color;
         }
+        let rgba: string;
         if(typeof color === 'string' && color[0] === '#') {
             let c; // From https://stackoverflow.com/questions/21646738/convert-hex-to-rgba
             if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(color)){
@@ -138,22 +146,23 @@ export default class DrawingUtils {
                     c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
                 }
                 c = '0x' + c;
-                return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+',' + opacity + ')';
+                rgba = 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+',' + opacity + ')';
+            } else {
+                throw new Error('Bad Hex');
             }
-            throw new Error('Bad Hex');
         } else if(typeof color === 'object') {
             if('r' in color) {
-                return 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')';
-            }
-            if('h' in color) {
+                rgba = 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')';
+            } else if('h' in color) {
                 const rgb = DrawingUtils.hslToRgb(color.h / 360, color.s, color.l);
-                return 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + opacity + ')';
+                rgba = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + opacity + ')';
             }
         } else if(color.substr(0, 4) === 'rgb(') {
-            return color.substr(0, color.length - 1).replace('rgb','rgba') +
+            rgba = color.substr(0, color.length - 1).replace('rgb','rgba') +
                 ', ' + opacity + ')';
         }
-        return color;
+        DrawingUtils.rgbaCache[cacheKey] = rgba;
+        return rgba;
     }
 
     // From https://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion
