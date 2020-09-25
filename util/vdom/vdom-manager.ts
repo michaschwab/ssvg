@@ -160,17 +160,20 @@ export class VdomManager {
         return parentNode;
     }
 
-    applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string) {
+    applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string,
+                                onNodeUpdated: (node: VdomNode, attrName: string) => void) {
         node.style[styleName] = styleValue;
+        onNodeUpdated(node, styleName);
 
         if(node.children) {
             for(let child of node.children) {
-                this.applyStyleToNodeAndChildren(child, styleName, styleValue);
+                this.applyStyleToNodeAndChildren(child, styleName, styleValue, onNodeUpdated);
             }
         }
     }
 
-    applyCssToNodeAndChildren(node: VdomNode, selector: string, styleName: string, value: string) {
+    applyCssToNodeAndChildren(node: VdomNode, selector: string, styleName: string, value: string,
+                              onNodeUpdated: (node: VdomNode, attrName: string) => void) {
         if(styleName === '*' && !value) {
             delete node.css[selector];
         } else {
@@ -179,10 +182,11 @@ export class VdomManager {
             }
             node.css[selector][styleName] = value;
         }
+        onNodeUpdated(node, styleName);
 
         if(node.children) {
             for(let child of node.children) {
-                this.applyCssToNodeAndChildren(child, selector, styleName, value);
+                this.applyCssToNodeAndChildren(child, selector, styleName, value, onNodeUpdated);
             }
         }
     }
@@ -234,7 +238,8 @@ export class VdomManager {
         this.queue = {};
     }
 
-    updatePropertiesFromQueue(setAttrQueue: SetPropertyQueueData) {
+    updatePropertiesFromQueue(setAttrQueue: SetPropertyQueueData,
+                              onNodeUpdated: (node: VdomNode, attrName: string) => void = () => {}) {
                 
         for(let attrName in setAttrQueue) {
             if(!setAttrQueue.hasOwnProperty(attrName)) {
@@ -272,16 +277,17 @@ export class VdomManager {
                     let value: string|number = values[childIndex];
                     if(attrNameStart === 'style;') {
                         const styleName = attrName.substr('style;'.length);
-                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value);
+                        this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, onNodeUpdated);
                     } else if(attrName.substr(0, 4) === 'css;') {
                         const [selector, styleName] = attrName.substr(4).split(';');
 
-                        this.applyCssToNodeAndChildren(childNode, selector, styleName, value);
+                        this.applyCssToNodeAndChildren(childNode, selector, styleName, value, onNodeUpdated);
                     } else {
                         if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
-                            value = Math.round(<number> parseFloat(value));
+                            value = Math.round(parseFloat(value));
                         }
                         childNode[attrName] = value;
+                        onNodeUpdated(childNode, attrName);
                     }
                 }
             }

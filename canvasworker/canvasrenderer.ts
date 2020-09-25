@@ -231,7 +231,19 @@ export default class Canvasrenderer implements CanvasWorker {
         }
     }
 
+    nodeUpdated(node: VdomNode, attr: string) {
+        if(attr === '*' || attr.includes('fill') || attr.includes('opacity')) {
+            delete node['fill-cache'];
+        }
+        if(attr === '*' || attr.includes('stroke') || attr.includes('opacity')) {
+            delete node['stroke-cache'];
+        }
+    }
+
     private getFillStyle(node: VdomNode, defaultColor = 'none'): string {
+        if(node['fill-cache']) {
+            return node['fill-cache'];
+        }
         let fill = this.getAttributeStyleCss(node, 'fill');
         let opacity = this.getAttributeStyleCss(node, 'opacity') || 1;
         const fillOpacity = this.getAttributeStyleCss(node, 'fill-opacity') || 1;
@@ -249,6 +261,7 @@ export default class Canvasrenderer implements CanvasWorker {
         }
 
         fill = DrawingUtils.colorToRgba(fill, opacity, defaultCol);
+        node['fill-cache'] = fill;
         return fill;
     }
 
@@ -273,13 +286,20 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private getStrokeStyle(node: VdomNode, defaultColor = 'none'): string {
+        if(node['stroke-cache']) {
+            return node['stroke-cache'];
+        }
         const stroke = this.getAttributeStyleCss(node, 'stroke');
+        let opacity = this.getAttributeStyleCss(node, 'opacity') || 1;
+        const fillOpacity = this.getAttributeStyleCss(node, 'stroke-opacity') || 1;
+        opacity *= fillOpacity;
 
         if(stroke !== undefined) {
-            const strokeOpacity = this.getAttributeStyleCss(node, 'stroke-opacity');
-            return DrawingUtils.colorToRgba(stroke, strokeOpacity);
+            node['stroke-cache'] = DrawingUtils.colorToRgba(stroke, opacity);
+        } else {
+            node['stroke-cache'] = defaultColor;
         }
-        return defaultColor;
+        return node['stroke-cache'];
     }
 
     private getStrokeWidth(node: VdomNode) {

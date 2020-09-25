@@ -1,11 +1,13 @@
 import { VdomManager } from "../util/vdom/vdom-manager";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message"
 import Canvasrenderer from "./canvasrenderer";
+import {VdomNode} from "../util/vdom/vdom";
 
 export default interface CanvasWorker {
     draw(): void;
-    addNode?(node: any): void;
+    addNode?(node: VdomNode): void;
     updatePropertiesFromQueue?(queue: any): void;
+    nodeUpdated?(node: VdomNode, attr: string): void;
 }
 
 let worker: CanvasWorker;
@@ -54,7 +56,7 @@ workerContext.onmessage = function(e: MessageEvent) {
                 if(worker.updatePropertiesFromQueue) {
                     worker.updatePropertiesFromQueue(data.data.update);
                 } else {
-                    vdom.updatePropertiesFromQueue(data.data.update);
+                    vdom.updatePropertiesFromQueue(data.data.update, worker.nodeUpdated);
                 }
 
                 worker.draw();
