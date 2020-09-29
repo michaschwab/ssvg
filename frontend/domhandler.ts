@@ -60,14 +60,9 @@ export default class Domhandler {
         this.vdom.ensureInitialized(attrName, false);
 
         const node = this.getNodeFromElement(element);
-        const parent = this.getParentNode(node);
-        if(!parent) {
-            //safeErrorLog('no parent', element, node);
-        }
-        const childIndex = parent ? parent.children.indexOf(node) : -1;
 
         const evaluatedValue = typeof value === "function" ?
-            value.call(element, element.__data__, childIndex) : value;
+            value.call(element, element.__data__, element.__data__.index) : value;
 
         if(!node) {
             console.error('node not found for ', element);
@@ -115,8 +110,7 @@ export default class Domhandler {
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
 
-            const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, i) : value;
-            this.ensureElementIndex(svgEl);
+            const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, svgEl.__data__.index) : value;
 
             this.vdom.set(svgEl, attrName, evaluatedValue);
 
@@ -153,21 +147,14 @@ export default class Domhandler {
         }
     }
 
-    ensureElementIndex(svgEl: SsvgElement) {
-        if(!svgEl.globalElementIndex) {
-            const node = this.getNodeFromElement(svgEl);
-            svgEl.globalElementIndex = node.globalElementIndex;
-        }
-    }
-
-    useAttrQueue(cb: (data) => void = () => {}) {
+    useAttrQueue(cb: (data) => void = () => {}, onNodeUpdated?: (node: VdomNode, attrName: string) => void) {
         if(this.nodesToRestyle && this.nodesToRestyle.length) {
             this.applyStyles();
         }
 
         const data = this.vdom.getQueue();
+        this.vdom.updatePropertiesFromQueue(data, onNodeUpdated);
         cb(data);
-        this.vdom.updatePropertiesFromQueue(data);
         this.vdom.clearQueue();
     }
 

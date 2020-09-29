@@ -196,7 +196,7 @@ export default class SSVG {
                     this.renderer.updatePropertiesFromQueue(queue);
                 }
                 this.renderer.draw();
-            });
+            }, this.renderer.nodeUpdated);
         }
     }
     
