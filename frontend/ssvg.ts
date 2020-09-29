@@ -466,12 +466,7 @@ export default class SSVG {
                         const parentElement = elements.parentNode;
                         let parentNode: VdomNode;
                         if(parentElement !== document.children[0]) {
-                            const selector = me.domHandler.getElementSelector(parentElement);
-                            if(selector === null) {
-                                console.error('selector not found', parentElement, elements);
-                                throw Error('selector not found');
-                            }
-                            parentNode = me.vdom.getVisNodeFromSelector(selector);
+                            parentNode = me.domHandler.getVisNode(parentElement);
                         } else {
                             parentNode = me.vdom.data;
                         }
@@ -618,9 +613,6 @@ export default class SSVG {
                             newRemove.call(parentElement, element);
                         }
                     }
-                    if(parentElement) {
-                        me.updateChildSelectors(parentElement);
-                    }
                 }
                 return this;
             };
@@ -652,42 +644,6 @@ export default class SSVG {
         }
     }
 
-    private updateChildSelectors(parentElement: SsvgElement, parentNode?: VdomNode) {
-        if(!this.isWithinSvg(parentElement)) {
-            return;
-        }
-        const parentSelector = parentElement.selector;
-        if(!parentSelector) {
-            console.error('this node has no selector', parentElement)
-        }
-        if(!parentNode) {
-            parentNode = this.vdom.getParentNodeFromSelector(parentSelector);
-        }
-        for(let i = 0; i < parentNode.children.length; i++) {
-            const childNode: VdomNode = parentNode.children[i];
-            const childElement = this.domHandler.getElementFromNode(childNode);
-            if(!childElement) {
-                console.error('element not found', childNode, parentNode.children.length, i);
-                console.log('current element indices:',
-                    this.domHandler.nodesToElements.elements.map(e => e.globalElementIndex));
-                console.log('current elements:', [...this.domHandler.nodesToElements.elements]);
-                console.log('current nodes:', [...this.domHandler.nodesToElements.nodes]);
-                console.log('parent node: ', parentNode);
-                console.log('children:', [...parentNode.children]);
-                continue;
-            }
-            const oldSelector = childElement['selector'];
-
-            childElement.childIndex = i;
-            childElement.parentSelector = parentSelector;
-            childElement.selector = this.domHandler.combineElementSelectors(parentSelector, childNode.type, i+1);
-
-            this.domHandler.updateNodeSelector(oldSelector, childElement['selector']);
-
-            this.updateChildSelectors(childElement, childNode);
-        }
-    }
-
     private getNewRemoveChild(origRemoveChild: ((<T extends Node>(oldChild: T) => T)|(() => void)),
         skipUpdateSelectors = false) {
         const me = this;
@@ -701,7 +657,6 @@ export default class SSVG {
                 return origRemoveChild.apply(this, arguments);
             }
             const parentNode = me.domHandler.getNodeFromElement(this);
-            const parentSelector = this.selector;
             const node = me.domHandler.getNodeFromElement(el);
 
             if(!node) {
@@ -724,7 +679,7 @@ export default class SSVG {
             //console.log('remove')
             me.enterExitQueue.push({
                 cmd: 'EXIT',
-                childIndex: el['childIndex'],
+                childGlobalIndex: el.globalElementIndex,
                 parentGlobalIndex: parentNode.globalElementIndex
             });
 
@@ -732,10 +687,9 @@ export default class SSVG {
 
             // Fix child indices of all children.
             if(!skipUpdateSelectors) {
-                if(!parentSelector) {
-                    console.error('parent not found', parentNode, parentSelector, this, el);
+                if(!parentNode) {
+                    console.error('parent not found', parentNode, this, el);
                 }
-                me.updateChildSelectors(this);
             }
 
             delete el['selector'];
@@ -774,14 +728,10 @@ export default class SSVG {
             el['appendChild'] = <T extends Node>(el2: T) => {
                 return me.getNewAppendChild(origAppend).call(el, el2);
             };
-            const parentSelector = me.domHandler.getElementSelector(this);
-            if(parentSelector === null) {
-                return origAppend.apply(this, arguments);
-            }
 
             const parentNode = me.domHandler.getNodeFromElement(this);
             if(!parentNode) {
-                return console.error('parent node not found', parentSelector, this);
+                return console.error('parent node not found', this);
             }
             let node: VdomNode;
             let keepChildren = false;
@@ -794,10 +744,6 @@ export default class SSVG {
             } else {
                 node = me.domHandler.getNodeDataFromEl(el);
             }
-
-            el.parentSelector = parentSelector;
-            el.selector = me.domHandler.getElementSelector(el, parentNode);
-            el.childIndex = parentNode.children.length;
 
             Object.defineProperty(el, 'style', {
                 writable: true,
@@ -823,8 +769,7 @@ export default class SSVG {
     
             me.domHandler.linkNodeToElement(node, el);
             me.vdom.addNodeToParent(node, parentNode.globalElementIndex);
-            me.domHandler.restyleNode(parentNode, node);
-            me.updateChildSelectors(el, node);
+            me.domHandler.restyleNode(node);
 
             if(me.useWorker) {
                 me.enterExitQueue.push({
@@ -991,8 +936,7 @@ export default class SSVG {
 
         for(let interactionSel of this.interactionSelections)
         {
-            let parentSelector = this.domHandler.getElementSelector(interactionSel);
-            let parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
+            let parentNode = this.domHandler.getVisNode(interactionSel)
             
             //let matchingVisParent = selectedNodes[i];
             let j = 1;

@@ -22,12 +22,13 @@ export class VdomManager {
 
         if(!useBuffer || this.useSharedArrayFor.indexOf(attrName) === -1) {
             if(!this.queue[attrName]) {
-                this.queue[attrName] = [];
+                this.queue[attrName] = {};
             }
         } else {
+            const newLength = numNodes < 500 ? 1000 : numNodes * 2;
+
             if(!this.sharedData[attrName]) {
-                const length = numNodes < 500 ? 1000 : numNodes * 2;
-                const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
+                const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * newLength);
                 const values = new Int32Array(buffer);
 
                 // If values have been previously set without a buffer, transfer them.
@@ -43,17 +44,17 @@ export class VdomManager {
                 this.queue[attrName] = buffer;
                 this.sharedData[attrName] = values;
             } else {
-                const newLength = numNodes < 500 ? 1000 : numNodes * 2;
                 const newByteLength = Int32Array.BYTES_PER_ELEMENT * newLength;
                 if(this.sharedData[attrName].byteLength / newByteLength < 0.8) {
+                    //safeLog('extending to ', newLength);
                     // Need to allocate more space
                     //console.log('more space needed. prev:', this.sharedData[attrName].byteLength / Int32Array.BYTES_PER_ELEMENT, 'new', newLength);
                     const buffer = new SharedArrayBuffer(newByteLength);
                     const values = new Int32Array(buffer);
-                    const oldVals = new Int32Array(this.sharedData[attrName]);
+                    //const oldVals = new Int32Array(this.sharedData[attrName]);
 
-                    for(const i in oldVals) {
-                        values[i] = oldVals[i];
+                    for(const i in this.sharedData[attrName]) {
+                        values[i] = this.sharedData[attrName][i];
                     }
                     this.queue[attrName] = buffer;
                     this.sharedData[attrName] = values;
@@ -93,6 +94,20 @@ export class VdomManager {
         }
     }
 
+    removePendingChanges(node: VdomNode) {
+        const index = node.globalElementIndex;
+        for(const attrName in this.queue) {
+            if(this.queue.hasOwnProperty(attrName)) {
+                delete this.queue[attrName][index];
+            }
+        }
+        for(const attrName in this.sharedData) {
+            if(this.sharedData.hasOwnProperty(attrName)) {
+                this.sharedData[attrName][index] = 0;
+            }
+        }
+    }
+
     ensureNodesMapped() {
         const addToMap = (node: VdomNode) => {
             if(node.globalElementIndex === undefined) {
@@ -111,28 +126,30 @@ export class VdomManager {
     }
 
     addNodeToParent(nodeData: VdomNode, parentNodeIndex: number) {
-        let parentNode = this.getNodeFromIndex(parentNodeIndex);
-        if(!parentNode) {
-            console.error('could not add node without parent', parentNodeIndex, nodeData, Object.keys(this.indexToNodeMap));
-            new Error('parent not found');
-            return;
+        if(nodeData.type !== 'svg') {
+            const parentNode = this.getNodeFromIndex(parentNodeIndex);
+            if(!parentNode) {
+                console.error('could not add node without parent', parentNodeIndex, nodeData, Object.keys(this.indexToNodeMap));
+                new Error('parent not found');
+                return;
+            }
+            this.applyParentStyles(parentNode, nodeData);
+            parentNode.children.push(nodeData);
         }
-        this.applyParentStyles(parentNode, nodeData);
-
-        parentNode.children.push(nodeData);
-    }
-    
-    addNode(nodeData: VdomNode) {
-        this.indexToNodeMap[nodeData.globalElementIndex] = nodeData;
     }
 
-    removeNode(childIndex: number, parentNodeIndex: number) {
-        const parentNode = this.getNodeFromIndex(parentNodeIndex);
-        const child = parentNode.children[childIndex];
-        delete this.indexToNodeMap[child.globalElementIndex];
+    addNode(node: VdomNode) {
+        this.indexToNodeMap[node.globalElementIndex] = node;
+    }
 
-        parentNode.children.splice(childIndex, 1);
+    removeNode(node: VdomNode, parent: VdomNode) {
+        delete this.indexToNodeMap[node.globalElementIndex];
+        const childIndex = parent.children.indexOf(node);
+
+        parent.children.splice(childIndex, 1);
         this.cachedListSelections = {}; //TODO only remove relevant cache.
+
+        this.removePendingChanges(node);
     }
 
     applyParentStyles(parentNode: VdomNode, childNode: VdomNode) {
@@ -141,23 +158,6 @@ export class VdomManager {
                 childNode.style[style] = parentNode.style[style];
             }
         }
-    }
-    
-    getParentNodeFromSelector(parentSelector: string) {
-        if(!parentSelector) {
-            console.error('no parent selector', parentSelector);
-        }
-        //if(setAttrQueue.hasOwnProperty(parentSelector)) {
-        let parentNode;
-        if(parentSelector === 'SVG_PARENT') {
-            parentNode = {children: [this.data]};
-        } else {
-            parentNode = this.getVisNodeFromSelector(parentSelector);
-        }
-        if(!parentNode) {
-            console.error('parent node not found with selector', parentSelector);
-        }
-        return parentNode;
     }
 
     applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string,
@@ -217,17 +217,14 @@ export class VdomManager {
 
     private getSingle(node: VdomNode, attrName: string) {
         if(this.sharedData[attrName] && this.sharedData[attrName][node.globalElementIndex]) {
-            if(this.sharedData[attrName][node.globalElementIndex] === 133713371337) {
+            const value = this.sharedData[attrName][node.globalElementIndex];
+            if(value === 133713371337) {
                 return 0;
             }
-            return this.sharedData[attrName][node.globalElementIndex] / VdomManager.BUFFER_PRECISION_FACTOR;
+            return value / VdomManager.BUFFER_PRECISION_FACTOR;
         } else {
             return node[attrName];
         }
-    }
-
-    getQueueValue(node: VdomNode, attrName: string) {
-        return this.queue[attrName][node.globalElementIndex];
     }
 
     getQueue() {

@@ -8,7 +8,8 @@ export const CSS_STYLES = ['stroke', 'stroke-opacity', 'stroke-width', 'stroke-l
 
 export default class Domhandler {
     private readonly vdom: VdomManager;
-    public nodesToElements: { nodes: VdomNode[], elements: SsvgElement[]} = { nodes: [], elements: []};
+    nodes: {[globalElementIndex: number]: VdomNode} = {};
+    elements: {[globalElementIndex: number]: SsvgElement} = {};
     private nodesToRestyle: VdomNode[] = [];
     private globalElementIndexCounter = 0;
 
@@ -36,7 +37,8 @@ export default class Domhandler {
             this.nodesToRestyle = [];
             // Can not use this.nodesToRestyle = this.nodesToElements.nodes because this links the object and adding
             // to this.nodesToRestyle would break the nodesToElements mapping.
-            for(const node of this.nodesToElements.nodes) {
+            const currentNodes = Object.values(this.nodes);
+            for(const node of currentNodes) {
                 this.nodesToRestyle.push(node);
             }
         }, 100);
@@ -54,13 +56,19 @@ export default class Domhandler {
     queueSetAttributeOnElement(element: SsvgElement, attrName: string,
                                value: (number|string|((el: HTMLElement) => (number|string)))) {
         //TODO: merge with updatePropertiesFromQueue from VdomManager?
-        let childIndex = element.childIndex;
+        //let childIndex = element.childIndex;
         this.vdom.ensureInitialized(attrName, false);
+
+        const node = this.getNodeFromElement(element);
+        const parent = this.getParentNode(node);
+        if(!parent) {
+            //safeErrorLog('no parent', element, node);
+        }
+        const childIndex = parent ? parent.children.indexOf(node) : -1;
 
         const evaluatedValue = typeof value === "function" ?
             value.call(element, element.__data__, childIndex) : value;
 
-        const node = this.getNodeFromElement(element);
         if(!node) {
             console.error('node not found for ', element);
             return;
@@ -254,20 +262,6 @@ export default class Domhandler {
         this.nodesToRestyle = [];
     }
 
-    updateNodeSelector(oldSelector: string, newSelector: string) {
-        /*if(oldSelector === newSelector) {
-            return;
-        }
-        if(this.setAttrQueue[newSelector]) {
-            console.warn('having problems rearranging the elements! old:', oldSelector, ', new:', newSelector,
-                this.setAttrQueue[oldSelector], this.setAttrQueue[newSelector]);
-            delete this.setAttrQueue[oldSelector];
-        } else {
-            this.setAttrQueue[newSelector] = this.setAttrQueue[oldSelector];
-            delete this.setAttrQueue[oldSelector];
-        }*/
-    }
-
     private applyRuleToMatchingNodes(selectorString: string, rule: {style: {[settingName: string]: string}}): boolean {
         selectorString = selectorString.trim();
 
@@ -281,10 +275,12 @@ export default class Domhandler {
 
         const parentsOfInterest = [];
         for(const nodeToBeStyled of this.nodesToRestyle) {
-            let parent = this.getNodeParent(nodeToBeStyled);
-            while(parent && parentsOfInterest.indexOf(parent) === -1) {
-                parentsOfInterest.push(parent);
-                parent = this.getNodeParent(parent);
+            if(nodeToBeStyled) { // I don't know why, but there are null values in there.
+                let parent = this.getNodeParent(nodeToBeStyled);
+                while(parent && parentsOfInterest.indexOf(parent) === -1) {
+                    parentsOfInterest.push(parent);
+                    parent = this.getNodeParent(parent);
+                }
             }
         }
 
@@ -353,39 +349,48 @@ export default class Domhandler {
         }
     }
 
-    removeNodeFromParent(element: Element, node: VdomNode, parentNode: VdomNode) {
-        const childIndex = element['childIndex'];
+    removeNodeFromParent(element: SsvgElement, node: VdomNode, parentNode: VdomNode) {
         //console.log('removing', node, 'from', parentNode, [...parentNode.children], childIndex, childIndex2);
-        this.vdom.removeNode(childIndex, parentNode.globalElementIndex);
-        let index = this.nodesToElements.nodes.indexOf(node);
+        this.vdom.removeNode(node, parentNode);
+
+        this.nodes[node.globalElementIndex] = null;
+        this.elements[element.globalElementIndex] = null;
+
+        const restyleIndex = this.nodesToRestyle.indexOf(node);
+        if(restyleIndex !== -1) {
+            this.nodesToRestyle.splice(restyleIndex, 1);
+        }
+        /*let index = this.nodes.indexOf(node);
         if(index === -1) {
             return console.error('node not found', node);
         }
 
         this.nodesToElements.nodes.splice(index, 1);
-        this.nodesToElements.elements.splice(index, 1);
-
-        // Remove all pending changes on this element
-        //this.setAttrQueue.removePendingChanges(node);
+        this.nodesToElements.elements.splice(index, 1);*/
+        safeLog('deleting from parent', element, node, parentNode);
     }
 
-    restyleNode(parentNode, node) {
+    restyleNode(node: VdomNode) {
+        if(!this.nodes[node.globalElementIndex] || this.nodes[node.globalElementIndex] !== node) {
+            console.error(node);
+            throw new Error('restyling incorrect node');
+        }
         this.nodesToRestyle.push(node);
     }
     
-    private addChildNodesToVisData(childEls: HTMLElement[]|NodeList, parentNode: VdomNode): void {
+    private addChildNodesToVisData(childEls: SsvgElement[]|NodeList, parentNode: VdomNode): void {
         const parentEl = this.getElementFromNode(parentNode);
 
         for(let i  = 0; i < childEls.length; i++) {
             let el = childEls[i] as SsvgElement;
-            
+
             try
             {
                 const node = this.getNodeDataFromEl(el);
 
-                el.parentSelector = this.getElementSelector(parentEl);
-                el.selector = this.getElementSelector(el);
-                el.childIndex = parentNode.children.length;
+                /*el.parentSelector = this.getElementSelector(parentEl);
+                el.selector = this.getElementSelector(el);*/
+                //el.childIndex = parentNode.children.length;
 
                 parentNode.children.push(node);
                 this.linkNodeToElement(node, el);
@@ -414,66 +419,17 @@ export default class Domhandler {
         }
     }
 
-    getNodeSelector(node: VdomNode): string {
-        if(node === this.vdom.data) {
-            return 'svg';
-        }
-        const element = this.getElementFromNode(node);
-        if(!element) {
-            console.error('could not find element for node ', node);
-            return '';
-        }
-        return this.getElementSelector(element, undefined, node);
-    }
-    
-    getElementSelector(element: SsvgElement, parentNode?: VdomNode, node?: VdomNode): string|null {
-        let sel = element['selector'];
-        
-        if(sel)
-        {
-            return sel;
-        }
-        else
-        {
-            if(element === this.svg) {
-                sel = 'svg';
-            } else {
-                let parentSelector = element.parentSelector ? element.parentSelector : '';
-
-                if(!parentNode) {
-                    parentNode = this.vdom.getVisNodeFromSelector(parentSelector);
-                }
-                if(!parentNode) {
-                    console.warn('Element not found', element, parentSelector, parentSelector.length, this.vdom.data);
-                    return null;
-                }
-                let index = parentNode.children.length + 1;
-                if(node && parentNode.children.indexOf(node) !== -1) {
-                    index = parentNode.children.indexOf(node) + 1;
-                }
-                let name = element.localName;
-                if (!name) {
-                    console.error(parentNode);
-                    throw Error('name is null');
-                }
-                name = name.toLowerCase();
-                sel = this.combineElementSelectors(parentSelector, name, index);
-            }
-            
-            return sel;
-        }
-    }
-
     combineElementSelectors(parentSelector: string, elementType: string, childIndex: number) {
         return parentSelector + ' > ' + elementType + ':nth-child(' + childIndex + ')';
     }
 
-    getNodeParent(node:VdomNode): VdomNode|null {
+    getNodeParent(node: VdomNode): VdomNode|null {
         if(node === this.vdom.data) {
             return null;
         }
         const el = this.getElementFromNode(node);
         if(!el) {
+            console.error('can not find element for node ', node);
             return null;
         }
         const parentEl = el.parentNode as SsvgElement;
@@ -481,12 +437,12 @@ export default class Domhandler {
     }
 
     linkNodeToElement(node: VdomNode, element: SsvgElement) {
-        this.nodesToElements.nodes.push(node);
-        this.nodesToElements.elements.push(element);
-
         node.globalElementIndex = this.globalElementIndexCounter;
         element.globalElementIndex = this.globalElementIndexCounter;
         this.globalElementIndexCounter++;
+
+        this.nodes[node.globalElementIndex] = node;
+        this.elements[node.globalElementIndex] = element;
 
         this.vdom.addNode(node);
     }
@@ -495,8 +451,7 @@ export default class Domhandler {
         if(node === this.vdom.data) {
             return this.svg;
         }
-        const nodeIndex = this.nodesToElements.nodes.indexOf(node);
-        return this.nodesToElements.elements[nodeIndex];
+        return this.elements[node.globalElementIndex];
     }
 
     getNodeFromElement(element: SsvgElement): VdomNode {
@@ -561,7 +516,4 @@ function safeErrorLog(...logContents) {
 export type SsvgElement = HTMLElement & {
     __data__: any,
     globalElementIndex: number,
-    parentSelector: string,
-    selector: string,
-    childIndex: number
 };

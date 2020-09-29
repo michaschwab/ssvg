@@ -572,6 +572,11 @@ export default class Canvasrenderer implements CanvasWorker {
                         const [x1, x2, y1, y2] = this.vdom.get(elData, ['x1', 'x2', 'y1', 'y2'])
                             .map(val => Math.round(val) || 0);
 
+                        const dist = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+                        if(dist > 50) {
+                            safeLog(elData, dist, x1, x2, y1, y2);
+                        }
+
                         this.ctx.moveTo(x1, y1);
                         this.ctx.lineTo(x2, y2);
 
