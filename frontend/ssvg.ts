@@ -176,23 +176,6 @@ export default class SSVG {
         }
         if(this.useWorker) {
             this.domHandler.useAttrQueue(queue => {
-                /*if(Object.keys(queue).length === 0) {
-                    //requestAnimationFrame(() => this.updateCanvas());
-                    setTimeout(() => this.updateCanvas(), 1);
-                    //console.log('nothing new');
-                    return;
-                }*/
-
-                /*for(let operation of this.enterExitQueue) {
-                    if(operation.cmd === 'ENTER') {
-                        if(!operation.keepChildren) {
-                            operation.node.children = [];
-                        }
-                        this.vdom.addNode(operation.node, operation.parentNodeIndex);
-                    } else if(operation.cmd === 'EXIT') {
-                        this.vdom.removeNode(operation.childIndex, operation.parentNodeSelector);
-                    }
-                }*/
                 this.sendUpdateToWorker(queue);
             });
         } else {

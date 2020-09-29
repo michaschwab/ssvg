@@ -155,6 +155,7 @@ export default class Domhandler {
             this.applyStyles();
         }
 
+        this.vdom.moveSharedDataFromQueue();
         const data = this.vdom.getQueue();
         this.vdom.updatePropertiesFromQueue(data, onNodeUpdated);
         cb(data);

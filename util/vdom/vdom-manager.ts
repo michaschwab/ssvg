@@ -5,6 +5,7 @@ import {SsvgElement} from "../../frontend/domhandler";
 
 export class VdomManager {
     private sharedData: {[attrName: string]: Int32Array} = {};
+    private sharedDataQueue: {[attrName: string]: Int32Array} = {};
     private queue: SetPropertyQueueData = {};
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];
     private static IGNOREDESIGN_ATTRIBUTES = ['fill', 'stroke', 'opacity'];
@@ -28,45 +29,52 @@ export class VdomManager {
             const newLength = numNodes < 500 ? 1000 : numNodes * 2;
 
             if(!this.sharedData[attrName]) {
-                const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * newLength);
-                const values = new Int32Array(buffer);
+                let prevData: AttrValues;
 
                 // If values have been previously set without a buffer, transfer them.
-                if(this.queue[attrName] &&
-                    !(this.queue[attrName] instanceof SharedArrayBuffer)) {
-                    const prevData: AttrValues = <AttrValues> this.queue[attrName];
-
-                    for(const index in prevData) {
-                        if(prevData.hasOwnProperty(index)) {
-                            let value = prevData[index];
-                            if(typeof value === 'string') {
-                                value = parseFloat(value);
-                            }
-                            values[index] = value * VdomManager.BUFFER_PRECISION_FACTOR;
-                        }
-                    }
+                if(this.queue[attrName] && !(this.queue[attrName] instanceof SharedArrayBuffer)) {
+                    prevData = <AttrValues> this.queue[attrName];
                 }
+
+                const {buffer, values} = this.createBufferTransferValues(newLength, prevData);
+                const queue = this.createBufferTransferValues(newLength, prevData);
 
                 this.queue[attrName] = buffer;
                 this.sharedData[attrName] = values;
+                this.sharedDataQueue[attrName] = queue.values;
             } else {
                 const newByteLength = Int32Array.BYTES_PER_ELEMENT * newLength;
                 if(this.sharedData[attrName].byteLength / newByteLength < 0.8) {
-                    //safeLog('extending to ', newLength);
                     // Need to allocate more space
-                    //console.log('more space needed. prev:', this.sharedData[attrName].byteLength / Int32Array.BYTES_PER_ELEMENT, 'new', newLength);
-                    const buffer = new SharedArrayBuffer(newByteLength);
-                    const values = new Int32Array(buffer);
-                    //const oldVals = new Int32Array(this.sharedData[attrName]);
-
-                    for(const i in this.sharedData[attrName]) {
-                        values[i] = this.sharedData[attrName][i];
-                    }
+                    const prevData = this.sharedData[attrName];
+                    const {buffer, values} = this.createBufferTransferValues(newLength, prevData);
+                    const queue = this.createBufferTransferValues(newLength, prevData);
                     this.queue[attrName] = buffer;
                     this.sharedData[attrName] = values;
+                    this.sharedDataQueue[attrName] = queue.values;
                 }
             }
         }
+    }
+
+    createBufferTransferValues(length: number, prevData?: AttrValues) {
+        const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
+        const values = new Int32Array(buffer);
+
+        // If values have been previously set without a buffer, transfer them.
+        if(prevData) {
+            for(const index in prevData) {
+                if(prevData.hasOwnProperty(index)) {
+                    let value = prevData[index];
+                    if(typeof value === 'string') {
+                        value = parseFloat(value);
+                    }
+                    values[index] = value * VdomManager.BUFFER_PRECISION_FACTOR;
+                }
+            }
+        }
+
+        return {buffer, values};
     }
 
     set(element: VdomNode|SsvgElement, attrName: string, value: string|number, useBuffer = true) {
@@ -88,20 +96,13 @@ export class VdomManager {
                 if(value === 0) {
                     value = 133713371337; // magical constant
                 }
-                /*if(attrName === 'x1' && index === 2) {
-                    const diff = Math.abs(this.sharedData[attrName][index] - value);
-                    const fct = diff > 50 ? safeErrorLog : safeLog;
-                    fct(diff, element, element.globalElementIndex, attrName, this.sharedData[attrName][index], value);
-                }*/
-                /*if(this.sharedData[attrName][index] && Math.abs(this.sharedData[attrName][index] - value) > 50) {
-                    safeErrorLog('big difference', Math.abs(this.sharedData[attrName][index] - value), element, element.globalElementIndex, attrName, this.sharedData[attrName][index], value);
-                }*/
-                this.sharedData[attrName][index] = value;
+
+                this.sharedDataQueue[attrName][index] = value;
             } else {
                 this.queue[attrName][index] = value;
-                if(this.sharedData[attrName] && this.sharedData[attrName][index]) {
+                if(this.sharedDataQueue[attrName] && this.sharedDataQueue[attrName][index]) {
                     // un-set.
-                    this.sharedData[attrName][index] = 0;
+                    this.sharedDataQueue[attrName][index] = 0;
                 }
             }
         }
@@ -118,9 +119,9 @@ export class VdomManager {
                 delete this.queue[attrName][index];
             }
         }
-        for(const attrName in this.sharedData) {
-            if(this.sharedData.hasOwnProperty(attrName)) {
-                this.sharedData[attrName][index] = 0;
+        for(const attrName in this.sharedDataQueue) {
+            if(this.sharedDataQueue.hasOwnProperty(attrName)) {
+                this.sharedDataQueue[attrName][index] = 0;
             }
         }
     }
@@ -146,7 +147,8 @@ export class VdomManager {
         if(nodeData.type !== 'svg') {
             const parentNode = this.getNodeFromIndex(parentNodeIndex);
             if(!parentNode) {
-                console.error('could not add node without parent', parentNodeIndex, nodeData, Object.keys(this.indexToNodeMap));
+                console.error('could not add node without parent', parentNodeIndex, nodeData,
+                    Object.keys(this.indexToNodeMap));
                 new Error('parent not found');
                 return;
             }
@@ -250,6 +252,14 @@ export class VdomManager {
 
     clearQueue() {
         this.queue = {};
+    }
+
+    moveSharedDataFromQueue() {
+        for(let attrName in this.sharedDataQueue) {
+            for(let i = 0; i < this.sharedDataQueue[attrName].length; i++) {
+                this.sharedData[attrName][i] = this.sharedDataQueue[attrName][i];
+            }
+        }
     }
 
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueueData,
