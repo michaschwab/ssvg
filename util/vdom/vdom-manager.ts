@@ -1,5 +1,5 @@
 import DrawingUtils from "../../canvasworker/drawingUtils";
-import SetPropertyQueueData from "./set-property-queue-data";
+import SetPropertyQueueData, {AttrValues} from "./set-property-queue-data";
 import {VDOM, VdomNode} from "./vdom";
 import {SsvgElement} from "../../frontend/domhandler";
 
@@ -34,11 +34,17 @@ export class VdomManager {
                 // If values have been previously set without a buffer, transfer them.
                 if(this.queue[attrName] &&
                     !(this.queue[attrName] instanceof SharedArrayBuffer)) {
-                    const prevData: string[] = <any> this.queue[attrName];
+                    const prevData: AttrValues = <AttrValues> this.queue[attrName];
 
-                    prevData.forEach((value, index) => {
-                        values[index] = parseFloat(value) * VdomManager.BUFFER_PRECISION_FACTOR;
-                    });
+                    for(const index in prevData) {
+                        if(prevData.hasOwnProperty(index)) {
+                            let value = prevData[index];
+                            if(typeof value === 'string') {
+                                value = parseFloat(value);
+                            }
+                            values[index] = value * VdomManager.BUFFER_PRECISION_FACTOR;
+                        }
+                    }
                 }
 
                 this.queue[attrName] = buffer;
@@ -63,7 +69,7 @@ export class VdomManager {
         }
     }
 
-    set(element: VdomNode|SsvgElement, attrName: string, value: any, useBuffer = true) {
+    set(element: VdomNode|SsvgElement, attrName: string, value: string|number, useBuffer = true) {
         if(attrName === 'class') {
             attrName = 'className';
         }
@@ -75,10 +81,21 @@ export class VdomManager {
         const storage = useBuffer && this.useSharedArrayFor.indexOf(attrName) !== -1 ? 'shared' : 'raw';
         try {
             if(storage === 'shared') {
+                if(typeof value === 'string') {
+                    value = parseFloat(value);
+                }
                 value *= VdomManager.BUFFER_PRECISION_FACTOR;
                 if(value === 0) {
                     value = 133713371337; // magical constant
                 }
+                /*if(attrName === 'x1' && index === 2) {
+                    const diff = Math.abs(this.sharedData[attrName][index] - value);
+                    const fct = diff > 50 ? safeErrorLog : safeLog;
+                    fct(diff, element, element.globalElementIndex, attrName, this.sharedData[attrName][index], value);
+                }*/
+                /*if(this.sharedData[attrName][index] && Math.abs(this.sharedData[attrName][index] - value) > 50) {
+                    safeErrorLog('big difference', Math.abs(this.sharedData[attrName][index] - value), element, element.globalElementIndex, attrName, this.sharedData[attrName][index], value);
+                }*/
                 this.sharedData[attrName][index] = value;
             } else {
                 this.queue[attrName][index] = value;
@@ -237,7 +254,6 @@ export class VdomManager {
 
     updatePropertiesFromQueue(setAttrQueue: SetPropertyQueueData,
                               onNodeUpdated: (node: VdomNode, attrName: string) => void = () => {}) {
-                
         for(let attrName in setAttrQueue) {
             if(!setAttrQueue.hasOwnProperty(attrName)) {
                 continue;
@@ -248,7 +264,7 @@ export class VdomManager {
                 continue;
             }
 
-            let values: string[]|Int32Array;
+            let values: AttrValues|Int32Array;
 
             if('SharedArrayBuffer' in self &&
                 setAttrQueue[attrName] instanceof SharedArrayBuffer) {
@@ -257,14 +273,9 @@ export class VdomManager {
                 values = setAttrQueue[attrName] as string[];
 
                 for(let childIndex in values) {
-                    // This skips all values that are 0 because the SharedArrayBuffer fills up with zeros.
-                    //TODO(michaschwab): Find a solution for zero values.
                     if(!values.hasOwnProperty(childIndex)) {
                         continue;
                     }
-                    /*if(values[childIndex] === 0) {
-                        continue;
-                    }*/
                     const index = parseInt(childIndex);
                     const childNode = this.getNodeFromIndex(index);
                     if(!childNode) {
@@ -277,12 +288,15 @@ export class VdomManager {
                         this.applyStyleToNodeAndChildren(childNode, styleName, <string> value, onNodeUpdated);
                     } else if(attrName.substr(0, 4) === 'css;') {
                         const [selector, styleName] = attrName.substr(4).split(';');
-
-                        this.applyCssToNodeAndChildren(childNode, selector, styleName, value, onNodeUpdated);
+                        this.applyCssToNodeAndChildren(childNode, selector, styleName, <string> value, onNodeUpdated);
                     } else {
                         if(VdomManager.ROUNDED_ATTRS.indexOf(attrName) !== -1) {
-                            value = Math.round(parseFloat(value));
+                            if(typeof value === 'string') {
+                                value = parseFloat(value);
+                            }
+                            value = Math.round(value);
                         }
+
                         childNode[attrName] = value;
                         onNodeUpdated(childNode, attrName);
                     }
@@ -442,13 +456,13 @@ export class VdomManager {
 
 let safeLogCount = 0;
 function safeLog(...logContents) {
-    if(safeLogCount < 300) {
+    if(safeLogCount < 400) {
         safeLogCount++;
         console.log(...logContents);
     }
 }
 function safeErrorLog(...logContents) {
-    if(safeLogCount < 50) {
+    if(safeLogCount < 400) {
         safeLogCount++;
         console.error(...logContents);
     }

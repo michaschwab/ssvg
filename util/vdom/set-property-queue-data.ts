@@ -1,4 +1,4 @@
 export default class SetPropertyQueueData {
-    [attrName: string]:
-        {[globalElementIndex: number]: string|number} | SharedArrayBuffer
+    [attrName: string]: AttrValues | SharedArrayBuffer
 }
+export type AttrValues = {[globalElementIndex: number]: string|number};

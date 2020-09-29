@@ -2,11 +2,12 @@ import { VdomManager } from "../util/vdom/vdom-manager";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message"
 import Canvasrenderer from "./canvasrenderer";
 import {VdomNode} from "../util/vdom/vdom";
+import SetPropertyQueueData from "../util/vdom/set-property-queue-data";
 
 export default interface CanvasWorker {
     draw(): void;
     addNode?(node: VdomNode): void;
-    updatePropertiesFromQueue?(queue: any): void;
+    updatePropertiesFromQueue?(queue: SetPropertyQueueData): void;
     nodeUpdated?(node: VdomNode, attr: string): void;
 }
 

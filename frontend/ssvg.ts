@@ -30,6 +30,7 @@ export default class SSVG {
     private readonly getFps: (fps: number) => void = () => {};
 
     private hoveredElement: Element|undefined;
+    private animationFrame?: number;
 
     constructor(options?: {
         safeMode?: boolean,
@@ -55,14 +56,19 @@ export default class SSVG {
         if(!('OffscreenCanvas' in window)) {
             this.useWorker = false;
         }
-        
+
         if(this.useWorker) {
             this.worker = new CanvasWorkerImporter();
     
             this.worker.onmessage = e => {
                 if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
                     this.logDrawn();
-                    requestAnimationFrame(() => this.updateCanvas());
+                    if(!this.animationFrame) {
+                        this.animationFrame = requestAnimationFrame(() => {
+                            this.animationFrame = undefined;
+                            this.updateCanvas()
+                        });
+                    }
                 }
             };
             const raf = () => {
@@ -128,7 +134,6 @@ export default class SSVG {
     }
     
     private setupElementsIfSvgExists(svgEl?: SVGElement & SsvgElement) {
-        
         if(this.svg) {
             return true;
         }

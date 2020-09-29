@@ -71,16 +71,19 @@ export default class Domhandler {
         this.vdom.set(node, attrName, evaluatedValue, false);
 
         if(attrName === "href") {
+            safeLog('href not yet supported.');
+            /*
             try {
                 fetch(location.origin + evaluatedValue, {mode: 'cors'})
                     .then(resp => resp.blob())
                     .then(blob => createImageBitmap(blob))
                     .then(bitmap => {
                         this.vdom.ensureInitialized('image', false);
-                        this.vdom.set(node, 'image', bitmap, false);
+                        this.vdom.set(node, 'image', <string> bitmap, false);
                     });
             }
             catch(e) {console.log(e);}
+            */
         }
 
         if(attrName === 'class' || attrName.indexOf('style') !== -1) {
