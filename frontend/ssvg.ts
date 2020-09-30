@@ -179,6 +179,7 @@ export default class SSVG {
             this.renderer.nodeUpdated(node, attr);
         this.domHandler.applyStyles();
 
+        this.vdom.transferBufferQueueData();
         const queue = this.vdom.getQueue();
         this.vdom.clearQueue();
         this.vdom.updatePropertiesFromQueue(queue, nodeUpdated);
