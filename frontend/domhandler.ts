@@ -25,7 +25,7 @@ export default class Domhandler {
             css: {},
         };
 
-        this.vdom = new VdomManager(visData, ignoreDesign);
+        this.vdom = new VdomManager(visData, ignoreDesign, false);
         this.linkNodeToElement(visData, this.svg);
         this.svg.style.display = 'none';
         this.svg['selector'] = 'svg';
@@ -150,18 +150,6 @@ export default class Domhandler {
         }
     }
 
-    useAttrQueue(cb: (data) => void = () => {}, onNodeUpdated?: (node: VdomNode, attrName: string) => void) {
-        if(this.nodesToRestyle && this.nodesToRestyle.length) {
-            this.applyStyles();
-        }
-
-        this.vdom.moveSharedDataFromQueue();
-        const data = this.vdom.getQueue();
-        this.vdom.updatePropertiesFromQueue(data, onNodeUpdated);
-        cb(data);
-        this.vdom.clearQueue();
-    }
-
     getAttributeFromSelector(element: SsvgElement, name: string) {
         const node = this.getNodeFromElement(element);
         
@@ -203,19 +191,23 @@ export default class Domhandler {
 
         for(let i = 0; i < el.attributes.length; i++) {
             let value: string|number = el.attributes[i].nodeValue;
-            if(roundedAttrs.indexOf(el.attributes[i].nodeName) !== -1) {
-                value = parseFloat(value);
+            if(value) {
+                if(roundedAttrs.indexOf(el.attributes[i].nodeName) !== -1) {
+                    value = parseFloat(value);
+                }
+                node[el.attributes[i].nodeName] = value;
             }
-            node[el.attributes[i].nodeName] = value;
         }
         node.style = {};
 
         for(const styleProp in el.style) {
             if(el.style.hasOwnProperty(styleProp)) {
                 const val = el.style[styleProp];
-                if(val !== '' && typeof el.style[styleProp] !== 'function') {
-                    const kebabCase = styleProp.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-                    node.style[kebabCase] = el.style[styleProp];
+                if(val) {
+                    if(val !== '' && typeof el.style[styleProp] !== 'function') {
+                        const kebabCase = styleProp.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+                        node.style[kebabCase] = el.style[styleProp];
+                    }
                 }
             }
         }
@@ -235,7 +227,11 @@ export default class Domhandler {
         return node;
     }
 
-    private applyStyles() {
+    applyStyles() {
+        if(!this.nodesToRestyle || !this.nodesToRestyle.length) {
+            return;
+        }
+
         for (let i = 0; i < document.styleSheets.length; i++) {
             const sheet = document.styleSheets[i] as any;
             const rules = (sheet.rules ? sheet.rules : sheet.cssRules) as CSSRuleList;
@@ -358,7 +354,7 @@ export default class Domhandler {
 
         this.nodesToElements.nodes.splice(index, 1);
         this.nodesToElements.elements.splice(index, 1);*/
-        safeLog('deleting from parent', element, node, parentNode);
+        //safeLog('deleting from parent', element, node, parentNode);
     }
 
     restyleNode(node: VdomNode) {

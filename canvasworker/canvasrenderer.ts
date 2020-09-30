@@ -32,7 +32,7 @@ export default class Canvasrenderer implements CanvasWorker {
     
     draw() {
         const ctx = this.ctx;
-        
+
         ctx.restore();
         ctx.save();
         
@@ -110,17 +110,17 @@ export default class Canvasrenderer implements CanvasWorker {
             }
         }
 
-        const fill = this.getFillStyle(elData, 'undefined');
-        if(fill !== 'undefined') {
-            this.parentValues['fill'] = fill;
-        }
-        const stroke = this.getStrokeStyle(elData, 'undefined');
-        if(stroke !== 'undefined') {
-            this.parentValues['stroke'] = stroke;
-        }
-        this.parentValues['opacity'] = elData.opacity;
-
         if(elData.children) {
+            const fill = this.getFillStyle(elData, 'undefined');
+            if(fill !== 'undefined') {
+                this.parentValues['fill'] = fill;
+            }
+            const stroke = this.getStrokeStyle(elData, 'undefined');
+            if(stroke !== 'undefined') {
+                this.parentValues['stroke'] = stroke;
+            }
+            this.parentValues['opacity'] = elData.opacity;
+
             for(let i = 0; i < elData.children.length; i++) {
                 this.drawNodeAndChildren(elData.children[i], forceSingle, drawClip);
             }
@@ -237,11 +237,12 @@ export default class Canvasrenderer implements CanvasWorker {
         }
         if(attr === '*' || attr.includes('stroke') || attr.includes('opacity')) {
             delete node['stroke-cache'];
+            delete node['strokewidth-cache'];
         }
     }
 
     private getFillStyle(node: VdomNode, defaultColor = 'none'): string {
-        if(node['fill-cache']) {
+        if('fill-cache' in node) {
             return node['fill-cache'];
         }
         let fill = this.getAttributeStyleCss(node, 'fill');
@@ -286,7 +287,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private getStrokeStyle(node: VdomNode, defaultColor = 'none'): string {
-        if(node['stroke-cache']) {
+        if('stroke-cache' in node) {
             return node['stroke-cache'];
         }
         const stroke = this.getAttributeStyleCss(node, 'stroke');
@@ -303,8 +304,13 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private getStrokeWidth(node: VdomNode) {
+        if('strokewidth-cache' in node) {
+            return node['strokewidth-cache'];
+        }
         const width = this.getAttributeStyleCss(node, 'stroke-width');
-        return width === undefined ? undefined : parseFloat(width);
+        node['strokewidth-cache'] = width === undefined ? undefined : parseFloat(width);
+
+        return node['strokewidth-cache'];
     }
 
     private rectsByColor = {};

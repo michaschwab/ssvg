@@ -63,12 +63,7 @@ export default class SSVG {
             this.worker.onmessage = e => {
                 if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
                     this.logDrawn();
-                    if(!this.animationFrame) {
-                        this.animationFrame = requestAnimationFrame(() => {
-                            this.animationFrame = undefined;
-                            this.updateCanvas()
-                        });
-                    }
+                    this.updateCanvas();
                 }
             };
             const raf = () => {
@@ -169,22 +164,32 @@ export default class SSVG {
         
         return true;
     }
-    
+
     private updateCanvas() {
         if(!this.svgAssignedAndSizeSet) {
             return;
         }
+
+        if(!this.vdom.hasChanges()) {
+            requestAnimationFrame(() => this.updateCanvas());
+            return;
+        }
+
+        const nodeUpdated = this.useWorker ? undefined : (node, attr) =>
+            this.renderer.nodeUpdated(node, attr);
+        this.domHandler.applyStyles();
+
+        const queue = this.vdom.getQueue();
+        this.vdom.clearQueue();
+        this.vdom.updatePropertiesFromQueue(queue, nodeUpdated);
+
         if(this.useWorker) {
-            this.domHandler.useAttrQueue(queue => {
-                this.sendUpdateToWorker(queue);
-            });
+            this.sendUpdateToWorker(queue);
         } else {
-            this.domHandler.useAttrQueue(queue => {
-                if(this.renderer.updatePropertiesFromQueue) {
-                    this.renderer.updatePropertiesFromQueue(queue);
-                }
-                this.renderer.draw();
-            }, this.renderer.nodeUpdated);
+            if(this.renderer.updatePropertiesFromQueue) {
+                this.renderer.updatePropertiesFromQueue(queue);
+            }
+            this.renderer.draw();
         }
     }
     
@@ -1074,7 +1079,6 @@ export default class SSVG {
         };
 
         this.sendToWorker(msg);
-
         this.enterExitQueue = [];
     }
 

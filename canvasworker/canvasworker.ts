@@ -23,7 +23,7 @@ workerContext.onmessage = function(e: MessageEvent) {
         switch(msg.cmd) {
             case 'INIT':
                 //console.log('init');
-                vdom = new VdomManager(msg.data.visData, false);
+                vdom = new VdomManager(msg.data.visData, false, true);
                 const safeMode = !!msg.data.safeMode;
                 worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode, () => {
                     workerContext.postMessage({msg: 'DRAWN'});
@@ -61,6 +61,7 @@ workerContext.onmessage = function(e: MessageEvent) {
                     worker.updatePropertiesFromQueue(data.data.update);
                 } else {
                     vdom.updatePropertiesFromQueue(data.data.update, worker.nodeUpdated);
+
                 }
 
                 worker.draw();

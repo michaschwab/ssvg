@@ -5,14 +5,15 @@ import {SsvgElement} from "../../frontend/domhandler";
 
 export class VdomManager {
     private sharedData: {[attrName: string]: Int32Array} = {};
-    private sharedDataQueue: {[attrName: string]: Int32Array} = {};
     private queue: SetPropertyQueueData = {};
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];
     private static IGNOREDESIGN_ATTRIBUTES = ['fill', 'stroke', 'opacity'];
     private indexToNodeMap: {[index: number]: VdomNode} = {};
     private static BUFFER_PRECISION_FACTOR = 10;
+    private changed = false;
+    private cachedBuffers: {[attrName: string]: {[index: number]: number}} = {};
     
-    constructor(public data: VDOM, private ignoreDesign: boolean) {
+    constructor(public data: VDOM, private ignoreDesign: boolean, private useBufferCache: boolean) {
         this.ensureNodesMapped();
     }
 
@@ -37,21 +38,17 @@ export class VdomManager {
                 }
 
                 const {buffer, values} = this.createBufferTransferValues(newLength, prevData);
-                const queue = this.createBufferTransferValues(newLength, prevData);
 
                 this.queue[attrName] = buffer;
                 this.sharedData[attrName] = values;
-                this.sharedDataQueue[attrName] = queue.values;
             } else {
                 const newByteLength = Int32Array.BYTES_PER_ELEMENT * newLength;
                 if(this.sharedData[attrName].byteLength / newByteLength < 0.8) {
                     // Need to allocate more space
-                    const prevData = this.sharedData[attrName];
-                    const {buffer, values} = this.createBufferTransferValues(newLength, prevData);
-                    const queue = this.createBufferTransferValues(newLength, prevData);
+                    const {buffer, values} = this.createBufferTransferValues(newLength,
+                        this.sharedData[attrName]);
                     this.queue[attrName] = buffer;
                     this.sharedData[attrName] = values;
-                    this.sharedDataQueue[attrName] = queue.values;
                 }
             }
         }
@@ -88,21 +85,23 @@ export class VdomManager {
         const index = element.globalElementIndex;
         const storage = useBuffer && this.useSharedArrayFor.indexOf(attrName) !== -1 ? 'shared' : 'raw';
         try {
+            this.changed = true;
             if(storage === 'shared') {
                 if(typeof value === 'string') {
                     value = parseFloat(value);
                 }
                 value *= VdomManager.BUFFER_PRECISION_FACTOR;
+                value = Math.round(value); // This helps detect zeros.
                 if(value === 0) {
-                    value = 133713371337; // magical constant
+                    value = 56938516; // magical constant
                 }
 
-                this.sharedDataQueue[attrName][index] = value;
+                this.sharedData[attrName][index] = value;
             } else {
                 this.queue[attrName][index] = value;
-                if(this.sharedDataQueue[attrName] && this.sharedDataQueue[attrName][index]) {
+                if(this.sharedData[attrName] && this.sharedData[attrName][index]) {
                     // un-set.
-                    this.sharedDataQueue[attrName][index] = 0;
+                    this.sharedData[attrName][index] = 0;
                 }
             }
         }
@@ -119,9 +118,9 @@ export class VdomManager {
                 delete this.queue[attrName][index];
             }
         }
-        for(const attrName in this.sharedDataQueue) {
-            if(this.sharedDataQueue.hasOwnProperty(attrName)) {
-                this.sharedDataQueue[attrName][index] = 0;
+        for(const attrName in this.sharedData) {
+            if(this.sharedData.hasOwnProperty(attrName)) {
+                this.sharedData[attrName][index] = 0;
             }
         }
     }
@@ -235,9 +234,10 @@ export class VdomManager {
     }
 
     private getSingle(node: VdomNode, attrName: string) {
-        if(this.sharedData[attrName] && this.sharedData[attrName][node.globalElementIndex]) {
-            const value = this.sharedData[attrName][node.globalElementIndex];
-            if(value === 133713371337) {
+        const values = this.useBufferCache ? this.cachedBuffers : this.sharedData;
+        if(values[attrName] && values[attrName][node.globalElementIndex]) {
+            const value = values[attrName][node.globalElementIndex];
+            if(value === 56938516) {
                 return 0;
             }
             return value / VdomManager.BUFFER_PRECISION_FACTOR;
@@ -246,18 +246,30 @@ export class VdomManager {
         }
     }
 
+    hasChanges() {
+        return this.changed;
+    }
+
     getQueue() {
         return this.queue;
     }
 
     clearQueue() {
         this.queue = {};
+        this.changed = false;
     }
 
-    moveSharedDataFromQueue() {
-        for(let attrName in this.sharedDataQueue) {
-            for(let i = 0; i < this.sharedDataQueue[attrName].length; i++) {
-                this.sharedData[attrName][i] = this.sharedDataQueue[attrName][i];
+    cacheBuffers() {
+        if(this.useBufferCache) {
+            for(let attrName in this.sharedData) {
+                if(!this.cachedBuffers[attrName]) {
+                    this.cachedBuffers[attrName] = {};
+                }
+                for(let i = 0; i < this.sharedData[attrName].length; i++) {
+                    if(this.sharedData[attrName][i]) {
+                        this.cachedBuffers[attrName][i] = this.sharedData[attrName][i];
+                    }
+                }
             }
         }
     }
@@ -313,6 +325,8 @@ export class VdomManager {
                 }
             }
         }
+
+        this.cacheBuffers();
     }
     
     private cachedListSelections: {[selector: string]: {[index: number]: VdomNode}} = {};
