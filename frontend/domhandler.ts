@@ -6,6 +6,17 @@ import drawingUtils from "../canvasworker/drawingUtils";
 export const CSS_STYLES = ['stroke', 'stroke-opacity', 'stroke-width', 'stroke-linejoin',
     'fill', 'fill-opacity', 'font', 'opacity', 'font-family', 'font-size'];
 
+const RELEVANT_ATTRS = ['transform', 'd', 'id', 'r', 'fill', 'cx', 'cy', 'x', 'y', 'x1', 'x2', 'y1',
+    'y2', 'opacity', 'fill-opacity', 'width', 'height', 'stroke', 'stroke-opacity', 'stroke-width',
+    'font-size', 'font', 'font-family', 'text-anchor', 'href'];
+
+const ROUNDED_ATTRS = ['cx', 'cy', 'r', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'width', 'height',
+    'stroke-width'];
+const ROUNDED_ATTRS_OBJ = {};
+for(const attr of ROUNDED_ATTRS) {
+    ROUNDED_ATTRS_OBJ[attr] = true;
+}
+
 export default class Domhandler {
     private readonly vdom: VdomManager;
     nodes: {[globalElementIndex: number]: VdomNode} = {};
@@ -166,18 +177,9 @@ export default class Domhandler {
             return this.vdom.data;
         }
         return this.vdom.getNodeFromIndex(element.globalElementIndex);
-        /*const selector = this.getElementSelector(element);
-
-        if(selector === null) {
-            return null;
-        }
-        
-        return this.vdom.getVisNodeFromSelector(selector);*/
     }
     
     getNodeDataFromEl(el: HTMLElement): VdomNode {
-        const roundedAttrs = ['cx', 'cy', 'r', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'width', 'height', 'stroke-width'];
-
         const node = {
             type: el.tagName.toLowerCase() as VdomNodeType,
             className: el.getAttribute('class'),
@@ -189,30 +191,16 @@ export default class Domhandler {
                 ? el.textContent : undefined,
         };
 
-        for(let i = 0; i < el.attributes.length; i++) {
-            let value: string|number = el.attributes[i].nodeValue;
-            if(value) {
-                if(roundedAttrs.indexOf(el.attributes[i].nodeName) !== -1) {
-                    value = parseFloat(value);
-                }
-                node[el.attributes[i].nodeName] = value;
-            }
-        }
-        node.style = {};
-
-        for(const styleProp in el.style) {
-            if(el.style.hasOwnProperty(styleProp)) {
-                const val = el.style[styleProp];
-                if(val) {
-                    if(val !== '' && typeof el.style[styleProp] !== 'function') {
-                        const kebabCase = styleProp.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-                        node.style[kebabCase] = el.style[styleProp];
-                    }
-                }
+        for(const attr of RELEVANT_ATTRS) {
+            if(el.hasAttribute(attr)) {
+                const value = el.getAttribute(attr);
+                node[attr] = ROUNDED_ATTRS_OBJ[attr] ? parseFloat(value) : value;
             }
         }
 
-        const clean = obj => {
+        this.copyStylesFromElement(el, node);
+
+        /*const clean = obj => {
             const propNames = Object.getOwnPropertyNames(obj);
             for (let i = 0; i < propNames.length; i++) {
                 const propName = propNames[i];
@@ -222,9 +210,21 @@ export default class Domhandler {
             }
         };
         
-        clean(node);
+        clean(node);*/
         
         return node;
+    }
+
+    copyStylesFromElement(el: HTMLElement, node: VdomNode) {
+        for(const styleProp of CSS_STYLES) {
+            if(el.style.hasOwnProperty(styleProp)) {
+                const val = el.style[styleProp];
+                if(val && typeof el.style[styleProp] !== 'function') {
+                    const kebabCase = styleProp.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+                    node.style[kebabCase] = el.style[styleProp];
+                }
+            }
+        }
     }
 
     applyStyles() {

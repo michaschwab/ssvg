@@ -28,7 +28,7 @@ export class VdomManager {
                 this.queue[attrName] = {};
             }
         } else {
-            const newLength = numNodes < 500 ? 1000 : numNodes * 2;
+            const newLength = numNodes < 500 ? 1000 : Math.round(numNodes * 1.3);
 
             if(!this.sharedData[attrName]) {
                 let prevData: AttrValues;
