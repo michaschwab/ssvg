@@ -23,7 +23,7 @@ export default class Canvasrenderer implements CanvasWorker {
         
         setTimeout(() => {
             console.log(this.forceSingle, this.vdom.data);
-            this.draw();
+            //this.draw();
         }, 1000);
     }
     

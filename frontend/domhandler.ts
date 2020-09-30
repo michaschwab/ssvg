@@ -36,7 +36,7 @@ export default class Domhandler {
             css: {},
         };
 
-        this.vdom = new VdomManager(visData, ignoreDesign, false);
+        this.vdom = new VdomManager(visData, ignoreDesign);
         this.linkNodeToElement(visData, this.svg);
         this.svg.style.display = 'none';
         this.svg['selector'] = 'svg';
@@ -365,14 +365,12 @@ export default class Domhandler {
         this.nodesToRestyle.push(node);
     }
     
-    private addChildNodesToVisData(childEls: SsvgElement[]|NodeList, parentNode: VdomNode): void {
-        const parentEl = this.getElementFromNode(parentNode);
+    private addChildNodesToVisData(childEls: SsvgElement[]|NodeList, parentNode: VdomNode) {
 
         for(let i  = 0; i < childEls.length; i++) {
             let el = childEls[i] as SsvgElement;
 
-            try
-            {
+            try {
                 const node = this.getNodeDataFromEl(el);
 
                 /*el.parentSelector = this.getElementSelector(parentEl);

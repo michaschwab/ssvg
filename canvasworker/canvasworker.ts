@@ -23,7 +23,7 @@ workerContext.onmessage = function(e: MessageEvent) {
         switch(msg.cmd) {
             case 'INIT':
                 //console.log('init');
-                vdom = new VdomManager(msg.data.visData, false, true);
+                vdom = new VdomManager(msg.data.visData, false);
                 const safeMode = !!msg.data.safeMode;
                 worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode, () => {
                     workerContext.postMessage({msg: 'DRAWN'});
