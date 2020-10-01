@@ -677,7 +677,7 @@ export default class SSVG {
                 parentGlobalIndex: parentNode.globalElementIndex
             });
 
-            me.domHandler.removeNodeFromParent(el, node, parentNode);
+            me.domHandler.removeNode(el, node, parentNode);
 
             // Fix child indices of all children.
             if(!skipUpdateSelectors) {

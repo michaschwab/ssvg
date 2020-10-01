@@ -4,7 +4,7 @@ export type VDOM = {
     scale: number;
 } & VdomNode;
 
-export type VdomNodeType = 'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'text'|'image'|'clippath';
+export type VdomNodeType = 'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'text'|'image'|'clippath'|'line';
 
 export type VdomNode = {
     style: {[styleName: string]: string},

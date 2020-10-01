@@ -40,6 +40,11 @@ workerContext.onmessage = function(e: MessageEvent) {
                 //console.log('UPDATE', msg.data.queue, msg.data.parentNodeSelectors);
 
                 for(let operation of data.data.enterExit) {
+                    if(operation.cmd === 'EXIT') {
+                        const node = vdom.getNodeFromIndex(operation.childGlobalIndex);
+                        const parent = vdom.getNodeFromIndex(operation.parentGlobalIndex);
+                        vdom.removeNode(node, parent);
+                    }
                     if(operation.cmd === 'ENTER') {
                         const node = operation.node;
                         if(!operation.keepChildren) {
@@ -50,10 +55,6 @@ workerContext.onmessage = function(e: MessageEvent) {
                         if(worker.addNode) {
                             worker.addNode(node);
                         }
-                    } else if(operation.cmd === 'EXIT') {
-                        const node = vdom.getNodeFromIndex(operation.childGlobalIndex);
-                        const parent = vdom.getNodeFromIndex(operation.parentGlobalIndex);
-                        vdom.removeNode(node, parent);
                     }
                 }
 
