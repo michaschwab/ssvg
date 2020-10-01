@@ -111,11 +111,11 @@ export default class Canvasrenderer implements CanvasWorker {
         }
 
         if(elData.children) {
-            const fill = this.getFillStyle(elData, undefined, 'parent');
+            const fill = this.getFillStyle(elData, 'undefined', 'parent');
             if(fill !== 'undefined') {
                 this.parentValues['fill'] = fill;
             }
-            const stroke = this.getStrokeStyle(elData, undefined, 'parent');
+            const stroke = this.getStrokeStyle(elData, 'undefined', 'parent');
             if(stroke !== 'undefined') {
                 this.parentValues['stroke'] = stroke;
             }
