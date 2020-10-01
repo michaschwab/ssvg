@@ -48,7 +48,6 @@ export default class Domhandler {
     queueSetAttributeOnElement(element: SsvgElement, attrName: string,
                                value: (number|string|((el: HTMLElement) => (number|string)))) {
         //TODO: merge with updatePropertiesFromQueue from VdomManager?
-        //let childIndex = element.childIndex;
         this.vdom.ensureInitialized(attrName, false);
 
         const node = this.getNodeFromElement(element);
@@ -109,9 +108,8 @@ export default class Domhandler {
 
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
-            const index = parentIndices.indexOf(svgEl.globalElementIndex);
             const evaluatedValue = typeof value === "function"
-                ? value(svgEl.__data__, index) : value;
+                ? value(svgEl.__data__, i) : value;
 
             this.vdom.set(svgEl, attrName, evaluatedValue);
 
