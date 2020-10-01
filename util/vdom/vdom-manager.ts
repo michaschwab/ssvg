@@ -38,7 +38,7 @@ export class VdomManager {
                     prevData = <AttrValues> this.queue[attrName];
                 }
 
-                const {buffer, values} = this.createBufferTransferValues(newLength, prevData);
+                const {buffer, values} = this.createBufferTransferValues(newLength, undefined, prevData);
                 this.sharedDataQueue[attrName] = values;
                 this.sharedDataQueueBuffers[attrName] = buffer;
             } else {
@@ -46,7 +46,7 @@ export class VdomManager {
                 if(this.sharedData[attrName].byteLength / newByteLength < 0.6) {
                     // Need to allocate more space
                     const {buffer, values} = this.createBufferTransferValues(newLength,
-                        this.sharedDataQueue[attrName]);
+                        this.sharedDataQueueBuffers[attrName]);
                     this.sharedDataQueue[attrName] = values;
                     this.sharedDataQueueBuffers[attrName] = buffer;
                 }
@@ -54,8 +54,16 @@ export class VdomManager {
         }
     }
 
-    createBufferTransferValues(length: number, prevData?: AttrValues) {
-        const buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
+    createBufferTransferValues(length: number, prevBuffer?: SharedArrayBuffer,
+                               prevData?: AttrValues) {
+        let buffer: SharedArrayBuffer;
+        if(prevBuffer) {
+            // If values have been previously set without a buffer, transfer them.
+            buffer = prevBuffer.slice(0);
+        } else {
+            buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
+        }
+
         const values = new Int32Array(buffer);
 
         // If values have been previously set without a buffer, transfer them.
@@ -264,7 +272,8 @@ export class VdomManager {
             this.sharedData[attrName] = this.sharedDataQueue[attrName];
 
             const length = this.sharedData[attrName].byteLength / Int32Array.BYTES_PER_ELEMENT;
-            const {buffer, values} = this.createBufferTransferValues(length);
+            const {buffer, values} = this.createBufferTransferValues(length,
+                this.sharedDataQueueBuffers[attrName]);
 
             this.sharedDataQueueBuffers[attrName] = buffer;
             this.sharedDataQueue[attrName] = values;

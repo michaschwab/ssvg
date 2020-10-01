@@ -53,8 +53,9 @@ export default class Domhandler {
 
         const node = this.getNodeFromElement(element);
 
+        const index = element.__data__ ? element.__data__.index : -1;
         const evaluatedValue = typeof value === "function" ?
-            value.call(element, element.__data__, element.__data__.index) : value;
+            value.call(element, element.__data__, index) : value;
 
         if(!node) {
             console.error('node not found for ', element);
