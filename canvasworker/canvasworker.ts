@@ -18,7 +18,7 @@ let vdom: VdomManager;
 workerContext.onmessage = function(e: MessageEvent) {
     
     const msg: CanvasWorkerMessage = e.data;
-    
+
     if(msg && msg.cmd) {
         switch(msg.cmd) {
             case 'INIT':
@@ -61,8 +61,9 @@ workerContext.onmessage = function(e: MessageEvent) {
                 if(worker.updatePropertiesFromQueue) {
                     worker.updatePropertiesFromQueue(data.data.update);
                 } else {
-                    vdom.updatePropertiesFromQueue(data.data.update, worker.nodeUpdated);
-
+                    vdom.updatePropertiesFromQueue(data.data.update, (node, attrName) => {
+                        worker.nodeUpdated(node, attrName);
+                    });
                 }
 
                 worker.draw();

@@ -53,7 +53,9 @@ export default class Domhandler {
 
         const node = this.getNodeFromElement(element);
 
-        const index = element.__data__ ? element.__data__.index : -1;
+        const parentIndices = this.getNodeFromElement(element.parentNode as SsvgElement)
+            .children.map(n => n.globalElementIndex);
+        const index = parentIndices.indexOf(node.globalElementIndex);
         const evaluatedValue = typeof value === "function" ?
             value.call(element, element.__data__, index) : value;
 
@@ -102,11 +104,14 @@ export default class Domhandler {
         }
 
         this.vdom.ensureInitialized(attrName, true, this.maxGlobalElementIndex);
+        const parentIndices = this.getNodeFromElement(elements[0].parentNode as SsvgElement)
+            .children.map(n => n.globalElementIndex);
 
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
-
-            const evaluatedValue = typeof value === "function" ? value(svgEl.__data__, svgEl.__data__.index) : value;
+            const index = parentIndices.indexOf(svgEl.globalElementIndex);
+            const evaluatedValue = typeof value === "function"
+                ? value(svgEl.__data__, index) : value;
 
             this.vdom.set(svgEl, attrName, evaluatedValue);
 

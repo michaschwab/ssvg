@@ -730,7 +730,7 @@ export default class SSVG {
             let node: VdomNode;
             let keepChildren = false;
 
-            if(el['parentSelector']) {
+            if(el.globalElementIndex) {
                 node = me.domHandler.getVisNode(el);
 
                 me.getNewRemoveChild(() => {}).call(this, el);

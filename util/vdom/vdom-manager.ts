@@ -159,7 +159,6 @@ export class VdomManager {
                 new Error('parent not found');
                 return;
             }
-            this.applyParentStyles(parentNode, nodeData);
             parentNode.children.push(nodeData);
         }
     }
@@ -176,14 +175,6 @@ export class VdomManager {
         this.cachedListSelections = {}; //TODO only remove relevant cache.
 
         this.removePendingChanges(node);
-    }
-
-    applyParentStyles(parentNode: VdomNode, childNode: VdomNode) {
-        for(const style in parentNode.style) {
-            if(!childNode.style[style]) {
-                childNode.style[style] = parentNode.style[style];
-            }
-        }
     }
 
     applyStyleToNodeAndChildren(node: VdomNode, styleName: string, styleValue: string,
@@ -298,7 +289,7 @@ export class VdomManager {
                 setAttrQueue[attrName] instanceof SharedArrayBuffer) {
                 this.sharedData[attrName] = new Int32Array(<ArrayBuffer> setAttrQueue[attrName]);
             } else {
-                values = setAttrQueue[attrName] as string[];
+                values = <AttrValues> setAttrQueue[attrName];
 
                 for(let childIndex in values) {
                     if(!values.hasOwnProperty(childIndex)) {

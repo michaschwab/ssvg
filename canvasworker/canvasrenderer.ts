@@ -111,15 +111,11 @@ export default class Canvasrenderer implements CanvasWorker {
         }
 
         if(elData.children) {
-            const fill = this.getFillStyle(elData, 'undefined', 'parent');
-            if(fill !== 'undefined') {
-                this.parentValues['fill'] = fill;
-            }
-            const stroke = this.getStrokeStyle(elData, 'undefined', 'parent');
-            if(stroke !== 'undefined') {
-                this.parentValues['stroke'] = stroke;
-            }
-            this.parentValues['opacity'] = elData.opacity;
+            this.parentValues['fill'] = elData.fill || this.parentValues['fill'];
+            this.parentValues['style;fill'] = elData.style.fill || this.parentValues['style;fill'];
+            this.parentValues['stroke'] = elData.stroke || this.parentValues['stroke'];
+            this.parentValues['style;stroke'] = elData.style.stroke || this.parentValues['style;stroke'];
+            this.parentValues['opacity'] = elData.opacity || this.parentValues['opacity'];
 
             for(let i = 0; i < elData.children.length; i++) {
                 this.drawNodeAndChildren(elData.children[i], forceSingle, drawClip);
@@ -272,6 +268,9 @@ export default class Canvasrenderer implements CanvasWorker {
         if(node.style[style]) {
             return node.style[style];
         } else {
+            if(this.parentValues[`style;${style}`]) {
+                return this.parentValues[`style;${style}`];
+            }
             let value = node[style];
 
             let highestSpec = -1;
@@ -297,10 +296,17 @@ export default class Canvasrenderer implements CanvasWorker {
         const fillOpacity = this.getAttributeStyleCss(node, 'stroke-opacity') || 1;
         opacity *= fillOpacity;
 
+        let defaultCol = '';
+        if(this.parentValues['stroke']) {
+            defaultCol = this.parentValues['stroke'] as string;
+        } else {
+            defaultCol = defaultColor;
+        }
+
         if(stroke !== undefined) {
             node[`stroke-cache-${cache}`] = DrawingUtils.colorToRgba(stroke, opacity);
         } else {
-            node[`stroke-cache-${cache}`] = defaultColor;
+            node[`stroke-cache-${cache}`] = defaultCol;
         }
         return node[`stroke-cache-${cache}`];
     }
