@@ -2,27 +2,14 @@ import {VDOM, VdomNode, VdomNodeType} from "../util/vdom/vdom";
 import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
 import drawingUtils from "../canvasworker/drawingUtils";
-
-export const CSS_STYLES = ['stroke', 'stroke-opacity', 'stroke-width', 'stroke-linejoin',
-    'fill', 'fill-opacity', 'font', 'opacity', 'font-family', 'font-size'];
-
-const RELEVANT_ATTRS = ['transform', 'd', 'id', 'r', 'fill', 'cx', 'cy', 'x', 'y', 'x1', 'x2', 'y1',
-    'y2', 'opacity', 'fill-opacity', 'width', 'height', 'stroke', 'stroke-opacity', 'stroke-width',
-    'font-size', 'font', 'font-family', 'text-anchor', 'href'];
-
-const ROUNDED_ATTRS = ['cx', 'cy', 'r', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'width', 'height',
-    'stroke-width'];
-const ROUNDED_ATTRS_OBJ = {};
-for(const attr of ROUNDED_ATTRS) {
-    ROUNDED_ATTRS_OBJ[attr] = true;
-}
+import {CSS_STYLES, RELEVANT_ATTRS, ROUNDED_ATTRS} from "./attrs";
 
 export default class Domhandler {
     private readonly vdom: VdomManager;
     nodes: {[globalElementIndex: number]: VdomNode} = {};
     elements: {[globalElementIndex: number]: SsvgElement} = {};
     private nodesToRestyle: VdomNode[] = [];
-    private globalElementIndexCounter = 0;
+    private maxGlobalElementIndex = 0;
     private removedNodeIndices: number[] = [];
 
     constructor(private svg: SVGElement & SsvgElement, useWorker: boolean, private ignoreDesign: boolean) {
@@ -120,7 +107,7 @@ export default class Domhandler {
             return;
         }
 
-        this.vdom.ensureInitialized(attrName, true, this.globalElementIndexCounter);
+        this.vdom.ensureInitialized(attrName, true, this.maxGlobalElementIndex);
 
         for(let i = 0; i < elements.length; i++) {
             const svgEl = elements[i];
@@ -185,6 +172,8 @@ export default class Domhandler {
         const node = {
             type,
             className: el.getAttribute('class'),
+            transform: el.getAttribute('transform'),
+            id: el.getAttribute('id'),
             style: {},
             css: {},
             children: [],
@@ -193,10 +182,10 @@ export default class Domhandler {
                 ? el.textContent : undefined,
         };
 
-        for(const attr of RELEVANT_ATTRS) {
+        for(const attr of RELEVANT_ATTRS[type]) {
             if(el.hasAttribute(attr)) {
                 const value = el.getAttribute(attr);
-                node[attr] = ROUNDED_ATTRS_OBJ[attr] ? parseFloat(value) : value;
+                node[attr] = ROUNDED_ATTRS[attr] ? parseFloat(value) : value;
             }
         }
 
@@ -416,8 +405,8 @@ export default class Domhandler {
         if(this.removedNodeIndices.length) {
             return this.removedNodeIndices.shift();
         }
-        this.globalElementIndexCounter++;
-        return this.globalElementIndexCounter - 1;
+        this.maxGlobalElementIndex++;
+        return this.maxGlobalElementIndex - 1;
     }
 
     linkNodeToElement(node: VdomNode, element: SsvgElement) {
