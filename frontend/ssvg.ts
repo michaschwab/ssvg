@@ -170,7 +170,7 @@ export default class SSVG {
             return;
         }
 
-        if(!this.vdom.hasChanges()) {
+        if(!this.vdom.hasChanges() && !this.domHandler.hasChanges()) {
             requestAnimationFrame(() => this.updateCanvas());
             return;
         }

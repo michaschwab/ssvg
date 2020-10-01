@@ -23,7 +23,7 @@ export const RELEVANT_ATTRS: {[type in VdomNodeType]: string[]} = {
     'title': [],
     'tspan': ['dx', 'dy'],
     'text': ['fill', 'opacity', 'fill-opacity', 'stroke', 'stroke-opacity',
-        'stroke-width', 'font-size', 'font', 'font-family', 'text-anchor', 'href'],
+        'stroke-width', 'font-size', 'font', 'font-family', 'text-anchor', 'href', 'x', 'y'],
     'image': ['opacity', 'x', 'y', 'width', 'height'],
     'clippath': ['id', 'fill', 'opacity', 'fill-opacity', 'stroke', 'stroke-opacity',
         'stroke-width'],

@@ -30,17 +30,10 @@ export default class Domhandler {
         this.svg['selector'] = 'svg';
 
         this.addChildNodesToVisData(this.svg.childNodes, this.vdom.data);
+    }
 
-        window.setTimeout(() => {
-            // Re-do the styles.
-            this.nodesToRestyle = [];
-            // Can not use this.nodesToRestyle = this.nodesToElements.nodes because this links the object and adding
-            // to this.nodesToRestyle would break the nodesToElements mapping.
-            const currentNodes = Object.values(this.nodes);
-            for(const node of currentNodes) {
-                this.nodesToRestyle.push(node);
-            }
-        }, 100);
+    hasChanges() {
+        return this.nodesToRestyle.length > 0;
     }
 
     enableFrontendDesignProperties() {
