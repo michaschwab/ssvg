@@ -1,4 +1,3 @@
-import DrawingUtils from "../../canvasworker/drawingUtils";
 import SetPropertyQueueData, {AttrValues} from "./set-property-queue-data";
 import {VDOM, VdomNode} from "./vdom";
 import {SsvgElement} from "../../frontend/domhandler";
@@ -46,7 +45,7 @@ export class VdomManager {
                 if(this.sharedData[attrName].byteLength / newByteLength < 0.6) {
                     // Need to allocate more space
                     const {buffer, values} = this.createBufferTransferValues(newLength,
-                        this.sharedDataQueueBuffers[attrName]);
+                        this.sharedDataQueue[attrName]);
                     this.sharedDataQueue[attrName] = values;
                     this.sharedDataQueueBuffers[attrName] = buffer;
                 }
@@ -54,16 +53,9 @@ export class VdomManager {
         }
     }
 
-    createBufferTransferValues(length: number, prevBuffer?: SharedArrayBuffer,
+    createBufferTransferValues(length: number, prevBufferVals?: Int32Array,
                                prevData?: AttrValues) {
-        let buffer: SharedArrayBuffer;
-        if(prevBuffer) {
-            // If values have been previously set without a buffer, transfer them.
-            buffer = prevBuffer.slice(0);
-        } else {
-            buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
-        }
-
+        let buffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * length);
         const values = new Int32Array(buffer);
 
         // If values have been previously set without a buffer, transfer them.
@@ -75,6 +67,15 @@ export class VdomManager {
                         value = parseFloat(value);
                     }
                     values[index] = value * VdomManager.BUFFER_PRECISION_FACTOR;
+                }
+            }
+        }
+
+        // If values have been previously set in a buffer, transfer them.
+        if(prevBufferVals) {
+            for(let i = 0; i < prevBufferVals.length; i++) {
+                if(prevBufferVals[i]) {
+                    values[i] = prevBufferVals[i];
                 }
             }
         }
@@ -264,7 +265,7 @@ export class VdomManager {
 
             const length = this.sharedData[attrName].byteLength / Int32Array.BYTES_PER_ELEMENT;
             const {buffer, values} = this.createBufferTransferValues(length,
-                this.sharedDataQueueBuffers[attrName]);
+                this.sharedDataQueue[attrName]);
 
             this.sharedDataQueueBuffers[attrName] = buffer;
             this.sharedDataQueue[attrName] = values;
