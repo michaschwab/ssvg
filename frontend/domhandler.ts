@@ -248,15 +248,20 @@ export default class Domhandler {
         const selectorPartsLooseStrict = selector.split(' ')
             .map(part => part.split('>'));
 
-        const parentsOfInterest = [];
+        // Find all relevant element IDs.
+        const relevantIds = this.nodesToRestyle.map(n => n.globalElementIndex);
         for(const nodeToBeStyled of this.nodesToRestyle) {
             if(nodeToBeStyled) { // I don't know why, but there are null values in there.
                 let parent = this.getNodeParent(nodeToBeStyled);
-                while(parent && parentsOfInterest.indexOf(parent) === -1) {
-                    parentsOfInterest.push(parent);
+                while(parent && relevantIds.indexOf(parent.globalElementIndex) === -1) {
+                    relevantIds.push(parent.globalElementIndex);
                     parent = this.getNodeParent(parent);
                 }
             }
+        }
+        const relevantIdMap: {[globalElementIndex: number]: true} = {};
+        for(const index of relevantIds) {
+            relevantIdMap[index] = true;
         }
 
         const setStyle = (styleName: string, rule: {style: {[settingName: string]: string}}, child: VdomNode) => {
@@ -273,7 +278,7 @@ export default class Domhandler {
 
             for(let childIndex = 0; childIndex < currentNode.children.length; childIndex++) {
                 const child = currentNode.children[childIndex];
-                if(parentsOfInterest.indexOf(child) === -1 && this.nodesToRestyle.indexOf(child) === -1) {
+                if(!relevantIdMap[child.globalElementIndex]) {
                     continue;
                 }
                 let partialMatch = VdomManager.isCssRulePartialMatch(selPart, child, currentNode);
