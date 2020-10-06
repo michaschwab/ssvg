@@ -79,7 +79,7 @@ export default class Canvasrenderer implements CanvasWorker {
             ctx.save();
         }
 
-        const hasTransformed = this.applyTransform(elData.transform);
+        this.applyTransform(elData.transform);
 
         if(elData.transform || drawClip) {
             forceSingle = true;
@@ -126,12 +126,8 @@ export default class Canvasrenderer implements CanvasWorker {
         if(saveRestoreContext) {
             //safeLog('restoring ctx', elData);
             ctx.restore();
-            this.parentValues = parentValuesBackup;
         }
-
-        if(hasTransformed) {
-            //ctx.restore();
-        }
+        this.parentValues = parentValuesBackup;
     }
     
     private drawSingleNode(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
