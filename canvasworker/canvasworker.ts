@@ -24,7 +24,7 @@ workerContext.onmessage = function(e: MessageEvent) {
         switch(msg.cmd) {
             case 'INIT':
                 //console.log('init');
-                vdom = new VdomManager(msg.data.visData, false);
+                vdom = new VdomManager(msg.data.visData, false, true);
                 const safeMode = !!msg.data.safeMode;
                 port = msg.data.port;
                 worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode, () => {

@@ -1,4 +1,5 @@
 import {VdomNode} from "./vdom/vdom";
+import SetPropertyQueueData from "./vdom/set-property-queue-data";
 
 export interface CanvasWorkerMessage {
     cmd: 'INIT'|'UPDATE_NODES'|'UPDATE_SIZE';
@@ -9,7 +10,7 @@ export interface CanvasUpdateWorkerMessage {
     cmd: 'UPDATE_NODES';
     data: {
         enterExit: CanvasUpdateData[],
-        update: any
+        update: SetPropertyQueueData
     };
 }
 
