@@ -2,10 +2,14 @@ import SetPropertyQueueData, {AttrValues} from "./set-property-queue-data";
 import {VDOM, VdomNode} from "./vdom";
 import {SsvgElement} from "../../frontend/domhandler";
 
+interface SharedDataStore {
+    values: {[attrName: string]: Int32Array},
+    buffers: {[attrName: string]: SharedArrayBuffer}
+}
+
 export class VdomManager {
-    private sharedData: {[attrName: string]: Int32Array} = {};
-    private sharedDataQueue: {[attrName: string]: Int32Array} = {};
-    private sharedDataQueueBuffers: {[attrName: string]: SharedArrayBuffer} = {};
+    private sharedRenderData: {[attrName: string]: Int32Array} = {};
+    private sharedDataQueue: SharedDataStore = {values: {}, buffers: {}};
     private queue: SetPropertyQueueData = {};
     private useSharedArrayFor = ['cx', 'cy', 'x1', 'x2', 'y1', 'y2', 'x', 'y'];
     private static IGNOREDESIGN_ATTRIBUTES = ['fill', 'stroke', 'opacity'];
@@ -29,7 +33,7 @@ export class VdomManager {
         } else {
             const newLength = numNodes < 500 ? 1000 : Math.round(numNodes * 2);
 
-            if(!this.sharedData[attrName]) {
+            if(!this.sharedRenderData[attrName]) {
                 let prevData: AttrValues;
 
                 // If values have been previously set without a buffer, transfer them.
@@ -38,16 +42,16 @@ export class VdomManager {
                 }
 
                 const {buffer, values} = this.createBufferTransferValues(newLength, undefined, prevData);
-                this.sharedDataQueue[attrName] = values;
-                this.sharedDataQueueBuffers[attrName] = buffer;
+                this.sharedDataQueue.values[attrName] = values;
+                this.sharedDataQueue.buffers[attrName] = buffer;
             } else {
                 const newByteLength = Int32Array.BYTES_PER_ELEMENT * newLength;
-                if(this.sharedData[attrName].byteLength / newByteLength < 0.6) {
+                if(this.sharedRenderData[attrName].byteLength / newByteLength < 0.6) {
                     // Need to allocate more space
                     const {buffer, values} = this.createBufferTransferValues(newLength,
-                        this.sharedDataQueue[attrName]);
-                    this.sharedDataQueue[attrName] = values;
-                    this.sharedDataQueueBuffers[attrName] = buffer;
+                        this.sharedDataQueue.values[attrName]);
+                    this.sharedDataQueue.values[attrName] = values;
+                    this.sharedDataQueue.buffers[attrName] = buffer;
                 }
             }
         }
@@ -105,18 +109,18 @@ export class VdomManager {
                     value = 56938516; // magical constant
                 }
 
-                this.sharedDataQueue[attrName][index] = value;
+                this.sharedDataQueue.values[attrName][index] = value;
             } else {
                 this.queue[attrName][index] = value;
-                if(this.sharedDataQueue[attrName] && this.sharedData[attrName][index]) {
+                if(this.sharedDataQueue.values[attrName] && this.sharedRenderData[attrName][index]) {
                     // un-set.
-                    this.sharedDataQueue[attrName][index] = 0;
+                    this.sharedDataQueue.values[attrName][index] = 0;
                 }
             }
         }
         catch(e) {
             console.error(e);
-            console.log(this.queue, this.sharedData, storage, attrName, element, index);
+            console.log(this.queue, this.sharedRenderData, storage, attrName, element, index);
         }
     }
 
@@ -127,9 +131,9 @@ export class VdomManager {
                 delete this.queue[attrName][index];
             }
         }
-        for(const attrName in this.sharedData) {
-            if(this.sharedDataQueue.hasOwnProperty(attrName)) {
-                this.sharedDataQueue[attrName][index] = 0;
+        for(const attrName in this.sharedRenderData) {
+            if(this.sharedDataQueue.values.hasOwnProperty(attrName)) {
+                this.sharedDataQueue.values[attrName][index] = 0;
             }
         }
     }
@@ -234,8 +238,8 @@ export class VdomManager {
     }
 
     private getSingle(node: VdomNode, attrName: string) {
-        if(this.sharedData[attrName] && this.sharedData[attrName][node.globalElementIndex]) {
-            const value = this.sharedData[attrName][node.globalElementIndex];
+        if(this.sharedRenderData[attrName] && this.sharedRenderData[attrName][node.globalElementIndex]) {
+            const value = this.sharedRenderData[attrName][node.globalElementIndex];
             if(value === 56938516) {
                 return 0;
             }
@@ -259,16 +263,16 @@ export class VdomManager {
     }
 
     transferBufferQueueData() {
-        for(let attrName in this.sharedDataQueue) {
-            this.queue[attrName] = this.sharedDataQueueBuffers[attrName];
-            this.sharedData[attrName] = this.sharedDataQueue[attrName];
+        for(let attrName in this.sharedDataQueue.values) {
+            this.queue[attrName] = this.sharedDataQueue.buffers[attrName];
+            this.sharedRenderData[attrName] = this.sharedDataQueue.values[attrName];
 
-            const length = this.sharedData[attrName].byteLength / Int32Array.BYTES_PER_ELEMENT;
+            const length = this.sharedRenderData[attrName].byteLength / Int32Array.BYTES_PER_ELEMENT;
             const {buffer, values} = this.createBufferTransferValues(length,
-                this.sharedDataQueue[attrName]);
+                this.sharedDataQueue.values[attrName]);
 
-            this.sharedDataQueueBuffers[attrName] = buffer;
-            this.sharedDataQueue[attrName] = values;
+            this.sharedDataQueue.buffers[attrName] = buffer;
+            this.sharedDataQueue.values[attrName] = values;
         }
     }
 
@@ -288,7 +292,7 @@ export class VdomManager {
 
             if('SharedArrayBuffer' in self &&
                 setAttrQueue[attrName] instanceof SharedArrayBuffer) {
-                this.sharedData[attrName] = new Int32Array(<ArrayBuffer> setAttrQueue[attrName]);
+                this.sharedRenderData[attrName] = new Int32Array(<ArrayBuffer> setAttrQueue[attrName]);
             } else {
                 values = <AttrValues> setAttrQueue[attrName];
 

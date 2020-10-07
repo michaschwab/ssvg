@@ -14,6 +14,7 @@ export default interface CanvasWorker {
 let worker: CanvasWorker;
 const workerContext: Worker = self as any;
 let vdom: VdomManager;
+let port: MessagePort;
 
 workerContext.onmessage = function(e: MessageEvent) {
     
@@ -25,9 +26,11 @@ workerContext.onmessage = function(e: MessageEvent) {
                 //console.log('init');
                 vdom = new VdomManager(msg.data.visData, false);
                 const safeMode = !!msg.data.safeMode;
+                port = msg.data.port;
                 worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode, () => {
-                    workerContext.postMessage({msg: 'DRAWN'});
+                    port.postMessage({msg: 'DRAWN'});
                 });
+
                 /*worker = new Twojsrenderer(vdom, msg.data.canvas, msg.data.offscreenCanvas, () => {
                     postMessage({msg: 'DRAWN'});
                 });*/

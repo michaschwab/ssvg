@@ -5,6 +5,7 @@ import SetPropertyQueueData from "../util/vdom/set-property-queue-data";
 
 const workerContext: Worker = self as any;
 let vdom: VdomManager;
+let port: MessagePort;
 
 workerContext.onmessage = function(e: MessageEvent) {
 
@@ -14,6 +15,13 @@ workerContext.onmessage = function(e: MessageEvent) {
         switch(msg.cmd) {
             case 'INIT':
                 vdom = new VdomManager(msg.data.visData, false);
+                port = msg.data.port;
+
+                port.onmessage = function(e: MessageEvent) {
+
+                }
+
+
                 break;
             case 'UPDATE_NODES':
                 const data = msg as CanvasUpdateWorkerMessage;

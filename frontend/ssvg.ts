@@ -213,12 +213,21 @@ export default class SSVG {
         
         if(this.useWorker) {
             const offscreen = (this.canvas as any).transferControlToOffscreen();
+            const channel = new MessageChannel();
             this.worker.postMessage({cmd: 'INIT', data: {
                     canvas: offscreen,
                     visData: this.vdom.data,
-                    safeMode: this.safeMode
+                    safeMode: this.safeMode,
+                    port: channel.port2
                 }
-            }, [offscreen]);
+            }, [offscreen, channel.port2]);
+            this.syncWorker.postMessage({cmd: 'INIT', data: {
+                    visData: this.vdom.data,
+                    safeMode: this.safeMode,
+                    port: channel.port1
+                }
+            }, [channel.port1]);
+
             this.vdom.ensureNodesMapped();
         } else {
             this.renderer = new Canvasrenderer(this.vdom, this.canvas, this.safeMode, () => {});
@@ -1082,7 +1091,7 @@ export default class SSVG {
             }
         };
 
-        //this.syncWorker.postMessage(msg);
+        this.syncWorker.postMessage(msg);
         this.worker.postMessage(msg);
         this.enterExitQueue = [];
     }
