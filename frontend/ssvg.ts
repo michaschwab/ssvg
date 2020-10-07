@@ -1,6 +1,6 @@
 import {VdomManager} from "../util/vdom/vdom-manager";
 import {VdomNode} from "../util/vdom/vdom";
-import {CanvasWorkerMessage, CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker-message"
+import {CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker-message";
 import Domhandler, {SsvgElement} from "./domhandler";
 import CanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
