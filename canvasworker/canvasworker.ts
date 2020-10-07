@@ -16,6 +16,37 @@ const workerContext: Worker = self as any;
 let vdom: VdomManager;
 let port: MessagePort;
 
+const onUpdate = (data: CanvasUpdateWorkerMessage) => {
+    for(let operation of data.data.enterExit) {
+        if(operation.cmd === 'EXIT') {
+            const node = vdom.getNodeFromIndex(operation.childGlobalIndex);
+            const parent = vdom.getNodeFromIndex(operation.parentGlobalIndex);
+            vdom.removeNode(node, parent);
+        }
+        if(operation.cmd === 'ENTER') {
+            const node = operation.node;
+            if(!operation.keepChildren) {
+                node.children = [];
+            }
+            vdom.addNode(node);
+            vdom.addNodeToParent(node, operation.parentGlobalIndex);
+            if(worker.addNode) {
+                worker.addNode(node);
+            }
+        }
+    }
+
+    if(worker.updatePropertiesFromQueue) {
+        worker.updatePropertiesFromQueue(data.data.update);
+    } else {
+        vdom.updatePropertiesFromQueue(data.data.update, (node, attrName) => {
+            worker.nodeUpdated(node, attrName);
+        });
+    }
+
+    worker.draw();
+};
+
 workerContext.onmessage = function(e: MessageEvent) {
     
     const msg: CanvasWorkerMessage = e.data;
@@ -29,7 +60,21 @@ workerContext.onmessage = function(e: MessageEvent) {
                 port = msg.data.port;
                 worker = new Canvasrenderer(vdom, msg.data.canvas, safeMode, () => {
                     port.postMessage({msg: 'DRAWN'});
+                    workerContext.postMessage({msg: 'DRAWN'});
                 });
+
+                port.onmessage = (e2: MessageEvent) => {
+                    const msg2: CanvasWorkerMessage = e2.data;
+                    if(msg2 && msg2.cmd) {
+                        switch (msg2.cmd) {
+                            case 'UPDATE_NODES':
+                                onUpdate(msg2 as CanvasUpdateWorkerMessage);
+                                break;
+                            default:
+                                console.error('did not find command ', msg2.cmd);
+                        }
+                    }
+                };
 
                 /*worker = new Twojsrenderer(vdom, msg.data.canvas, msg.data.offscreenCanvas, () => {
                     postMessage({msg: 'DRAWN'});
@@ -39,37 +84,8 @@ workerContext.onmessage = function(e: MessageEvent) {
                 });*/
                 break;
             case 'UPDATE_NODES':
-                const data = msg as CanvasUpdateWorkerMessage;
-                //console.log('UPDATE', msg.data.queue, msg.data.parentNodeSelectors);
-
-                for(let operation of data.data.enterExit) {
-                    if(operation.cmd === 'EXIT') {
-                        const node = vdom.getNodeFromIndex(operation.childGlobalIndex);
-                        const parent = vdom.getNodeFromIndex(operation.parentGlobalIndex);
-                        vdom.removeNode(node, parent);
-                    }
-                    if(operation.cmd === 'ENTER') {
-                        const node = operation.node;
-                        if(!operation.keepChildren) {
-                            node.children = [];
-                        }
-                        vdom.addNode(node);
-                        vdom.addNodeToParent(node, operation.parentGlobalIndex);
-                        if(worker.addNode) {
-                            worker.addNode(node);
-                        }
-                    }
-                }
-
-                if(worker.updatePropertiesFromQueue) {
-                    worker.updatePropertiesFromQueue(data.data.update);
-                } else {
-                    vdom.updatePropertiesFromQueue(data.data.update, (node, attrName) => {
-                        worker.nodeUpdated(node, attrName);
-                    });
-                }
-
-                worker.draw();
+                //onUpdate(msg as CanvasUpdateWorkerMessage);
+                console.error('update is now supposed to come from sync worker.');
                 break;
             default:
                 console.error('did not find command ', msg.cmd);

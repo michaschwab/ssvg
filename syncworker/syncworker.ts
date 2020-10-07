@@ -6,7 +6,6 @@ import SetPropertyQueueData, {AttrValues} from "../util/vdom/set-property-queue-
 class SyncWorker {
     private vdom: VdomManager;
     private enterExitQueue: CanvasUpdateData[] = [];
-    private setAttrQueue: AttrValues = {};
 
     constructor(visData, private port: MessagePort) {
         this.vdom = new VdomManager(visData, false, false);
@@ -18,29 +17,8 @@ class SyncWorker {
 
     onUpdateReceived(data: CanvasUpdateWorkerMessage) {
         this.enterExitQueue = this.enterExitQueue.concat(data.data.enterExit);
-
         const setAttrQueue = data.data.update;
         this.vdom.addToQueue(setAttrQueue);
-
-
-    }
-
-    applyEnterExit() {
-        for(let operation of this.enterExitQueue) {
-            if(operation.cmd === 'EXIT') {
-                const node = this.vdom.getNodeFromIndex(operation.childGlobalIndex);
-                const parent = this.vdom.getNodeFromIndex(operation.parentGlobalIndex);
-                this.vdom.removeNode(node, parent);
-            }
-            if(operation.cmd === 'ENTER') {
-                const node = operation.node;
-                if(!operation.keepChildren) {
-                    node.children = [];
-                }
-                this.vdom.addNode(node);
-                this.vdom.addNodeToParent(node, operation.parentGlobalIndex);
-            }
-        }
     }
 
     onRendererReady() {
@@ -58,6 +36,7 @@ class SyncWorker {
         };
 
         this.port.postMessage(msg);
+        this.enterExitQueue = [];
     }
 }
 
@@ -81,3 +60,18 @@ workerContext.onmessage = function(e: MessageEvent) {
         }
     }
 };
+
+
+let safeLogCount = 0;
+function safeLog(...logContents) {
+    if(safeLogCount < 100) {
+        safeLogCount++;
+        console.log(...logContents);
+    }
+}
+function safeErrorLog(...logContents) {
+    if(safeLogCount < 100) {
+        safeLogCount++;
+        console.error(...logContents);
+    }
+}
