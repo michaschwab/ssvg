@@ -70,8 +70,8 @@ export default class SSVG {
             };
             const raf = () => {
                 this.updateFps();
-                requestAnimationFrame(raf);
                 this.updateCanvas();
+                requestAnimationFrame(raf);
             };
             raf();
         } else {
@@ -174,7 +174,6 @@ export default class SSVG {
         }
 
         if(!this.vdom.hasChanges() && !this.domHandler.hasChanges()) {
-            requestAnimationFrame(() => this.updateCanvas());
             return;
         }
 

@@ -6,6 +6,8 @@ import SetPropertyQueueData, {AttrValues} from "../util/vdom/set-property-queue-
 class SyncWorker {
     private vdom: VdomManager;
     private enterExitQueue: CanvasUpdateData[] = [];
+    private hasNewData = true;
+    private waitingToRender = true;
 
     constructor(visData, private port: MessagePort) {
         this.vdom = new VdomManager(visData, false, false);
@@ -16,12 +18,22 @@ class SyncWorker {
     }
 
     onUpdateReceived(data: CanvasUpdateWorkerMessage) {
+        this.hasNewData = true;
         this.enterExitQueue = this.enterExitQueue.concat(data.data.enterExit);
         const setAttrQueue = data.data.update;
         this.vdom.addToQueue(setAttrQueue);
+
+        if(this.waitingToRender) {
+            this.onRendererReady();
+        }
     }
 
     onRendererReady() {
+        if(!this.hasNewData) {
+            this.waitingToRender = true;
+            return;
+        }
+        this.waitingToRender = false;
         this.vdom.transferSyncedDataToRenderData();
 
         const queue = this.vdom.getQueue();
@@ -37,6 +49,7 @@ class SyncWorker {
 
         this.port.postMessage(msg);
         this.enterExitQueue = [];
+        this.hasNewData = false;
     }
 }
 
