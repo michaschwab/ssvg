@@ -32,6 +32,24 @@ module.exports = [{
 
   }
 }, {
+  entry: "./syncworker/index.ts",
+  output: {
+    filename: "syncworker.js",
+    path: __dirname + "/dist"
+  },
+  mode: 'development',
+  devtool: "source-map",
+  resolve: {
+    extensions: [".ts", ".tsx", ".js", ".json"]
+  },
+  module: {
+    rules: [
+      { test: /\.tsx?$/, loader: "awesome-typescript-loader" },
+      { enforce: "pre", test: /\.js$/, loader: "source-map-loader" }
+    ]
+  },
+  externals: {  }
+}, {
   entry: "./frontend/exporter.ts",
   output: {
     filename: "ssvg.js",
@@ -60,6 +78,13 @@ module.exports = [{
           inline: true,
           fallback: false,
           name: 'canvasworker-complete.js'
+        }
+      },
+
+      { test: /dist\/syncworker\.js$/, loader: 'worker-loader', options: {
+          inline: true,
+          fallback: false,
+          name: 'syncworker-complete.js'
         }
       }
     ]

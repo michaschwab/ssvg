@@ -6,10 +6,12 @@ import CanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
 import DrawingUtils from "../canvasworker/drawingUtils";
 import CanvasWorkerImporter from '../canvasworker';
+import SyncWorkerImporter from '../syncworker';
 
 export default class SSVG {
     private unassignedNodes: Node[] = [];
     private worker: Worker;
+    private syncWorker: Worker;
     private domHandler: Domhandler;
     private vdom: VdomManager;
     private interactionSelections: SsvgElement[] = [];
@@ -30,7 +32,6 @@ export default class SSVG {
     private readonly getFps: (fps: number) => void = () => {};
 
     private hoveredElement: Element|undefined;
-    private animationFrame?: number;
 
     constructor(options?: {
         safeMode?: boolean,
@@ -59,16 +60,18 @@ export default class SSVG {
 
         if(this.useWorker) {
             this.worker = new CanvasWorkerImporter();
+            this.syncWorker = new SyncWorkerImporter();
     
             this.worker.onmessage = e => {
                 if(e.data && e.data.msg && e.data.msg === 'DRAWN') {
                     this.logDrawn();
-                    this.updateCanvas();
+                    //this.updateCanvas();
                 }
             };
             const raf = () => {
                 this.updateFps();
                 requestAnimationFrame(raf);
+                this.updateCanvas();
             };
             raf();
         } else {
@@ -210,7 +213,7 @@ export default class SSVG {
         
         if(this.useWorker) {
             const offscreen = (this.canvas as any).transferControlToOffscreen();
-            this.sendToWorker({cmd: 'INIT', data: {
+            this.worker.postMessage({cmd: 'INIT', data: {
                     canvas: offscreen,
                     visData: this.vdom.data,
                     safeMode: this.safeMode
@@ -1057,7 +1060,7 @@ export default class SSVG {
     private logDrawn() {
         this.lastCanvasDrawTimes.push(Date.now());
         
-        if(this.lastCanvasDrawTimes.length > 100) {
+        if(this.lastCanvasDrawTimes.length > 20) {
             this.lastCanvasDrawTimes.shift(); // Remove first item
         }
     }
@@ -1079,13 +1082,9 @@ export default class SSVG {
             }
         };
 
-        this.sendToWorker(msg);
+        //this.syncWorker.postMessage(msg);
+        this.worker.postMessage(msg);
         this.enterExitQueue = [];
-    }
-
-    private sendToWorker(msg: CanvasWorkerMessage, data?: any) {
-        this.worker.postMessage(msg, data);
-        //console.log(roughSizeOfObject(msg));
     }
 }
 
