@@ -435,6 +435,19 @@ export default class Domhandler {
         return this.vdom.getNodeFromIndex(element.globalElementIndex);
     }
 
+    isWithinSvg(element: Element) {
+        let isWithinSvg = false;
+        let parentEl = element;
+
+        while(parentEl && parentEl.parentNode) {
+            if(parentEl === this.svg) {
+                isWithinSvg = true;
+            }
+            parentEl = <Element> parentEl.parentNode;
+        }
+        return isWithinSvg;
+    }
+
     getParentNode(node: VdomNode): VdomNode|null {
         const element = this.getElementFromNode(node);
         const parentElement = element.parentNode as SsvgElement;
