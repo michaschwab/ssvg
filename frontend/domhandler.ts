@@ -1,10 +1,9 @@
 import {VDOM, VdomNode, VdomNodeType} from "../util/vdom/vdom";
 import {VdomManager} from "../util/vdom/vdom-manager";
 import DrawingUtils, {Transformation} from "../canvasworker/drawingUtils";
-import drawingUtils from "../canvasworker/drawingUtils";
 import {CSS_STYLES, RELEVANT_ATTRS, ROUNDED_ATTRS} from "./attrs";
 
-export default class Domhandler {
+export class Domhandler {
     private readonly vdom: VdomManager;
     nodes: {[globalElementIndex: number]: VdomNode} = {};
     elements: {[globalElementIndex: number]: SsvgElement} = {};

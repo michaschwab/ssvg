@@ -1,4 +1,4 @@
-import Domhandler, {SsvgElement} from "./domhandler";
+import {Domhandler, SsvgElement} from "./domhandler";
 import {VdomNode} from "../util/vdom/vdom";
 import DrawingUtils from "../canvasworker/drawingUtils";
 import {VdomManager} from "../util/vdom/vdom-manager";
