@@ -1,11 +1,11 @@
 import {VdomManager} from '../util/vdom/vdom-manager';
-import CanvasWorker from './canvasworker';
-import DrawingUtils from './drawingUtils';
+import {CanvasWorker} from './canvasworker';
+import {DrawingUtils} from './drawingUtils';
 if ('importScripts' in self) {
     importScripts('https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js');
 }
 
-export default class Webglrenderer implements CanvasWorker {
+export class Webglrenderer implements CanvasWorker {
     // Stardust Platform
     private platform: any;
     // Lines

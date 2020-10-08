@@ -2,6 +2,7 @@ import {Domhandler, SsvgElement} from './domhandler';
 import {VdomManager} from '../util/vdom/vdom-manager';
 import {VdomNode} from '../util/vdom/vdom';
 import {Interactionhandler} from './interactionhandler';
+import {safeLog} from '../util/safelogs';
 
 export class Redirector {
     private unassignedNodes: Node[] = [];
@@ -708,19 +709,5 @@ export class Redirector {
                 }
             }
         };
-    }
-}
-
-let safeLogCount = 0;
-function safeLog(...logContents) {
-    if (safeLogCount < 200) {
-        safeLogCount++;
-        console.log(...logContents);
-    }
-}
-function safeErrorLog(...logContents) {
-    if (safeLogCount < 200) {
-        safeLogCount++;
-        console.error(...logContents);
     }
 }

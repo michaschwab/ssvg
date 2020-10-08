@@ -1,4 +1,4 @@
-export type Transformation = {
+export interface Transformation {
     translateX: number;
     translateY: number;
     scaleX: number;
@@ -6,9 +6,9 @@ export type Transformation = {
     rotate: number;
     translateBeforeScale: boolean;
     rotateLast: boolean;
-};
+}
 
-export default class DrawingUtils {
+export class DrawingUtils {
     static parseTransform(transform: string | {}): Transformation {
         const transformObject: Transformation = {
             translateX: 0,

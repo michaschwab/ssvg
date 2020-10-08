@@ -1,11 +1,12 @@
 import {VdomNode} from '../util/vdom/vdom';
 import {VdomManager} from '../util/vdom/vdom-manager';
-import DrawingUtils from './drawingUtils';
-import CanvasWorker from './canvasworker';
+import {DrawingUtils} from './drawingUtils';
+import {CanvasWorker} from './canvasworker';
+import {safeErrorLog} from '../util/safelogs';
 
 type DrawMode = 'start' | 'normal' | 'end' | 'forcesingle';
 
-export default class Canvasrenderer implements CanvasWorker {
+export class Canvasrenderer implements CanvasWorker {
     private ctx: CanvasRenderingContext2D;
     private parentValues: {[prop: string]: string | number} = {};
 
@@ -653,19 +654,5 @@ export default class Canvasrenderer implements CanvasWorker {
             return true;
         }
         return false;
-    }
-}
-
-let safeLogCount = 0;
-function safeLog(...logContents) {
-    if (safeLogCount < 300) {
-        safeLogCount++;
-        console.log(...logContents);
-    }
-}
-function safeErrorLog(...logContents) {
-    if (safeLogCount < 50) {
-        safeLogCount++;
-        console.error(...logContents);
     }
 }

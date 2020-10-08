@@ -1,5 +1,6 @@
-import {VdomManager, SetPropertyQueue} from '../util/vdomManager';
-import CanvasWorker from './canvasworker';
+import {CanvasWorker} from './canvasworker';
+import {VdomManager} from '../util/vdom/vdom-manager';
+import {SetPropertyQueueData} from '../util/vdom/set-property-queue-data';
 //importScripts("https://stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js");
 //importScripts("https://raw.github.com/jonobr1/two.js/master/build/two.min.js");
 /*Object.defineProperty(window, 'window', {
@@ -57,8 +58,9 @@ export default class Twojsrenderer implements CanvasWorker {
         }
     }
 
-    updatePropertiesFromQueue(setAttrQueue: SetPropertyQueue) {
-        for (let parentSelector in setAttrQueue) {
+    updatePropertiesFromQueue(setAttrQueue: SetPropertyQueueData) {
+        // Needs updating
+        /*for (let parentSelector in setAttrQueue) {
             const parentNode = this.vdom.getParentNodeFromSelector(parentSelector);
 
             for (let attrName in setAttrQueue[parentSelector]) {
@@ -103,7 +105,7 @@ export default class Twojsrenderer implements CanvasWorker {
                     }
                 }
             }
-        }
+        }*/
     }
 
     draw() {

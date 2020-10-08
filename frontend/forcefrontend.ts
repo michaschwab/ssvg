@@ -1,4 +1,4 @@
-import CanvasForceWorkerMessage from '../util/forceworkermessage';
+import {CanvasForceWorkerMessage} from '../util/forceworkermessage';
 
 export default class Forcefrontend {
     private worker: Worker;

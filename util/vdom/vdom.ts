@@ -17,7 +17,7 @@ export type VdomNodeType =
     | 'clippath'
     | 'line';
 
-export type VdomNode = {
+export interface VdomNode {
     style: {[styleName: string]: string};
     css: {[selector: string]: {[styleName: string]: string}};
     type: VdomNodeType;
@@ -48,4 +48,4 @@ export type VdomNode = {
     image?: ImageBitmap;
     className?: string;
     id?: string;
-};
+}

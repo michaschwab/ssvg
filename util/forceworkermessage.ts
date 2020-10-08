@@ -1,4 +1,4 @@
-export default interface CanvasForceWorkerMessage {
+export interface CanvasForceWorkerMessage {
     cmd: 'INIT';
     data?: any;
 }

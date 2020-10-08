@@ -1,7 +1,8 @@
 import {VDOM, VdomNode, VdomNodeType} from '../util/vdom/vdom';
 import {VdomManager} from '../util/vdom/vdom-manager';
-import DrawingUtils, {Transformation} from '../canvasworker/drawingUtils';
+import {DrawingUtils, Transformation} from '../canvasworker/drawingUtils';
 import {CSS_STYLES, RELEVANT_ATTRS, ROUNDED_ATTRS} from './attrs';
+import {safeLog} from '../util/safelogs';
 
 export class Domhandler {
     private readonly vdom: VdomManager;
@@ -495,20 +496,6 @@ export class Domhandler {
         }
 
         return totalTransform;
-    }
-}
-
-let safeLogCount = 0;
-function safeLog(...logContents) {
-    if (safeLogCount < 50) {
-        safeLogCount++;
-        console.log(...logContents);
-    }
-}
-function safeErrorLog(...logContents) {
-    if (safeLogCount < 50) {
-        safeLogCount++;
-        console.error(...logContents);
     }
 }
 

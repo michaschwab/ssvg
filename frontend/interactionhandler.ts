@@ -1,7 +1,8 @@
 import {Domhandler, SsvgElement} from './domhandler';
 import {VdomNode} from '../util/vdom/vdom';
-import DrawingUtils from '../canvasworker/drawingUtils';
+import {DrawingUtils} from '../canvasworker/drawingUtils';
 import {VdomManager} from '../util/vdom/vdom-manager';
+import {safeErrorLog} from '../util/safelogs';
 
 export class Interactionhandler {
     private interactionSelections: SsvgElement[] = [];
@@ -230,19 +231,5 @@ export class Interactionhandler {
             return matchAny;
         }
         return false;
-    }
-}
-
-let safeLogCount = 0;
-function safeLog(...logContents) {
-    if (safeLogCount < 200) {
-        safeLogCount++;
-        console.log(...logContents);
-    }
-}
-function safeErrorLog(...logContents) {
-    if (safeLogCount < 200) {
-        safeLogCount++;
-        console.error(...logContents);
     }
 }

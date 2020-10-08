@@ -1,10 +1,9 @@
 import {VdomManager} from '../util/vdom/vdom-manager';
 import {CanvasUpdateWorkerMessage, CanvasUpdateData} from '../util/canvas-worker-message';
 import {Domhandler, SsvgElement} from './domhandler';
-import CanvasWorker from '../canvasworker/canvasworker';
-import Canvasrenderer from '../canvasworker/canvasrenderer';
+import {CanvasWorker} from '../canvasworker/canvasworker';
+import {Canvasrenderer} from '../canvasworker/canvasrenderer';
 import CanvasWorkerImporter from '../canvasworker';
-// @ts-ignore
 import SyncWorkerImporter from '../syncworker';
 import {Interactionhandler} from './interactionhandler';
 import {Redirector} from './redirector';
@@ -15,7 +14,7 @@ export default class SSVG {
     private syncWorker: Worker;
     private domHandler: Domhandler;
     private vdom: VdomManager;
-    private interactions: Interactionhandler;
+    private readonly interactions: Interactionhandler;
     private renderer: CanvasWorker;
     private redirector: Redirector;
 
@@ -280,19 +279,5 @@ export default class SSVG {
         this.syncWorker.postMessage(msg);
         //this.worker.postMessage(msg);
         this.enterExitQueue = [];
-    }
-}
-
-let safeLogCount = 0;
-function safeLog(...logContents) {
-    if (safeLogCount < 200) {
-        safeLogCount++;
-        console.log(...logContents);
-    }
-}
-function safeErrorLog(...logContents) {
-    if (safeLogCount < 200) {
-        safeLogCount++;
-        console.error(...logContents);
     }
 }

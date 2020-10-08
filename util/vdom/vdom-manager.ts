@@ -1,6 +1,7 @@
-import SetPropertyQueueData, {AttrValues} from './set-property-queue-data';
+import {SetPropertyQueueData, AttrValues} from './set-property-queue-data';
 import {VDOM, VdomNode} from './vdom';
 import {SsvgElement} from '../../frontend/domhandler';
+import {safeLog} from '../safelogs';
 
 interface SharedDataStore {
     values: {[attrName: string]: Int32Array};
@@ -629,19 +630,5 @@ export class VdomManager {
             }
         }
         return false;
-    }
-}
-
-let safeLogCount = 0;
-function safeLog(...logContents) {
-    if (safeLogCount < 400) {
-        safeLogCount++;
-        console.log(...logContents);
-    }
-}
-function safeErrorLog(...logContents) {
-    if (safeLogCount < 400) {
-        safeLogCount++;
-        console.error(...logContents);
     }
 }

@@ -13,12 +13,6 @@ export const CSS_STYLES = [
     'font-size',
 ];
 
-/*const RELEVANT_ATTRS2 = ['transform', 'd', 'id', 'r', 'fill', 'cx', 'cy', 'x', 'y', 'x1', 'x2', 'y1',
-    'y2', 'opacity', 'fill-opacity', 'width', 'height', 'stroke', 'stroke-opacity', 'stroke-width',
-    'font-size', 'font', 'font-family', 'text-anchor', 'href'];*/
-
-//'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'text'|'image'|'clippath'|'line'
-
 export const RELEVANT_ATTRS: {[type in VdomNodeType]: string[]} = {
     svg: [
         'fill',
