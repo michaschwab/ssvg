@@ -1,3 +1,3 @@
-import SSVG from "./ssvg";
+import SSVG from './ssvg';
 
 export = SSVG;

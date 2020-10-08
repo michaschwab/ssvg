@@ -1,45 +1,48 @@
-import {VdomNode} from "../util/vdom/vdom";
-import {VdomManager} from "../util/vdom/vdom-manager";
-import DrawingUtils from "./drawingUtils";
-import CanvasWorker from "./canvasworker";
+import {VdomNode} from '../util/vdom/vdom';
+import {VdomManager} from '../util/vdom/vdom-manager';
+import DrawingUtils from './drawingUtils';
+import CanvasWorker from './canvasworker';
 
-type DrawMode = 'start'|'normal'|'end'|'forcesingle';
+type DrawMode = 'start' | 'normal' | 'end' | 'forcesingle';
 
 export default class Canvasrenderer implements CanvasWorker {
-    
     private ctx: CanvasRenderingContext2D;
-    private parentValues: {[prop: string]: string|number} = {};
-    
-    constructor(private vdom: VdomManager, private canvas: HTMLCanvasElement,
-                private forceSingle = false, private onDrawn = () => {}) {
+    private parentValues: {[prop: string]: string | number} = {};
+
+    constructor(
+        private vdom: VdomManager,
+        private canvas: HTMLCanvasElement,
+        private forceSingle = false,
+        private onDrawn = () => {}
+    ) {
         const ctx = canvas.getContext('2d');
-        if(!ctx) throw new Error('could not create canvas context');
-        
+        if (!ctx) throw new Error('could not create canvas context');
+
         this.ctx = ctx;
         this.ctx.scale(this.vdom.data.scale, this.vdom.data.scale);
         this.ctx.save();
-        
+
         this.draw();
-        
+
         setTimeout(() => {
             console.log(this.forceSingle, this.vdom.data);
             //this.draw();
         }, 1000);
     }
-    
+
     private lastFullSecond = 0;
     private countSinceLastFullSecond = 0;
-    
+
     draw() {
         const ctx = this.ctx;
 
         ctx.restore();
         ctx.save();
-        
+
         //ctx.fillStyle = '#fff';
         //ctx.fillRect(0, 0, this.vdom.data.width, this.vdom.data.height);
         ctx.clearRect(0, 0, this.vdom.data.width, this.vdom.data.height);
-    
+
         //this.lastDrawn = null;
         this.drawLine(null, 'start');
         this.drawCircle(null, 'start');
@@ -54,20 +57,20 @@ export default class Canvasrenderer implements CanvasWorker {
         this.drawRect(null, 'end');
         this.drawText(null, 'end');
         this.drawImage(null, 'end');
-        
+
         this.onDrawn();
-    
+
         const fullSecond = Math.round(performance.now() / 1000);
-        if(fullSecond !== this.lastFullSecond) {
+        if (fullSecond !== this.lastFullSecond) {
             this.lastFullSecond = fullSecond;
             //console.log(this.countSinceLastFullSecond);
             this.countSinceLastFullSecond = 0;
         }
         this.countSinceLastFullSecond++;
     }
-    
+
     private drawNodeAndChildren(elData: VdomNode, forceSingle: boolean, drawClip?: Path2D) {
-        if(elData.type === 'clippath' && !drawClip) {
+        if (elData.type === 'clippath' && !drawClip) {
             return;
         }
 
@@ -75,23 +78,23 @@ export default class Canvasrenderer implements CanvasWorker {
         const parentValuesBackup = {...this.parentValues};
 
         const saveRestoreContext = !drawClip && (elData.children.length || elData.transform);
-        if(saveRestoreContext) {
+        if (saveRestoreContext) {
             ctx.save();
         }
 
         this.applyTransform(elData.transform);
 
-        if(elData.transform || drawClip) {
+        if (elData.transform || drawClip) {
             forceSingle = true;
         }
 
-        if(elData['clip-path']) {
-            if(elData['clip-path'].substr(0, 5) === 'url(#') {
+        if (elData['clip-path']) {
+            if (elData['clip-path'].substr(0, 5) === 'url(#') {
                 const clipPathId = elData['clip-path'].substr(5, elData['clip-path'].length - 6);
                 const clipNode = this.vdom.getNodeById(clipPathId);
                 forceSingle = true;
 
-                if(!clipNode) {
+                if (!clipNode) {
                     //safeErrorLog('clip node not found', elData['clip-path'], clipPathId, this.vdom.data)
                 } else {
                     const path = new Path2D();
@@ -103,37 +106,38 @@ export default class Canvasrenderer implements CanvasWorker {
             }
         }
 
-        if(!elData.style.display || elData.style.display !== 'none') {
-            if(!forceSingle) {
+        if (!elData.style.display || elData.style.display !== 'none') {
+            if (!forceSingle) {
                 this.drawSingleNode(elData, 'normal', drawClip);
             } else {
                 this.drawSingleNode(elData, 'forcesingle', drawClip);
             }
         }
 
-        if(elData.children) {
+        if (elData.children) {
             this.parentValues['fill'] = elData.fill || this.parentValues['fill'];
             this.parentValues['style;fill'] = elData.style.fill || this.parentValues['style;fill'];
             this.parentValues['stroke'] = elData.stroke || this.parentValues['stroke'];
-            this.parentValues['style;stroke'] = elData.style.stroke || this.parentValues['style;stroke'];
+            this.parentValues['style;stroke'] =
+                elData.style.stroke || this.parentValues['style;stroke'];
             this.parentValues['opacity'] = elData.opacity || this.parentValues['opacity'];
 
-            for(let i = 0; i < elData.children.length; i++) {
+            for (let i = 0; i < elData.children.length; i++) {
                 this.drawNodeAndChildren(elData.children[i], forceSingle, drawClip);
             }
         }
 
-        if(saveRestoreContext) {
+        if (saveRestoreContext) {
             //safeLog('restoring ctx', elData);
             ctx.restore();
         }
         this.parentValues = parentValuesBackup;
     }
-    
+
     private drawSingleNode(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
         const type: string = elData.type;
-        const drawFct = this['draw' + type.substr(0,1).toUpperCase() + type.substr(1)];
-        if(!drawFct) {
+        const drawFct = this['draw' + type.substr(0, 1).toUpperCase() + type.substr(1)];
+        if (!drawFct) {
             return console.error('no draw function yet for ', type);
         }
         drawFct.call(this, elData, mode, path);
@@ -146,25 +150,25 @@ export default class Canvasrenderer implements CanvasWorker {
     private drawSvg() {}
     private drawTitle() {}
     private drawG() {}
-    
+
     private circlesByColor: {[color: string]: VdomNode[]} = {};
     private drawCircle(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
-        if(mode === 'normal') {
+        if (mode === 'normal') {
             let fill = this.getFillStyle(elData, '#000');
             const stroke = this.getStrokeStyle(elData);
             const handle = fill + ';' + stroke;
-            if(!this.circlesByColor[handle]) {
+            if (!this.circlesByColor[handle]) {
                 this.circlesByColor[handle] = [];
             }
             this.circlesByColor[handle].push(elData);
         }
-        if(mode === 'start') {
+        if (mode === 'start') {
             this.circlesByColor = {};
             return;
         }
-        if(mode === 'end') {
-            for(let fillAndStrokeColor in this.circlesByColor) {
-                if(this.circlesByColor.hasOwnProperty(fillAndStrokeColor)) {
+        if (mode === 'end') {
+            for (let fillAndStrokeColor in this.circlesByColor) {
+                if (this.circlesByColor.hasOwnProperty(fillAndStrokeColor)) {
                     const split = fillAndStrokeColor.split(';');
                     const fillColor = split[0];
                     const strokeColor = split[1];
@@ -176,7 +180,7 @@ export default class Canvasrenderer implements CanvasWorker {
                     this.ctx.strokeStyle = strokeColor;
 
                     this.ctx.beginPath();
-                    for(let elData of this.circlesByColor[fillAndStrokeColor]) {
+                    for (let elData of this.circlesByColor[fillAndStrokeColor]) {
                         // Round values so that paths are connected correctly and there are no rendering glitches
                         const cx = Math.round(this.vdom.get(elData, 'cx')) || 0;
                         const cy = Math.round(this.vdom.get(elData, 'cy')) || 0;
@@ -189,18 +193,18 @@ export default class Canvasrenderer implements CanvasWorker {
                         //this.ctx.restore();
                     }
 
-                    if(fillColor !== 'none'){
+                    if (fillColor !== 'none') {
                         this.ctx.fill();
                     }
 
-                    if(strokeColor && strokeColor !== 'none') {
+                    if (strokeColor && strokeColor !== 'none') {
                         this.ctx.stroke();
                     }
                 }
             }
             return;
         }
-        if(mode === 'forcesingle') {
+        if (mode === 'forcesingle') {
             let fill = this.getFillStyle(elData, '#000');
             const strokeStyle = this.getStrokeStyle(elData);
 
@@ -214,28 +218,28 @@ export default class Canvasrenderer implements CanvasWorker {
             this.ctx.moveTo(cx + elData.r, cy);
             const context = path ? path : this.ctx;
             context.arc(cx, cy, elData.r, 0, 2 * Math.PI);
-            if(fill !== 'none' && !path){
+            if (fill !== 'none' && !path) {
                 this.ctx.fill();
             }
 
-            if(strokeStyle && strokeStyle !== 'none' && !path) {
+            if (strokeStyle && strokeStyle !== 'none' && !path) {
                 this.ctx.stroke();
             }
         }
     }
 
     nodeUpdated(node: VdomNode, attr: string) {
-        if(attr === '*' || attr.includes('fill') || attr.includes('opacity')) {
+        if (attr === '*' || attr.includes('fill') || attr.includes('opacity')) {
             delete node['fill-cache'];
         }
-        if(attr === '*' || attr.includes('stroke') || attr.includes('opacity')) {
+        if (attr === '*' || attr.includes('stroke') || attr.includes('opacity')) {
             delete node['stroke-cache'];
             delete node['strokewidth-cache'];
         }
     }
 
     private getFillStyle(node: VdomNode, defaultColor = 'none'): string {
-        if('fill-cache' in node) {
+        if ('fill-cache' in node) {
             return node['fill-cache'];
         }
         let fill = this.getAttributeStyleCss(node, 'fill');
@@ -244,13 +248,13 @@ export default class Canvasrenderer implements CanvasWorker {
         opacity *= fillOpacity;
 
         let defaultCol = '';
-        if(this.parentValues['fill']) {
+        if (this.parentValues['fill']) {
             defaultCol = this.parentValues['fill'] as string;
         }
-        if(this.parentValues['style;fill']) {
+        if (this.parentValues['style;fill']) {
             defaultCol = this.parentValues['style;fill'] as string;
         }
-        if(!this.parentValues['fill'] && !this.parentValues['style;fill']) {
+        if (!this.parentValues['fill'] && !this.parentValues['style;fill']) {
             defaultCol = defaultColor;
         }
 
@@ -260,19 +264,19 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private getAttributeStyleCss(node: VdomNode, style: string) {
-        if(node.style[style]) {
+        if (node.style[style]) {
             return node.style[style];
         } else {
-            if(this.parentValues[`style;${style}`]) {
+            if (this.parentValues[`style;${style}`]) {
                 return this.parentValues[`style;${style}`];
             }
             let value = node[style];
 
             let highestSpec = -1;
-            for(const selector in node.css) {
-                if(node.css[selector][style]) {
+            for (const selector in node.css) {
+                if (node.css[selector][style]) {
                     const specificity = DrawingUtils.getCssRuleSpecificityNumber(selector);
-                    if(specificity > highestSpec) {
+                    if (specificity > highestSpec) {
                         value = node.css[selector][style];
                         highestSpec = specificity;
                     }
@@ -283,7 +287,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private getStrokeStyle(node: VdomNode, defaultColor = 'none'): string {
-        if('stroke-cache' in node) {
+        if ('stroke-cache' in node) {
             return node['stroke-cache'];
         }
         const stroke = this.getAttributeStyleCss(node, 'stroke');
@@ -292,13 +296,13 @@ export default class Canvasrenderer implements CanvasWorker {
         opacity *= fillOpacity;
 
         let defaultCol = '';
-        if(this.parentValues['stroke']) {
+        if (this.parentValues['stroke']) {
             defaultCol = this.parentValues['stroke'] as string;
         } else {
             defaultCol = defaultColor;
         }
 
-        if(stroke !== undefined) {
+        if (stroke !== undefined) {
             node['stroke-cache'] = DrawingUtils.colorToRgba(stroke, opacity);
         } else {
             node['stroke-cache'] = defaultCol;
@@ -307,7 +311,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private getStrokeWidth(node: VdomNode) {
-        if('strokewidth-cache' in node) {
+        if ('strokewidth-cache' in node) {
             return node['strokewidth-cache'];
         }
         const width = this.getAttributeStyleCss(node, 'stroke-width');
@@ -319,22 +323,22 @@ export default class Canvasrenderer implements CanvasWorker {
     private rectsByColor = {};
 
     private drawRect(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
-        if(mode === 'normal') {
+        if (mode === 'normal') {
             let fill = this.getFillStyle(elData, '#000');
             const stroke = this.getStrokeStyle(elData);
             const handle = fill + ';' + stroke;
-            if(!this.rectsByColor[handle]) {
+            if (!this.rectsByColor[handle]) {
                 this.rectsByColor[handle] = [];
             }
             this.rectsByColor[handle].push(elData);
         }
-        if(mode === 'start') {
+        if (mode === 'start') {
             this.rectsByColor = {};
             return;
         }
-        if(mode === 'end') {
-            for(let fillAndStrokeColor in this.rectsByColor) {
-                if(this.rectsByColor.hasOwnProperty(fillAndStrokeColor)) {
+        if (mode === 'end') {
+            for (let fillAndStrokeColor in this.rectsByColor) {
+                if (this.rectsByColor.hasOwnProperty(fillAndStrokeColor)) {
                     const split = fillAndStrokeColor.split(';');
                     const fillColor = split[0];
                     const strokeColor = split[1];
@@ -346,7 +350,7 @@ export default class Canvasrenderer implements CanvasWorker {
                     this.ctx.strokeStyle = strokeColor;
 
                     this.ctx.beginPath();
-                    for(let elData of this.rectsByColor[fillAndStrokeColor]) {
+                    for (let elData of this.rectsByColor[fillAndStrokeColor]) {
                         // Round values so that paths are connected correctly and there are no rendering glitches
                         const x = Math.round(this.vdom.get(elData, 'x')) || 0;
                         const y = Math.round(this.vdom.get(elData, 'y')) || 0;
@@ -357,33 +361,33 @@ export default class Canvasrenderer implements CanvasWorker {
                         this.ctx.restore();
                         //this.ctx.restore();
                     }
-                    if(fillColor !== 'none'){
+                    if (fillColor !== 'none') {
                         this.ctx.fill();
                     }
 
-                    if(strokeColor && strokeColor !== 'none') {
+                    if (strokeColor && strokeColor !== 'none') {
                         this.ctx.stroke();
                     }
                 }
             }
             return;
         }
-        if(mode === 'forcesingle') {
+        if (mode === 'forcesingle') {
             let fill = this.getFillStyle(elData, '#000');
             const stroke = this.getStrokeStyle(elData);
 
             const x = this.vdom.get(elData, 'x') || 0;
             const y = this.vdom.get(elData, 'y') || 0;
 
-            if(fill && fill !== 'none' && !path) {
+            if (fill && fill !== 'none' && !path) {
                 this.ctx.fillStyle = fill;
                 this.ctx.fillRect(x, y, elData.width, elData.height);
             }
-            if(path) {
+            if (path) {
                 path.rect(x, y, elData.width, elData.height);
             }
 
-            if(stroke !== 'none' && !path) {
+            if (stroke !== 'none' && !path) {
                 this.ctx.strokeStyle = stroke;
                 this.ctx.beginPath();
                 this.ctx.rect(x, y, elData.width, elData.height);
@@ -396,23 +400,23 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private drawText(node: VdomNode, mode: DrawMode = 'normal', isClip = false) {
         const drawSingle = (elData: VdomNode) => {
-            if(elData.text === '') {
+            if (elData.text === '') {
                 return;
             }
             let fontFamily = this.getAttributeStyleCss(elData, 'font-family') || 'Times New Roman';
 
             let fontSize = '16px';
             const customSize = this.getAttributeStyleCss(elData, 'font-size');
-            if(customSize) {
+            if (customSize) {
                 fontSize = DrawingUtils.convertSizeToPx(customSize) + 'px';
             }
             let font = this.getAttributeStyleCss(elData, 'font');
-            if(!font) {
+            if (!font) {
                 font = fontSize + ' ' + fontFamily;
             }
             let align = this.getAttributeStyleCss(elData, 'text-anchor');
-            if(align) {
-                if(align === 'middle') {
+            if (align) {
+                if (align === 'middle') {
                     align = 'center';
                 }
                 this.ctx.textAlign = align;
@@ -426,19 +430,19 @@ export default class Canvasrenderer implements CanvasWorker {
             let dy = DrawingUtils.convertSizeToPx(elData.dy, false) || 0;
             this.ctx.fillText(elData.text, x + dx, y + dy);
         };
-        if(mode === 'start') {
+        if (mode === 'start') {
             this.drawTexts = [];
             return;
         }
-        if(mode === 'normal') {
+        if (mode === 'normal') {
             this.drawTexts.push(node);
             return;
         }
-        if(mode === 'forcesingle') {
+        if (mode === 'forcesingle') {
             return drawSingle(node);
         }
-        if(mode === 'end') {
-            for(const currentNode of this.drawTexts) {
+        if (mode === 'end') {
+            for (const currentNode of this.drawTexts) {
                 drawSingle(currentNode);
             }
             return;
@@ -449,37 +453,37 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private drawImage(node: VdomNode, mode: DrawMode = 'normal') {
         const drawSingle = (elData: VdomNode) => {
-            if(elData.href === '') {
+            if (elData.href === '') {
                 return;
             }
             let fill = elData['fill'] ? elData['fill'] : elData.style['fill'];
-            if(!fill) fill = '#000';
+            if (!fill) fill = '#000';
             this.ctx.fillStyle = fill;
             let x = this.vdom.get(elData, 'x') || 0;
             let y = this.vdom.get(elData, 'y') || 0;
             let width = elData.width || 0;
             let height = elData.height || 0;
-            if(elData.image) {
+            if (elData.image) {
                 try {
                     this.ctx.drawImage(elData.image, x, y, width, height);
-                } catch(e) {
+                } catch (e) {
                     console.log(e);
                 }
             }
         };
-        if(mode === 'start') {
+        if (mode === 'start') {
             this.drawImages = [];
             return;
         }
-        if(mode === 'normal') {
+        if (mode === 'normal') {
             this.drawImages.push(node);
             return;
         }
-        if(mode === 'forcesingle') {
+        if (mode === 'forcesingle') {
             return drawSingle(node);
         }
-        if(mode === 'end') {
-            for(const currentNode of this.drawImages) {
+        if (mode === 'end') {
+            for (const currentNode of this.drawImages) {
                 drawSingle(currentNode);
             }
             return;
@@ -487,7 +491,7 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 
     private drawPath(elData: VdomNode, mode: DrawMode = 'normal', path?: Path2D) {
-        if(mode !== 'normal' && mode !== 'forcesingle') return;
+        if (mode !== 'normal' && mode !== 'forcesingle') return;
 
         const fill = this.getFillStyle(elData, '#000');
         const stroke = this.getStrokeStyle(elData);
@@ -495,40 +499,42 @@ export default class Canvasrenderer implements CanvasWorker {
 
         let p = new Path2D(elData.d);
         this.ctx.fillStyle = fill;
-        if(stroke !== undefined && stroke !== 'none') {
-            if(strokeWidth !== undefined) {
+        if (stroke !== undefined && stroke !== 'none') {
+            if (strokeWidth !== undefined) {
                 this.ctx.lineWidth = strokeWidth;
             }
             this.ctx.strokeStyle = stroke;
 
-            const lineJoin = this.getAttributeStyleCss(elData, 'stroke-linejoin')
+            const lineJoin = this.getAttributeStyleCss(elData, 'stroke-linejoin');
 
-            if(lineJoin) {
-                if(lineJoin === 'bevel' || lineJoin === 'round' || lineJoin === 'miter') {
+            if (lineJoin) {
+                if (lineJoin === 'bevel' || lineJoin === 'round' || lineJoin === 'miter') {
                     this.ctx.lineJoin = lineJoin;
                 } else {
-                    console.error('unknown line join value:', lineJoin)
+                    console.error('unknown line join value:', lineJoin);
                 }
             }
-            if(!path) {
+            if (!path) {
                 this.ctx.stroke(p);
             }
         }
 
-        if(fill && fill !== 'none' && !path) {
+        if (fill && fill !== 'none' && !path) {
             this.ctx.fill(p);
         }
-        if(path) {
+        if (path) {
             path.addPath(p);
         }
     }
-    
+
     private drawTspan(elData: VdomNode, mode: DrawMode = 'normal') {
-        if(mode !== 'normal' && mode !== 'forcesingle') return;
-        
-        this.ctx.font = "10px Arial";
-        this.ctx.fillStyle = "#000000";
-        const textAlign = <CanvasTextAlign> (elData.style.textAnchor === "middle" ? "center" : elData.style.textAnchor);
+        if (mode !== 'normal' && mode !== 'forcesingle') return;
+
+        this.ctx.font = '10px Arial';
+        this.ctx.fillStyle = '#000000';
+        const textAlign = <CanvasTextAlign>(
+            (elData.style.textAnchor === 'middle' ? 'center' : elData.style.textAnchor)
+        );
         this.ctx.textAlign = textAlign;
         this.ctx.fillText(elData.text, this.vdom.get(elData, 'x'), this.vdom.get(elData, 'y'));
     }
@@ -539,30 +545,30 @@ export default class Canvasrenderer implements CanvasWorker {
 
     private linesByColor: {[color: string]: VdomNode[]} = {};
     private drawLine(elData, mode: DrawMode = 'normal') {
-        if(this.vdom.data.scale > 1) {
+        if (this.vdom.data.scale > 1) {
             //mode = 'forcesingle';
             // In my tests, drawing a long connected path is very slow for high DPI devices.
         }
-        if(mode === 'normal') {
+        if (mode === 'normal') {
             const stroke = this.getStrokeStyle(elData);
             const width = this.getStrokeWidth(elData);
-            if(stroke === 'none' || width === 0) {
+            if (stroke === 'none' || width === 0) {
                 return;
             }
             const selector = `${stroke};${width}`;
-            if(!this.linesByColor[selector]) {
+            if (!this.linesByColor[selector]) {
                 this.linesByColor[selector] = [];
             }
             this.linesByColor[selector].push(elData);
         }
-        if(mode === 'start') {
+        if (mode === 'start') {
             this.linesByColor = {};
             return;
         }
-        if(mode === 'end') {
+        if (mode === 'end') {
             //safeLog(Object.keys(this.linesByColor), this.linesByColor);
-            for(let selector in this.linesByColor) {
-                if(this.linesByColor.hasOwnProperty(selector)) {
+            for (let selector in this.linesByColor) {
+                if (this.linesByColor.hasOwnProperty(selector)) {
                     const split = selector.split(';');
                     const strokeColor = split[0];
                     const width = split[1];
@@ -571,14 +577,15 @@ export default class Canvasrenderer implements CanvasWorker {
                     this.ctx.lineWidth = parseFloat(width);
 
                     this.ctx.beginPath();
-                    for(let elData of this.linesByColor[selector]) {
-                        if(elData.transform) {
+                    for (let elData of this.linesByColor[selector]) {
+                        if (elData.transform) {
                             this.ctx.save();
                             this.applyTransform(elData.transform);
                         }
 
-                        const [x1, x2, y1, y2] = this.vdom.get(elData, ['x1', 'x2', 'y1', 'y2'])
-                            .map(val => Math.round(val) || 0);
+                        const [x1, x2, y1, y2] = this.vdom
+                            .get(elData, ['x1', 'x2', 'y1', 'y2'])
+                            .map((val) => Math.round(val) || 0);
 
                         /*const dist = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
                         if(dist > 50) {
@@ -588,7 +595,7 @@ export default class Canvasrenderer implements CanvasWorker {
                         this.ctx.moveTo(x1, y1);
                         this.ctx.lineTo(x2, y2);
 
-                        if(elData.transform) {
+                        if (elData.transform) {
                             //this.ctx.restore();
                             this.ctx.restore();
                         }
@@ -599,11 +606,12 @@ export default class Canvasrenderer implements CanvasWorker {
             }
             return;
         }
-        if(mode === 'forcesingle') {
+        if (mode === 'forcesingle') {
             this.ctx.beginPath();
 
-            const [x1, x2, y1, y2] = this.vdom.get(elData, ['x1', 'x2', 'y1', 'y2'])
-                .map(val => Math.round(val) || 0);
+            const [x1, x2, y1, y2] = this.vdom
+                .get(elData, ['x1', 'x2', 'y1', 'y2'])
+                .map((val) => Math.round(val) || 0);
 
             this.ctx.moveTo(x1, y1);
             this.ctx.lineTo(x2, y2);
@@ -622,20 +630,24 @@ export default class Canvasrenderer implements CanvasWorker {
     private drawMarker(node: VdomNode) {
         //TODO figure out.
     }
-    
+
     private applyTransform(transformString: string) {
         const transform = transformString ? DrawingUtils.parseTransform(transformString) : null;
-        if(transform) {
-            if(!transform.rotateLast) {
-                this.ctx.rotate(transform.rotate * Math.PI / 180);
+        if (transform) {
+            if (!transform.rotateLast) {
+                this.ctx.rotate((transform.rotate * Math.PI) / 180);
             }
 
-            const x = transform.translateBeforeScale ? transform.translateX : transform.translateX * transform.scaleX;
-            const y = transform.translateBeforeScale ? transform.translateY : transform.translateY * transform.scaleY;
+            const x = transform.translateBeforeScale
+                ? transform.translateX
+                : transform.translateX * transform.scaleX;
+            const y = transform.translateBeforeScale
+                ? transform.translateY
+                : transform.translateY * transform.scaleY;
             this.ctx.transform(transform.scaleX, 0, 0, transform.scaleY, x, y);
 
-            if(transform.rotateLast) {
-                this.ctx.rotate(transform.rotate * Math.PI / 180);
+            if (transform.rotateLast) {
+                this.ctx.rotate((transform.rotate * Math.PI) / 180);
             }
 
             return true;
@@ -644,18 +656,15 @@ export default class Canvasrenderer implements CanvasWorker {
     }
 }
 
-
 let safeLogCount = 0;
 function safeLog(...logContents) {
-    
-    if(safeLogCount < 300) {
+    if (safeLogCount < 300) {
         safeLogCount++;
         console.log(...logContents);
     }
 }
 function safeErrorLog(...logContents) {
-    
-    if(safeLogCount < 50) {
+    if (safeLogCount < 50) {
         safeLogCount++;
         console.error(...logContents);
     }

@@ -1,5 +1,9 @@
-import { VdomManager } from "../util/vdom/vdom-manager";
-import {CanvasWorkerMessage, CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker-message";
+import {VdomManager} from '../util/vdom/vdom-manager';
+import {
+    CanvasWorkerMessage,
+    CanvasUpdateWorkerMessage,
+    CanvasUpdateData,
+} from '../util/canvas-worker-message';
 
 class SyncWorker {
     private vdom: VdomManager;
@@ -12,7 +16,7 @@ class SyncWorker {
 
         this.port.onmessage = (e: MessageEvent) => {
             this.onRendererReady();
-        }
+        };
     }
 
     onUpdateReceived(data: CanvasUpdateWorkerMessage) {
@@ -21,13 +25,13 @@ class SyncWorker {
         const setAttrQueue = data.data.update;
         this.vdom.addToQueue(setAttrQueue);
 
-        if(this.waitingToRender) {
+        if (this.waitingToRender) {
             this.onRendererReady();
         }
     }
 
     onRendererReady() {
-        if(!this.hasNewData) {
+        if (!this.hasNewData) {
             this.waitingToRender = true;
             return;
         }
@@ -42,7 +46,7 @@ class SyncWorker {
             data: {
                 enterExit: this.enterExitQueue,
                 update: queue,
-            }
+            },
         };
 
         this.port.postMessage(msg);
@@ -54,12 +58,11 @@ class SyncWorker {
 let syncWorker;
 const workerContext: Worker = self as any;
 
-workerContext.onmessage = function(e: MessageEvent) {
-
+workerContext.onmessage = function (e: MessageEvent) {
     const msg: CanvasWorkerMessage = e.data;
 
-    if(msg && msg.cmd) {
-        switch(msg.cmd) {
+    if (msg && msg.cmd) {
+        switch (msg.cmd) {
             case 'INIT':
                 syncWorker = new SyncWorker(msg.data.visData, msg.data.port);
                 break;
@@ -72,16 +75,15 @@ workerContext.onmessage = function(e: MessageEvent) {
     }
 };
 
-
 let safeLogCount = 0;
 function safeLog(...logContents) {
-    if(safeLogCount < 100) {
+    if (safeLogCount < 100) {
         safeLogCount++;
         console.log(...logContents);
     }
 }
 function safeErrorLog(...logContents) {
-    if(safeLogCount < 100) {
+    if (safeLogCount < 100) {
         safeLogCount++;
         console.error(...logContents);
     }

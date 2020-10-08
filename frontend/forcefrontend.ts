@@ -1,26 +1,31 @@
-import CanvasForceWorkerMessage from "../util/forceworkermessage";
+import CanvasForceWorkerMessage from '../util/forceworkermessage';
 
 export default class Forcefrontend {
     private worker: Worker;
     private onTick: () => void;
-    
+
     private nodes;
     private links;
-    
+
     private nodesById: {[id: string]: any} = {};
-    
+
     constructor() {
-        const scripts = Array.from(document.getElementsByTagName("script"));
-        const thisScript = scripts.filter(script => script.src.indexOf('ssvg') !== -1 &&
-            script.src.indexOf('forcefrontend.js') !== -1);
-        const path = thisScript[0].src.substr(0, thisScript[0].src.length - 'forcefrontend.js'.length);
-        
+        const scripts = Array.from(document.getElementsByTagName('script'));
+        const thisScript = scripts.filter(
+            (script) =>
+                script.src.indexOf('ssvg') !== -1 && script.src.indexOf('forcefrontend.js') !== -1
+        );
+        const path = thisScript[0].src.substr(
+            0,
+            thisScript[0].src.length - 'forcefrontend.js'.length
+        );
+
         this.worker = new Worker(path + 'forceworker.js');
-        
-        if((window as any)['d3']) {
+
+        if ((window as any)['d3']) {
             this.replaceD3ForceSimulation();
             this.replaceD3Drag();
-            this.setupWorkerCommunication()
+            this.setupWorkerCommunication();
         }
     }
 
@@ -30,20 +35,25 @@ export default class Forcefrontend {
         d3.forceSimulation = () => {
             const sim = {
                 force: (name, fct) => {
-                    if(name === 'link' && !fct) {
+                    if (name === 'link' && !fct) {
                         return sim; // Allow setting the links
                     }
-                    if(!fct || !fct.workerData) {
+                    if (!fct || !fct.workerData) {
                         console.error('missing implementation for force ', name, ': ', fct);
                     } else {
-                        this.worker.postMessage({force: {name, workerData: fct.workerData}});
+                        this.worker.postMessage({
+                            force: {name, workerData: fct.workerData},
+                        });
                     }
 
                     return sim;
                 },
-                nodes: (nodes) => { this.setNodes(nodes); return sim; },
+                nodes: (nodes) => {
+                    this.setNodes(nodes);
+                    return sim;
+                },
                 alphaTarget: (alphaTarget) => {
-                    this.worker.postMessage({ alphaTarget });
+                    this.worker.postMessage({alphaTarget});
                     return sim;
                 },
                 restart: () => {
@@ -51,7 +61,7 @@ export default class Forcefrontend {
                     return sim;
                 },
                 on: (name: string, callback: () => void) => {
-                    if(name === 'tick') {
+                    if (name === 'tick') {
                         this.onTick = callback;
                     } else {
                         console.log(name);
@@ -59,7 +69,10 @@ export default class Forcefrontend {
 
                     return sim;
                 },
-                links: (links) => { this.setLinks(links); return sim; },
+                links: (links) => {
+                    this.setLinks(links);
+                    return sim;
+                },
             };
             return sim;
         };
@@ -78,8 +91,8 @@ export default class Forcefrontend {
                 },
                 workerData: {
                     idAttr: '',
-                    name: 'forceLink'
-                }
+                    name: 'forceLink',
+                },
             };
             return forceLink;
         };
@@ -87,8 +100,8 @@ export default class Forcefrontend {
         d3.forceManyBody = () => {
             return {
                 workerData: {
-                    name: 'forceManyBody'
-                }
+                    name: 'forceManyBody',
+                },
             };
         };
 
@@ -97,8 +110,8 @@ export default class Forcefrontend {
                 workerData: {
                     name: 'forceCenter',
                     x: x,
-                    y: y
-                }
+                    y: y,
+                },
             };
         };
     }
@@ -109,13 +122,15 @@ export default class Forcefrontend {
 
         d3.drag = () => {
             let d3Drag;
-            let callbacks = {'start': () => {}, 'drag': () => {}, 'end': () => {}};
-            const dragWrapper = function(selection) {
+            let callbacks = {start: () => {}, drag: () => {}, end: () => {}};
+            const dragWrapper = function (selection) {
                 d3Drag = origDrag()
                     .on('start', onDrag('start'))
                     .on('drag', onDrag('drag'))
-                    .on('end', onDrag('end'))
-                    (selection);
+                    .on(
+                        'end',
+                        onDrag('end')
+                    )(selection);
             };
             dragWrapper.on = (name: string, callback: () => void) => {
                 callbacks[name] = callback;
@@ -125,52 +140,58 @@ export default class Forcefrontend {
                 return (d, i) => {
                     callbacks[eventName](d);
 
-                    this.worker.postMessage({ nodeDrag: {index: i, fx: d.fx, fy: d.fy} });
+                    this.worker.postMessage({
+                        nodeDrag: {index: i, fx: d.fx, fy: d.fy},
+                    });
                 };
             };
-
 
             return dragWrapper;
         };
     }
-    
+
     private setupWorkerCommunication() {
         this.worker.onmessage = (event) => {
             switch (event.data.type) {
-                case "tick":
-                
+                case 'tick':
                     const nodes = event.data.nodes;
 
-                    if(!nodes) {
+                    if (!nodes) {
                         return;
                     }
-                
-                    for(let i = 0; i < nodes.length; i++) {
-                        for(let key in nodes[i]) {
+
+                    for (let i = 0; i < nodes.length; i++) {
+                        for (let key in nodes[i]) {
                             this.nodes[i][key] = nodes[i][key];
                         }
                     }
-                    
-                    if(event.data.links) {
+
+                    if (event.data.links) {
                         const links = event.data.links;
-                        
-                        for(let i = 0; i < links.length; i++) {
-                            for(let key in links[i]) {
+
+                        for (let i = 0; i < links.length; i++) {
+                            for (let key in links[i]) {
                                 this.links[i][key] = links[i][key];
                             }
                         }
-                    }
-                    else
-                    {
-                        for(let i = 0; i < this.links.length; i++) {
+                    } else {
+                        for (let i = 0; i < this.links.length; i++) {
                             try {
-                                if(typeof this.links[i].source === 'object') {
-                                    this.links[i].source.x = this.nodesById[this.links[i].source.id].x;
-                                    this.links[i].source.y = this.nodesById[this.links[i].source.id].y;
-                                    this.links[i].target.x = this.nodesById[this.links[i].target.id].x;
-                                    this.links[i].target.y = this.nodesById[this.links[i].target.id].y;
+                                if (typeof this.links[i].source === 'object') {
+                                    this.links[i].source.x = this.nodesById[
+                                        this.links[i].source.id
+                                    ].x;
+                                    this.links[i].source.y = this.nodesById[
+                                        this.links[i].source.id
+                                    ].y;
+                                    this.links[i].target.x = this.nodesById[
+                                        this.links[i].target.id
+                                    ].x;
+                                    this.links[i].target.y = this.nodesById[
+                                        this.links[i].target.id
+                                    ].y;
                                 }
-                            } catch(e) {
+                            } catch (e) {
                                 safeErrorLog(e);
                                 safeErrorLog(this.links[i].source);
                             }
@@ -181,38 +202,35 @@ export default class Forcefrontend {
             }
         };
     }
-    
+
     private setNodes(nodes) {
         this.nodes = nodes;
-        for(let node of nodes) {
+        for (let node of nodes) {
             this.nodesById[node.id] = node;
         }
-        this.worker.postMessage({ nodes: nodes });
+        this.worker.postMessage({nodes: nodes});
     }
-    
+
     private setLinks(links) {
         this.links = links;
-        this.worker.postMessage({ links: links });
+        this.worker.postMessage({links: links});
     }
-    
+
     private sendToWorker(msg: CanvasForceWorkerMessage, data?: any) {
         this.worker.postMessage(msg, data);
         //console.log(roughSizeOfObject(msg));
     }
 }
 
-
 let safeLogCount = 0;
 function safeLog(...logContents) {
-    
-    if(safeLogCount < 50) {
+    if (safeLogCount < 50) {
         safeLogCount++;
         console.log(...logContents);
     }
 }
 function safeErrorLog(...logContents) {
-    
-    if(safeLogCount < 50) {
+    if (safeLogCount < 50) {
         safeLogCount++;
         console.error(...logContents);
     }

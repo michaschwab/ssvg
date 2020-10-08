@@ -1,8 +1,8 @@
-import { VdomManager } from "../util/vdom/vdom-manager";
-import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from "../util/canvas-worker-message";
-import Canvasrenderer from "./canvasrenderer";
-import {VdomNode} from "../util/vdom/vdom";
-import SetPropertyQueueData from "../util/vdom/set-property-queue-data";
+import {VdomManager} from '../util/vdom/vdom-manager';
+import {CanvasWorkerMessage, CanvasUpdateWorkerMessage} from '../util/canvas-worker-message';
+import Canvasrenderer from './canvasrenderer';
+import {VdomNode} from '../util/vdom/vdom';
+import SetPropertyQueueData from '../util/vdom/set-property-queue-data';
 
 export default interface CanvasWorker {
     draw(): void;
@@ -17,26 +17,26 @@ let vdom: VdomManager;
 let port: MessagePort;
 
 const onUpdate = (data: CanvasUpdateWorkerMessage) => {
-    for(let operation of data.data.enterExit) {
-        if(operation.cmd === 'EXIT') {
+    for (let operation of data.data.enterExit) {
+        if (operation.cmd === 'EXIT') {
             const node = vdom.getNodeFromIndex(operation.childGlobalIndex);
             const parent = vdom.getNodeFromIndex(operation.parentGlobalIndex);
             vdom.removeNode(node, parent);
         }
-        if(operation.cmd === 'ENTER') {
+        if (operation.cmd === 'ENTER') {
             const node = operation.node;
-            if(!operation.keepChildren) {
+            if (!operation.keepChildren) {
                 node.children = [];
             }
             vdom.addNode(node);
             vdom.addNodeToParent(node, operation.parentGlobalIndex);
-            if(worker.addNode) {
+            if (worker.addNode) {
                 worker.addNode(node);
             }
         }
     }
 
-    if(worker.updatePropertiesFromQueue) {
+    if (worker.updatePropertiesFromQueue) {
         worker.updatePropertiesFromQueue(data.data.update);
     } else {
         vdom.updatePropertiesFromQueue(data.data.update, (node, attrName) => {
@@ -47,12 +47,11 @@ const onUpdate = (data: CanvasUpdateWorkerMessage) => {
     worker.draw();
 };
 
-workerContext.onmessage = function(e: MessageEvent) {
-    
+workerContext.onmessage = function (e: MessageEvent) {
     const msg: CanvasWorkerMessage = e.data;
 
-    if(msg && msg.cmd) {
-        switch(msg.cmd) {
+    if (msg && msg.cmd) {
+        switch (msg.cmd) {
             case 'INIT':
                 //console.log('init');
                 vdom = new VdomManager(msg.data.visData, false, true);
@@ -65,7 +64,7 @@ workerContext.onmessage = function(e: MessageEvent) {
 
                 port.onmessage = (e2: MessageEvent) => {
                     const msg2: CanvasWorkerMessage = e2.data;
-                    if(msg2 && msg2.cmd) {
+                    if (msg2 && msg2.cmd) {
                         switch (msg2.cmd) {
                             case 'UPDATE_NODES':
                                 onUpdate(msg2 as CanvasUpdateWorkerMessage);

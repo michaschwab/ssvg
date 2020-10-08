@@ -1,6 +1,6 @@
-import SSVG from "./ssvg";
+import SSVG from './ssvg';
 
-if(!location.search.match(/(\?|&)svg($|&)/)) {
+if (!location.search.match(/(\?|&)svg($|&)/)) {
     window['ssvg'] = new SSVG();
 }
 
