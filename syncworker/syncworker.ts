@@ -1,7 +1,5 @@
 import { VdomManager } from "../util/vdom/vdom-manager";
 import {CanvasWorkerMessage, CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker-message";
-import {VdomNode} from "../util/vdom/vdom";
-import SetPropertyQueueData, {AttrValues} from "../util/vdom/set-property-queue-data";
 
 class SyncWorker {
     private vdom: VdomManager;

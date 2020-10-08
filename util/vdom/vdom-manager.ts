@@ -20,6 +20,10 @@ export class VdomManager {
 
     constructor(public data: VDOM, private ignoreDesign: boolean, private isRenderer: boolean) {
         this.ensureNodesMapped();
+
+        if(!('SharedArrayBuffer' in self)) {
+            this.useSharedArrayFor = [];
+        }
     }
 
     ensureInitialized(attrName: string, useBuffer = true, numNodes?: number) {
