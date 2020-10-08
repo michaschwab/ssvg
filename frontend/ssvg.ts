@@ -4,9 +4,9 @@ import {CanvasUpdateWorkerMessage, CanvasUpdateData} from "../util/canvas-worker
 import Domhandler, {SsvgElement} from "./domhandler";
 import CanvasWorker from "../canvasworker/canvasworker";
 import Canvasrenderer from "../canvasworker/canvasrenderer";
-import DrawingUtils from "../canvasworker/drawingUtils";
 import CanvasWorkerImporter from '../canvasworker';
 import SyncWorkerImporter from '../syncworker';
+import {Interactionhandler} from "./interactionhandler";
 
 export default class SSVG {
     private unassignedNodes: Node[] = [];
@@ -14,8 +14,7 @@ export default class SSVG {
     private syncWorker: Worker;
     private domHandler: Domhandler;
     private vdom: VdomManager;
-    private interactionSelections: SsvgElement[] = [];
-    
+    private interactions: Interactionhandler;
     private renderer: CanvasWorker;
 
     private svg: (SVGElement & SsvgElement)|undefined;
@@ -30,8 +29,6 @@ export default class SSVG {
     private readonly maxPixelRatio: number|undefined;
     private readonly useWorker: boolean = true;
     private readonly getFps: (fps: number) => void = () => {};
-
-    private hoveredElement: Element|undefined;
 
     constructor(options?: {
         safeMode?: boolean,
@@ -88,32 +85,8 @@ export default class SSVG {
         const svg = options && options.svg ? options.svg : undefined;
         this.setupElementsIfSvgExists(svg);
         
-        this.canvas.addEventListener('mousedown', e => this.propagateMouseEvent(e));
-        this.canvas.addEventListener('touchstart', e => this.propagateTouchEvent(e));
-        this.canvas.addEventListener('mousemove', e => {
-            const lastHovered = this.hoveredElement;
-            this.hoveredElement = this.propagateMouseEvent(e);
-            if(lastHovered !== this.hoveredElement) {
-                if(lastHovered) {
-                    lastHovered.dispatchEvent(new MouseEvent('mouseout', e));
-                }
-            }
-            this.propagateMouseEvent(e, 'mouseover');
-        });
-        this.canvas.addEventListener('touchmove', e => {
-            const lastHovered = this.hoveredElement;
-            this.hoveredElement = this.propagateTouchEvent(e);
-            if(lastHovered !== this.hoveredElement) {
-                if(lastHovered) {
-                    lastHovered.dispatchEvent(this.duplicateTouchEvent(e, 'mouseout'));
-                }
-            }
-            this.propagateTouchEvent(e, 'mouseover');
-        });
-        this.canvas.addEventListener('mouseup', e => this.propagateMouseEvent(e));
-        this.canvas.addEventListener('touchend', e => this.propagateTouchEvent(e));
-        this.canvas.addEventListener('click', e => this.propagateMouseEvent(e));
-        this.canvas.addEventListener('wheel', e => this.propagateWheelEvent(e));
+        this.interactions = new Interactionhandler(this.canvas, this.svg, this.domHandler, this.vdom);
+        this.interactions.setupListeners();
 
         this.replaceNativeRemoveChild();
         this.replaceNativeAttribute();
@@ -262,10 +235,8 @@ export default class SSVG {
                 }
                 let isWithinSvg = me.isWithinSvg(el);
 
-                if(el && isWithinSvg && me.interactionSelections.indexOf(el) === -1)
-                {
-                    me.interactionSelections.push(el); // This one works for native get/setAttribute
-                    //interactionSelections.push(this); // This one works for d3 .attr.
+                if(isWithinSvg) {
+                    me.interactions.captureD3On(el);
                 }
         
                 return originalOn.apply(this, arguments);
@@ -890,180 +861,7 @@ export default class SSVG {
         };
     }
     
-    private propagateMouseEvent(evt: MouseEvent, type?: string) {
-        return this.propagateEvent(new MouseEvent(type? type : evt.type, evt));
-    }
 
-    private duplicateTouchEvent(evt: TouchEvent, type?: string) {
-        const e = document.createEvent('TouchEvent');
-        if(!type) {
-            type = evt.type;
-        }
-        e.initEvent(type, true, false);
-        for(const prop in evt) {
-            if(prop !== 'isTrusted' && evt.hasOwnProperty(prop)) {
-                Object.defineProperty(e, prop, {
-                    writable: true,
-                    value: evt[prop],
-                });
-            }
-        }
-        Object.defineProperty(e, 'type', {
-            writable: true,
-            value: type,
-        });
-        const touches = [];
-        for(let i = 0; i < evt.touches.length; i++) {
-            const touch = evt.touches[i];
-            touches.push({identifier: touch.identifier, pageX: touch.pageX, pageY: touch.pageY,
-                clientX: touch.clientX, clientY: touch.clientY});
-        }
-        Object.defineProperty(e, 'touches', {
-            writable: true,
-            value: touches,
-        });
-        return e;
-    }
-
-    private propagateTouchEvent(evt: TouchEvent, type?: string) {
-        return this.propagateEvent(this.duplicateTouchEvent(evt, type));
-    }
-    
-    private propagateWheelEvent(evt: WheelEvent) {
-        return this.propagateEvent(new WheelEvent(evt.type, evt));
-    }
-    
-    private propagateEvent(new_event: MouseEvent|TouchEvent|WheelEvent): undefined|Element {
-        this.svg.dispatchEvent(new_event); // for EasyPZ
-
-        let triggeredElement: undefined|Element;
-        const {x, y} = SSVG.getMousePosition(new_event);
-
-        for(let interactionSel of this.interactionSelections)
-        {
-            let parentNode = this.domHandler.getVisNode(interactionSel)
-            
-            //let matchingVisParent = selectedNodes[i];
-            let j = 1;
-            
-            if(!parentNode) {
-                //console.error(interactionSel, parentSelector, parentNode);
-            } else {
-                for(let vdomNode of parentNode.children)
-                {
-                    let childNode = this.nodeAtPosition(vdomNode, x - 10, y - 10);
-
-                    if(childNode)
-                    {
-                        const svgEl = this.domHandler.getElementFromNode(vdomNode);
-                        const svgChildEl = this.domHandler.getElementFromNode(childNode);
-
-                        if(svgChildEl) {
-                            Object.defineProperty(new_event, 'target', {
-                                writable: true,
-                                value: svgChildEl
-                            });
-                        }
-
-                        if(svgChildEl) {
-                            triggeredElement = svgChildEl;
-                            svgChildEl.dispatchEvent(new_event);
-                        }
-
-                        if(svgEl !== svgChildEl) {
-                            if(!triggeredElement) {
-                                triggeredElement = svgEl;
-                            }
-                            svgEl.dispatchEvent(new_event);
-                        }
-                    }
-                    j++;
-                }
-            }
-        }
-        return triggeredElement;
-    }
-
-    //TODO move this function somewhere else.
-    private static getMousePosition(event: MouseEvent|TouchEvent) : {x: number, y: number}|null
-    {
-        let pos = {x: 0, y: 0};
-
-        const mouseEvents = ['wheel', 'click', 'mousemove', 'mousedown', 'mouseup', 'dblclick', 'contextmenu',
-            'mouseenter', 'mouseleave', 'mouseout', 'mouseover'];
-        if(mouseEvents.indexOf(event.type) !== -1 && event['clientX']) {
-            pos = {x: event['clientX'], y: event['clientY']};
-        } else if(event.type.substr(0,5) === 'touch') {
-            const touches = event['touches'] ? event['touches'] : [];
-            if(touches.length < 1) return null;
-            pos = {x: touches[0].clientX, y: touches[0].clientY};
-        } else {
-            safeErrorLog('no event pos for event type ', event);
-        }
-
-        return pos;
-    }
-    
-    private nodeAtPosition(visNode: VdomNode, x: number, y: number): false|VdomNode {
-        if (visNode.type === 'circle') {
-            let cx = this.vdom.get(visNode, 'cx') || 0;
-            let cy = this.vdom.get(visNode, 'cy') || 0;
-            if (visNode.transform) {
-                const transform = DrawingUtils.parseTransform(visNode.transform);
-                if (transform.translateX) {
-                    cx += transform.translateX;
-                }
-                if (transform.translateY) {
-                    cy += transform.translateY;
-                }
-            }
-            const distance = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
-            return distance < visNode.r ? visNode : false;
-        } else if(visNode.type === 'rect' || visNode.type === 'image') {
-
-            let elX = this.vdom.get(visNode, 'x') || 0;
-            let elY = this.vdom.get(visNode, 'y') || 0;
-            const width = visNode.width;
-            const height = visNode.height;
-
-            if (visNode.transform) {
-                const transform = DrawingUtils.parseTransform(visNode.transform);
-                if (transform.translateX) {
-                    elX += transform.translateX;
-                }
-                if (transform.translateY) {
-                    elY += transform.translateY;
-                }
-            }
-
-            const centerX = elX + width / 2;
-            const centerY = elY + height / 2;
-
-            const distanceX = Math.abs(centerX - x);
-            const distanceY = Math.abs(centerY - y);
-
-            return distanceX < width / 2 && distanceY < height / 2 ? visNode : false;
-
-        } else if(visNode.type === 'g') {
-
-            const transform = this.domHandler.getTotalTransformation(visNode);
-            if(transform.translateX) {
-                x -= transform.translateX;
-            }
-            if(transform.translateY) {
-                y -= transform.translateY;
-            }
-
-            let matchAny: false|VdomNode = false;
-            for(let i = 0; i < visNode.children.length; i++) {
-                if(this.nodeAtPosition(visNode.children[i], x, y)) {
-                    matchAny = visNode.children[i];
-                }
-            }
-            return matchAny;
-        }
-        return false;
-    }
     
     private logDrawn() {
         this.lastCanvasDrawTimes.push(Date.now());

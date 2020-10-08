@@ -103,15 +103,13 @@ export default class Domhandler {
         }
 
         this.vdom.ensureInitialized(attrName, true, this.maxGlobalElementIndex);
-        const parentIndices = this.getNodeFromElement(elements[0].parentNode as SsvgElement)
-            .children.map(n => n.globalElementIndex);
 
         for(let i = 0; i < elements.length; i++) {
-            const svgEl = elements[i];
+            const element = elements[i];
             const evaluatedValue = typeof value === "function"
-                ? value(svgEl.__data__, i) : value;
+                ? value(element.__data__, i) : value;
 
-            this.vdom.set(svgEl, attrName, evaluatedValue);
+            this.vdom.set(element, attrName, evaluatedValue);
 
             //TODO: re-implement.
             /*if(attrName === "href") {
@@ -132,8 +130,9 @@ export default class Domhandler {
         if(attrName === 'className' || attrName.indexOf('style') !== -1) {
             // Apply classes immediately so styles can be applied correctly.
             for(let i = 0; i < elements.length; i++) {
-                const node = this.getNodeFromElement(elements[i]);
-                const evaluatedValue = typeof value === "function" ? value(elements[i].__data__, i) : value;
+                const element = elements[i];
+                const node = this.getNodeFromElement(element);
+                const evaluatedValue = typeof value === "function" ? value(element.__data__, i) : value;
 
                 if(attrName === 'className') {
                     node.className = evaluatedValue;
