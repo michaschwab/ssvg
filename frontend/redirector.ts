@@ -698,7 +698,9 @@ export class Redirector {
 
         const origGetAttr = Element.prototype.getAttribute;
         Element.prototype.getAttribute = function (this: SsvgElement, name) {
-            if (me.unassignedNodes.indexOf(this) !== -1) {
+            const unassigned = me.unassignedNodes.indexOf(this) !== -1;
+            const within = me.domHandler.isWithinSvg(this);
+            if (unassigned || !within) {
                 return origGetAttr.apply(this, arguments);
             } else {
                 try {

@@ -1,6 +1,6 @@
 {
     "name": "ssvg",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "description": "Library to speed up interactive svg-based data visualizations by transforming them into canvases.",
     "main": "svgtocanvas.js",
     "dependencies": {
