@@ -162,7 +162,7 @@ export class Interactionhandler {
             'mouseout',
             'mouseover',
         ];
-        if (mouseEvents.indexOf(event.type) !== -1 && event['clientX']) {
+        if (mouseEvents.indexOf(event.type) !== -1 && 'clientX' in event) {
             pos = {x: event['clientX'], y: event['clientY']};
         } else if (event.type.substr(0, 5) === 'touch') {
             const touches = event['touches'] ? event['touches'] : [];
