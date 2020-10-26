@@ -7,13 +7,20 @@ import {safeErrorLog} from '../util/safelogs';
 export class Interactionhandler {
     private interactionSelections: SsvgElement[] = [];
     private hoveredElement: Element | undefined;
+    private position: {x: number; y: number};
 
     constructor(
         private canvas: HTMLCanvasElement,
         private svg: SVGElement & SsvgElement,
         private domHandler: Domhandler,
         private vdom: VdomManager
-    ) {}
+    ) {
+        const rect = this.canvas.getBoundingClientRect();
+        if (!('x' in rect)) {
+            throw new Error('SVG position not found');
+        }
+        this.position = {x: rect.x, y: rect.y};
+    }
 
     setupListeners() {
         this.canvas.addEventListener('mousedown', (e) => this.propagateMouseEvent(e));
@@ -114,7 +121,7 @@ export class Interactionhandler {
                 //console.error(interactionSel, parentSelector, parentNode);
             } else {
                 for (let node of parentNode.children) {
-                    let childNode = this.nodeAtPosition(node, x - 10, y - 10);
+                    let childNode = this.nodeAtPosition(node, x, y);
 
                     if (childNode) {
                         const element = this.domHandler.getElementFromNode(node);
@@ -176,6 +183,9 @@ export class Interactionhandler {
     }
 
     private nodeAtPosition(visNode: VdomNode, x: number, y: number): false | VdomNode {
+        x -= this.position.x;
+        y -= this.position.y;
+
         if (visNode.type === 'circle') {
             let cx = this.vdom.get(visNode, 'cx') || 0;
             let cy = this.vdom.get(visNode, 'cy') || 0;
