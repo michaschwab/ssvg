@@ -52,8 +52,8 @@ export default class Domhandler {
 
         const node = this.getNodeFromElement(element);
 
-        const parentIndices = this.getNodeFromElement(element.parentNode as SsvgElement)
-            .children.map(n => n.globalElementIndex);
+        const parent = this.getNodeFromElement(element.parentNode as SsvgElement);
+        const parentIndices = !parent ? [] : parent.children.map(n => n.globalElementIndex);
         const index = parentIndices.indexOf(node.globalElementIndex);
         const evaluatedValue = typeof value === "function" ?
             value.call(element, element.__data__, index) : value;
