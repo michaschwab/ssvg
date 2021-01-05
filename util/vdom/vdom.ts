@@ -4,37 +4,48 @@ export type VDOM = {
     scale: number;
 } & VdomNode;
 
-export type VdomNodeType = 'svg'|'g'|'rect'|'circle'|'path'|'title'|'tspan'|'text'|'image'|'clippath'|'line';
+export type VdomNodeType =
+    | 'svg'
+    | 'g'
+    | 'rect'
+    | 'circle'
+    | 'path'
+    | 'title'
+    | 'tspan'
+    | 'text'
+    | 'image'
+    | 'clippath'
+    | 'line';
 
-export type VdomNode = {
-    style: {[styleName: string]: string},
-    css: {[selector: string]: {[styleName: string]: string}},
-    type: VdomNodeType,
-    children: VdomNode[],
-    globalElementIndex: number,
-    transform?: string,
-    fill?: string,
-    opacity?: number,
-    d?: string,
-    stroke?: string,
-    strokeWidth?: string,
-    cx?: number,
-    cy?: number,
-    r?: number,
-    x?: number,
-    y?: number,
-    x1?: number,
-    y1?: number,
-    x2?: number,
-    y2?: number,
-    dx?: string,
-    dy?: string,
-    width?: number,
-    height?: number,
-    textAlign?: string,
-    text?: string,
-    href?: string,
-    image?: ImageBitmap,
-    className?: string,
-    id?: string,
+export interface VdomNode {
+    style: {[styleName: string]: string};
+    css: {[selector: string]: {[styleName: string]: string}};
+    type: VdomNodeType;
+    children: VdomNode[];
+    globalElementIndex: number;
+    transform?: string;
+    fill?: string;
+    opacity?: number;
+    d?: string;
+    stroke?: string;
+    strokeWidth?: string;
+    cx?: number;
+    cy?: number;
+    r?: number;
+    x?: number;
+    y?: number;
+    x1?: number;
+    y1?: number;
+    x2?: number;
+    y2?: number;
+    dx?: string;
+    dy?: string;
+    width?: number;
+    height?: number;
+    textAlign?: string;
+    text?: string;
+    href?: string;
+    image?: ImageBitmap;
+    className?: string;
+    id?: string;
 }
