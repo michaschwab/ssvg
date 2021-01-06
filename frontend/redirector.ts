@@ -29,6 +29,7 @@ export class Redirector {
         this.replaceNativeGetComputedStyle();
         this.replaceD3Select();
         this.replaceD3Remove();
+        this.replaceNativeGetScreenCtm();
     }
 
     initialize(svg: SVGElement & SsvgElement) {
@@ -714,6 +715,21 @@ export class Redirector {
                     return origGetAttr.apply(this, arguments);
                 }
             }
+        };
+    }
+
+    private replaceNativeGetScreenCtm() {
+        // Firefox always returns null for some reason. That is why this function is necessary.
+        const orig = SVGGraphicsElement.prototype.getScreenCTM;
+        SVGGraphicsElement.prototype.getScreenCTM = function (this: SsvgElement) {
+            const origResult = orig.apply(this, arguments);
+            if (origResult) {
+                return origResult;
+            }
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+
+            return svg.createSVGMatrix();
         };
     }
 }
