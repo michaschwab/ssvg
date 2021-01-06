@@ -82,19 +82,12 @@ export default class SSVG {
             raf();
         }
 
-        const svg = options && options.svg ? options.svg : undefined;
-        this.setupElementsIfSvgExists(svg);
+        this.domHandler = new Domhandler(this.useWorker, this.useWorker);
+        this.vdom = this.domHandler.getVDom();
 
-        this.interactions = new Interactionhandler(
-            this.canvas,
-            this.svg,
-            this.domHandler,
-            this.vdom
-        );
-        this.interactions.setupListeners();
+        this.interactions = new Interactionhandler();
 
         this.redirector = new Redirector(
-            this.svg,
             this.domHandler,
             this.vdom,
             this.interactions,
@@ -104,6 +97,9 @@ export default class SSVG {
             () => this.svgAssignedAndSizeSet,
             this.setupElementsIfSvgExists.bind(this)
         );
+
+        const svg = options && options.svg ? options.svg : undefined;
+        this.setupElementsIfSvgExists(svg);
 
         setTimeout(() => {
             console.log(this.vdom.data);
@@ -142,8 +138,9 @@ export default class SSVG {
             parent.appendChild(this.canvas);
         }
 
-        this.domHandler = new Domhandler(this.svg, this.useWorker, this.useWorker);
-        this.vdom = this.domHandler.getVDom();
+        this.domHandler.initialize(this.svg);
+        this.redirector.initialize(this.svg);
+        this.interactions.initialize(this.canvas, this.svg, this.domHandler, this.vdom);
 
         this.setCanvasSize();
 

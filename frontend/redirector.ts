@@ -6,9 +6,9 @@ import {safeLog} from '../util/safelogs';
 
 export class Redirector {
     private unassignedNodes: Node[] = [];
+    private svg: SVGElement & SsvgElement;
 
     constructor(
-        private svg: SVGElement & SsvgElement,
         private domHandler: Domhandler,
         private vdom: VdomManager,
         private interactions: Interactionhandler,
@@ -29,6 +29,10 @@ export class Redirector {
         this.replaceNativeGetComputedStyle();
         this.replaceD3Select();
         this.replaceD3Remove();
+    }
+
+    initialize(svg: SVGElement & SsvgElement) {
+        this.svg = svg;
     }
 
     private captureD3On() {
@@ -539,7 +543,7 @@ export class Redirector {
         const me = this;
 
         return function <T extends Node>(this: SsvgElement, el: T & SsvgElement) {
-            if (!me.svgIsAssignedAndSizeSet) {
+            if (!me.svgIsAssignedAndSizeSet()) {
                 if (!me.svg && el.tagName === 'svg') {
                     const appended = origAppend.apply(this, arguments);
                     me.onSvgAppended(<SVGElement & SsvgElement>(<unknown>el));
@@ -700,7 +704,7 @@ export class Redirector {
         Element.prototype.getAttribute = function (this: SsvgElement, name) {
             const unassigned = me.unassignedNodes.indexOf(this) !== -1;
             const within = me.domHandler.isWithinSvg(this);
-            if (unassigned || !within) {
+            if (unassigned || !within || !me.svg) {
                 return origGetAttr.apply(this, arguments);
             } else {
                 try {

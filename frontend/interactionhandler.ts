@@ -8,21 +8,34 @@ export class Interactionhandler {
     private interactionSelections: SsvgElement[] = [];
     private hoveredElement: Element | undefined;
     private position: {x: number; y: number};
+    private canvas: HTMLCanvasElement;
+    private svg: SVGElement & SsvgElement;
+    private domHandler: Domhandler;
+    private vdom: VdomManager;
 
-    constructor(
-        private canvas: HTMLCanvasElement,
-        private svg: SVGElement & SsvgElement,
-        private domHandler: Domhandler,
-        private vdom: VdomManager
+    constructor() {}
+
+    initialize(
+        canvas: HTMLCanvasElement,
+        svg: SVGElement & SsvgElement,
+        domHandler: Domhandler,
+        vdom: VdomManager
     ) {
+        this.canvas = canvas;
+        this.svg = svg;
+        this.domHandler = domHandler;
+        this.vdom = vdom;
+
         const rect = this.canvas.getBoundingClientRect();
         if (!('x' in rect)) {
             throw new Error('SVG position not found');
         }
         this.position = {x: rect.x, y: rect.y};
+
+        this.setupListeners();
     }
 
-    setupListeners() {
+    private setupListeners() {
         this.canvas.addEventListener('mousedown', (e) => this.propagateMouseEvent(e));
         this.canvas.addEventListener('touchstart', (e) => this.propagateTouchEvent(e));
         this.canvas.addEventListener('mousemove', (e) => {

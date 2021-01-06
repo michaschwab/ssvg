@@ -132,6 +132,7 @@ export class VdomManager {
                 this.queue[attrName][index] = value;
                 if (
                     this.sharedDataQueue.values[attrName] &&
+                    this.syncedSharedData.values[attrName] &&
                     this.syncedSharedData.values[attrName][index]
                 ) {
                     // un-set.

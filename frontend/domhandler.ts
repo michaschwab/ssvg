@@ -11,16 +11,13 @@ export class Domhandler {
     private nodesToRestyle: VdomNode[] = [];
     private maxGlobalElementIndex = 0;
     private removedNodeIndices: number[] = [];
+    private svg: SVGElement & SsvgElement;
 
-    constructor(
-        private svg: SVGElement & SsvgElement,
-        useWorker: boolean,
-        private ignoreDesign: boolean
-    ) {
+    constructor(useWorker: boolean, private ignoreDesign: boolean) {
         const visData: VDOM = {
             type: 'svg',
-            width: parseInt(this.svg.getAttribute('width')),
-            height: parseInt(this.svg.getAttribute('height')),
+            width: 0,
+            height: 0,
             scale: 1,
             children: [],
             globalElementIndex: 0,
@@ -29,7 +26,14 @@ export class Domhandler {
         };
 
         this.vdom = new VdomManager(visData, ignoreDesign, false);
-        this.linkNodeToElement(visData, this.svg);
+    }
+
+    initialize(svg: SVGElement & SsvgElement) {
+        this.svg = svg;
+        this.vdom.data.width = parseInt(this.svg.getAttribute('width'));
+        this.vdom.data.height = parseInt(this.svg.getAttribute('height'));
+
+        this.linkNodeToElement(this.vdom.data, this.svg);
         this.svg.style.display = 'none';
         this.svg['selector'] = 'svg';
 
@@ -70,7 +74,8 @@ export class Domhandler {
             console.error('node not found for ', element);
             return;
         }
-        this.vdom.set(node, attrName, evaluatedValue, false);
+        this.vdom.ensureInitialized(attrName, true, this.maxGlobalElementIndex);
+        this.vdom.set(node, attrName, evaluatedValue);
 
         if (attrName === 'href') {
             safeLog('href not yet supported.');
@@ -157,7 +162,12 @@ export class Domhandler {
         const node = this.getNodeFromElement(element);
 
         if (!node) {
-            console.error('trying to get attribute for unfit selection', node, element, name);
+            console.error(
+                'trying to get attribute for unfit selection',
+                element,
+                element.globalElementIndex,
+                name
+            );
             throw Error('element not found');
         }
 
