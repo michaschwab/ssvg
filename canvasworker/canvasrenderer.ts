@@ -355,11 +355,15 @@ export class Canvasrenderer implements CanvasWorker {
                         // Round values so that paths are connected correctly and there are no rendering glitches
                         const x = Math.round(this.vdom.get(elData, 'x')) || 0;
                         const y = Math.round(this.vdom.get(elData, 'y')) || 0;
-                        this.ctx.save();
-                        this.applyTransform(elData.transform);
+                        if(elData.transform) {
+                            this.ctx.save();
+                            this.applyTransform(elData.transform);
+                        }
                         this.ctx.moveTo(x, y);
                         this.ctx.rect(x, y, elData.width, elData.height);
-                        this.ctx.restore();
+                        if(elData.transform) {
+                            this.ctx.restore();
+                        }
                         //this.ctx.restore();
                     }
                     if (fillColor !== 'none') {
